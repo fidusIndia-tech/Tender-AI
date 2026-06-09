@@ -152,6 +152,8 @@ def merge_results(results: list) -> dict:
             "organization_name": None,
             "office_name_location": None,
             "total_quantity": None,
+            "make": None,
+            "tender_approx_value": None,
         },
         "items": [],
         "required_documents": [],
