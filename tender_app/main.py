@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import uuid
 from pathlib import Path
@@ -25,6 +26,16 @@ for d in (UPLOADS_DIR, EXTRACTIONS_DIR, COMPANY_DOCS_DIR, GENERATED_DIR):
 
 app = FastAPI(title="AI Tender Management System")
 database.init_db()
+
+
+@app.get("/api/health")
+async def health():
+    key = os.environ.get("OPENAI_API_KEY", "")
+    return {
+        "status": "ok",
+        "openai_key_set": bool(key),
+        "openai_key_preview": (key[:8] + "...") if key else "NOT SET",
+    }
 
 
 # ── Pydantic Models ───────────────────────────────────────────────────────────
@@ -306,6 +317,7 @@ async def delete_stamp():
         Path(profile["stamp_file_path"]).unlink(missing_ok=True)
     database.clear_profile_image_path("stamp_file_path")
     return {"message": "removed"}
+
 
 
 @app.delete("/api/company/profile/signature")
