@@ -58,6 +58,9 @@ class TenderPayload(BaseModel):
     total_quantity: Optional[str] = None
     make: Optional[str] = None
     tender_approx_value: Optional[str] = None
+    won_text: Optional[str] = None
+    lost_text: Optional[str] = None
+    participant_text: Optional[str] = None
     participation_status: Optional[str] = None
     pdf_path: Optional[str] = None
     extraction_json_path: Optional[str] = None
@@ -201,6 +204,19 @@ async def delete_tender(tender_id: int):
         import shutil
         shutil.rmtree(gen_dir, ignore_errors=True)
     database.delete_tender(tender_id)
+
+
+@app.patch("/api/tenders/{tender_id}/record-fields")
+async def update_record_fields(tender_id: int, body: dict):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    database.update_tender_record_fields(
+        tender_id,
+        body.get("won_text"),
+        body.get("lost_text"),
+        body.get("participant_text"),
+    )
+    return {"id": tender_id}
 
 
 @app.patch("/api/tenders/{tender_id}/status")

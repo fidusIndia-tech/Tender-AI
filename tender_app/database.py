@@ -27,6 +27,9 @@ def init_db():
             total_quantity TEXT,
             make TEXT,
             tender_approx_value TEXT,
+            won_text TEXT,
+            lost_text TEXT,
+            participant_text TEXT,
             uploaded_at TEXT,
             pdf_path TEXT,
             extraction_json_path TEXT,
@@ -102,6 +105,9 @@ def init_db():
         ("tenders",                    "participation_status", "TEXT DEFAULT 'new'"),
         ("tenders",                    "make",                 "TEXT"),
         ("tenders",                    "tender_approx_value",  "TEXT"),
+        ("tenders",                    "won_text",             "TEXT"),
+        ("tenders",                    "lost_text",            "TEXT"),
+        ("tenders",                    "participant_text",     "TEXT"),
         ("tender_prepared_documents",  "recommended_action",  "TEXT"),
     ]
     for table, col, definition in migrations:
@@ -125,8 +131,9 @@ def save_tender(data, items, documents):
             gem_bidding_number, tender_number, date, bid_end_datetime, bid_opening_datetime,
             department_name, organization_name, office_name_location,
             total_quantity, make, tender_approx_value,
+            won_text, lost_text, participant_text,
             uploaded_at, pdf_path, extraction_json_path, status, participation_status
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             data.get("gem_bidding_number"),
             data.get("tender_number"), data.get("date"),
@@ -134,6 +141,7 @@ def save_tender(data, items, documents):
             data.get("department_name"), data.get("organization_name"),
             data.get("office_name_location"),
             data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
+            data.get("won_text"), data.get("lost_text"), data.get("participant_text"),
             now, data.get("pdf_path"), data.get("extraction_json_path"),
             "saved", "new",
         ),
@@ -153,8 +161,9 @@ def update_tender(tender_id, data, items, documents):
         """UPDATE tenders SET
             gem_bidding_number=?, tender_number=?, date=?, bid_end_datetime=?, bid_opening_datetime=?,
             department_name=?, organization_name=?, office_name_location=?,
-            total_quantity=?, make=?, tender_approx_value=?, status=?,
-            participation_status=COALESCE(?, participation_status)
+            total_quantity=?, make=?, tender_approx_value=?,
+            won_text=COALESCE(?,won_text), lost_text=COALESCE(?,lost_text), participant_text=COALESCE(?,participant_text),
+            status=?, participation_status=COALESCE(?, participation_status)
         WHERE id=?""",
         (
             data.get("gem_bidding_number"),
@@ -163,6 +172,7 @@ def update_tender(tender_id, data, items, documents):
             data.get("department_name"), data.get("organization_name"),
             data.get("office_name_location"),
             data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
+            data.get("won_text"), data.get("lost_text"), data.get("participant_text"),
             "reviewed",
             data.get("participation_status"),
             tender_id,
@@ -200,11 +210,22 @@ def list_tenders():
     conn = get_db()
     rows = conn.execute(
         """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
-                  total_quantity, participation_status, uploaded_at
+                  total_quantity, participation_status, uploaded_at,
+                  won_text, lost_text, participant_text
            FROM tenders ORDER BY uploaded_at DESC"""
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def update_tender_record_fields(tender_id, won_text, lost_text, participant_text):
+    conn = get_db()
+    conn.execute(
+        "UPDATE tenders SET won_text=?, lost_text=?, participant_text=? WHERE id=?",
+        (won_text, lost_text, participant_text, tender_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def update_tender_participation_status(tender_id, status):
