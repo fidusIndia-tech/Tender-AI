@@ -56,6 +56,8 @@ class TenderPayload(BaseModel):
     organization_name: Optional[str] = None
     office_name_location: Optional[str] = None
     total_quantity: Optional[str] = None
+    make: Optional[str] = None
+    tender_approx_value: Optional[str] = None
     participation_status: Optional[str] = None
     pdf_path: Optional[str] = None
     extraction_json_path: Optional[str] = None

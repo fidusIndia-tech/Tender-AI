@@ -33,7 +33,9 @@ Required JSON structure:
     "department_name": "string or null",
     "organization_name": "string or null",
     "office_name_location": "string or null",
-    "total_quantity": "string or null"
+    "total_quantity": "string or null",
+    "make": "string or null",
+    "tender_approx_value": "string or null"
   },
   "items": [
     {
@@ -56,6 +58,8 @@ Field extraction rules — scan table rows (label | value) for these:
 - organization_name: label "Organisation Name" or "Organization Name" → value
 - office_name_location: label "Office Name and Location" or "Office" → value
 - total_quantity: sum of all BOQ item quantities as a plain number string e.g. "80"
+- make: from Item Category column or BOQ item descriptions, extract brand/manufacturer names (e.g. IFM, Siemens, Omron, Schneider, WIKA, Gulf); if multiple brands found, comma-separate them; null if not found
+- tender_approx_value: look for labels "Estimated Value", "Tender Value", "Approximate Value", "Estimated Cost", "Contract Value", or "Bid Value" → extract the value; null if not found
 - items: ALL line items from the Bill of Quantities; part_number is the model/order code
 - required_documents: every document name listed as required or mandatory; plain strings only
 

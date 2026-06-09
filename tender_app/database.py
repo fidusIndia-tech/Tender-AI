@@ -25,6 +25,8 @@ def init_db():
             organization_name TEXT,
             office_name_location TEXT,
             total_quantity TEXT,
+            make TEXT,
+            tender_approx_value TEXT,
             uploaded_at TEXT,
             pdf_path TEXT,
             extraction_json_path TEXT,
@@ -98,6 +100,8 @@ def init_db():
     migrations = [
         ("tenders",                    "gem_bidding_number",   "TEXT"),
         ("tenders",                    "participation_status", "TEXT DEFAULT 'new'"),
+        ("tenders",                    "make",                 "TEXT"),
+        ("tenders",                    "tender_approx_value",  "TEXT"),
         ("tender_prepared_documents",  "recommended_action",  "TEXT"),
     ]
     for table, col, definition in migrations:
@@ -120,16 +124,16 @@ def save_tender(data, items, documents):
         """INSERT INTO tenders (
             gem_bidding_number, tender_number, date, bid_end_datetime, bid_opening_datetime,
             department_name, organization_name, office_name_location,
-            total_quantity,
+            total_quantity, make, tender_approx_value,
             uploaded_at, pdf_path, extraction_json_path, status, participation_status
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             data.get("gem_bidding_number"),
             data.get("tender_number"), data.get("date"),
             data.get("bid_end_datetime"), data.get("bid_opening_datetime"),
             data.get("department_name"), data.get("organization_name"),
             data.get("office_name_location"),
-            data.get("total_quantity"),
+            data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
             now, data.get("pdf_path"), data.get("extraction_json_path"),
             "saved", "new",
         ),
@@ -149,7 +153,7 @@ def update_tender(tender_id, data, items, documents):
         """UPDATE tenders SET
             gem_bidding_number=?, tender_number=?, date=?, bid_end_datetime=?, bid_opening_datetime=?,
             department_name=?, organization_name=?, office_name_location=?,
-            total_quantity=?, status=?,
+            total_quantity=?, make=?, tender_approx_value=?, status=?,
             participation_status=COALESCE(?, participation_status)
         WHERE id=?""",
         (
@@ -158,7 +162,7 @@ def update_tender(tender_id, data, items, documents):
             data.get("bid_end_datetime"), data.get("bid_opening_datetime"),
             data.get("department_name"), data.get("organization_name"),
             data.get("office_name_location"),
-            data.get("total_quantity"),
+            data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
             "reviewed",
             data.get("participation_status"),
             tender_id,
