@@ -226,8 +226,8 @@ async def update_record_fields(tender_id: int, body: dict):
         raise HTTPException(404, "Tender not found")
     database.update_tender_record_fields(
         tender_id,
-        body.get("won_text"),
-        body.get("lost_text"),
+        None,
+        None,
         body.get("participant_text"),
     )
     return {"id": tender_id}
