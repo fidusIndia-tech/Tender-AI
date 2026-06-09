@@ -3,6 +3,7 @@ doc_generator.py — Generate .docx documents for tender preparation using GPT-4
 Only generates declarations, letters, and undertakings — never government-issued documents.
 """
 
+from datetime import datetime
 from pathlib import Path
 from docx import Document
 from docx.shared import Pt, Inches
@@ -124,7 +125,7 @@ def generate_ai_document(document_type: str, profile: dict, tender: dict, output
     doc.add_paragraph(f"GST No : {profile.get('gst_number', '')}")
     doc.add_paragraph("")
     _add_image_or_space(doc, profile.get("stamp_file_path"), width_inches=1.5)
-    doc.add_paragraph("Date : _______________")
+    doc.add_paragraph(f"Date : {datetime.now().strftime('%d-%m-%Y')}")
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     doc.save(output_path)
