@@ -52,13 +52,9 @@ body {
   padding: 0;
 }
 .sidebar-brand {
-  padding: 16px 18px 14px;
+  padding: 14px 18px;
   border-bottom: 1px solid rgba(255,255,255,.07);
-  display: flex; align-items: center; gap: 11px;
-}
-.sidebar-brand .brand-text {
-  font-size: 21px; font-weight: 900; color: #fff;
-  letter-spacing: 1.5px; line-height: 1; font-family: Arial, sans-serif;
+  display: flex; align-items: center; justify-content: center;
 }
 
 .sidebar-section-label {
@@ -421,21 +417,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 <!-- ── Sidebar ────────────────────────────────────────────────────────────── -->
 <div id="sidebar">
   <div class="sidebar-brand">
-    <!-- FIAPL Bird Logo -->
-    <svg width="48" height="42" viewBox="0 0 60 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="birdGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7A0C0C"/>
-          <stop offset="50%" stop-color="#C41818"/>
-          <stop offset="100%" stop-color="#E84515"/>
-        </linearGradient>
-      </defs>
-      <!-- Upper wing blade -->
-      <path d="M5 40 L10 18 L56 4 L50 20 Z" fill="url(#birdGrad)"/>
-      <!-- Lower blade / tail -->
-      <path d="M5 40 L12 34 L58 48 L52 52 Z" fill="url(#birdGrad)"/>
-    </svg>
-    <span class="brand-text">FIAPL</span>
+    <img src="/logo%20FIAPL.png" alt="FIAPL" style="height:44px;width:auto;object-fit:contain;filter:brightness(0) invert(1)">
   </div>
 
   <div class="sidebar-section-label">Main</div>
@@ -1101,41 +1083,18 @@ async function deleteTender(id) {
   } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
 
-async function toggleStatus(id, status) {
-  const row = document.querySelector(`tr[data-tender-id="${id}"]`);
-  if (!row) return;
-  const current = row.dataset.status;
-  const newStatus = current === status ? 'new' : status;
-  try {
-    const res = await fetch(`/api/tenders/${id}/status`, {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ status: newStatus }),
-    });
-    if (!res.ok) throw new Error('Update failed');
-    row.dataset.status = newStatus;
-    row.querySelector('.won-btn').classList.toggle('active', newStatus === 'won');
-    row.querySelector('.lost-btn').classList.toggle('active', newStatus === 'lost');
-    updateStatCards();
-  } catch (err) { toast('Error: ' + err.message, 'error'); }
-}
-
-function updateStatCards() {
-  const rows = [...document.querySelectorAll('#tendersTableBody tr[data-tender-id]')];
-  const el = id => document.getElementById(id);
-  if (el('stat-total')) el('stat-total').textContent = rows.length;
-  if (el('stat-won'))   el('stat-won').textContent   = rows.filter(r => r.dataset.status === 'won').length;
-  if (el('stat-lost'))  el('stat-lost').textContent  = rows.filter(r => r.dataset.status === 'lost').length;
-}
-
 async function saveRecordField(id) {
   const row = document.querySelector(`tr[data-tender-id="${id}"]`);
   if (!row) return;
-  const input = row.querySelector('[data-record-field="participant_text"]');
-  if (!input) return;
+  const body = {};
+  row.querySelectorAll('[data-record-field]').forEach(el => {
+    body[el.dataset.recordField] = el.value.trim() || null;
+  });
   try {
     await fetch(`/api/tenders/${id}/record-fields`, {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ participant_text: input.value.trim() || null }),
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
     });
   } catch (_) {}
 }
