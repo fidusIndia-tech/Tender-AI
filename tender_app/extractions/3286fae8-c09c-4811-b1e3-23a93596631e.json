@@ -1,0 +1,14 @@
+{
+  "tender_information": {
+    "tender_number": null,
+    "date": null,
+    "bid_end_datetime": null,
+    "bid_opening_datetime": null,
+    "department_name": null,
+    "organization_name": null,
+    "office_name_location": null,
+    "total_quantity": null
+  },
+  "items": [],
+  "required_documents": []
+}

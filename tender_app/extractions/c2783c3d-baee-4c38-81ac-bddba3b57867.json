@@ -1,0 +1,287 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7552397",
+    "date": "26-05-2026",
+    "bid_end_datetime": "09-06-2026 15:00:00",
+    "bid_opening_datetime": "09-06-2026 15:30:00",
+    "department_name": "Department Of Economic Affairs",
+    "organization_name": "Security Printing And Minting Corporation Of India Limited (spmcil)",
+    "office_name_location": "3rd Floor Tower G World Trade Centre Nauroji Nagar",
+    "total_quantity": "181"
+  },
+  "items": [
+    {
+      "part_number": "G3NA210B",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "G3NA220B",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "G9SB3012A",
+      "item_description": "SAFETY RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15GNJ55B",
+      "item_description": "MICROSWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "WLNJ",
+      "item_description": "MICROSWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "WLCA27",
+      "item_description": "MICROSWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "G7SA2A2B",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "P7SA10FND",
+      "item_description": "RELAY SOCKET",
+      "quantity": null
+    },
+    {
+      "part_number": "S8FSG15024CD",
+      "item_description": "DC POWER SUPPLY 24V",
+      "quantity": null
+    },
+    {
+      "part_number": "D4SLN2QFADN",
+      "item_description": "SAFETY DOOR SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "D4SLCN10",
+      "item_description": "CONNECTOR CABLE",
+      "quantity": null
+    },
+    {
+      "part_number": "D4SLNK3",
+      "item_description": "SAFETY DOOR SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "15HW78B",
+      "item_description": "MICROSWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "WLNJN",
+      "item_description": "MICROSWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "E2ES05S12WCC1 2M",
+      "item_description": "PROXIMITY SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "G9SXBC202RT 24V DC 3W",
+      "item_description": "SAFETY RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "G3HDX03SNVD",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "PTF08AE",
+      "item_description": "RELAY SOCKET",
+      "quantity": null
+    },
+    {
+      "part_number": "K8AKVW3 100240VAC",
+      "item_description": "UVOV RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15GQ22B",
+      "item_description": "LIMIT SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15GQB",
+      "item_description": "LIMIT SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15GW4455B",
+      "item_description": "LIMIT SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "E2EX3D1N",
+      "item_description": "PROXIMITY SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "GLS1",
+      "item_description": "SAFETY DOOR SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "S8FSC05024D",
+      "item_description": "DC POWER SUPPLY DC24V",
+      "quantity": null
+    },
+    {
+      "part_number": "G3NA225B",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "E52CA1DY 6M",
+      "item_description": "TEMPERATURE SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "E2EX2D1N",
+      "item_description": "PROXIMITY SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15HW78B",
+      "item_description": "MICRO SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "VX563A3",
+      "item_description": "MICRO SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "VX551A3",
+      "item_description": "MICRO SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "S8FSG30024CD",
+      "item_description": "DC POWER SUPPLY DC24V",
+      "quantity": null
+    },
+    {
+      "part_number": "G3NA205B",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "Y92BN50",
+      "item_description": "SOLID STATE RELAY OPTION",
+      "quantity": null
+    },
+    {
+      "part_number": "LY2N DC24V",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "MY4N DC24V",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "PYFZ14E",
+      "item_description": "RELAY SOCKET",
+      "quantity": null
+    },
+    {
+      "part_number": "MY2N DC24V",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "PYF08AE",
+      "item_description": "RELAY SOCKET",
+      "quantity": null
+    },
+    {
+      "part_number": "G2R1SN DC24V",
+      "item_description": "MINI POWER RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "P2RF05E",
+      "item_description": "RELAY SOCKET",
+      "quantity": null
+    },
+    {
+      "part_number": "G3RIDZR1SN",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "PYCA1",
+      "item_description": "RELAY HOLDER",
+      "quantity": null
+    },
+    {
+      "part_number": "D4GSN1R",
+      "item_description": "LIMIT DOOR SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "MY4N 220V",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "G2R2SN",
+      "item_description": "RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "L42AB",
+      "item_description": "VOLTAGE SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "G9H2105",
+      "item_description": "SOLID STATE RELAY",
+      "quantity": null
+    },
+    {
+      "part_number": "E5CNQ2T",
+      "item_description": "THERMAL CONTROLLER",
+      "quantity": null
+    },
+    {
+      "part_number": "E52CA1DM6",
+      "item_description": "THERMAL SENSOR",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15HW24B",
+      "item_description": "LIMIT SWITCH",
+      "quantity": null
+    },
+    {
+      "part_number": "Z15HW78B",
+      "item_description": "LIMIT SWITCH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Certificate (Requested in ATC)",
+    "Documentary evidence towards Capability as per clause I)",
+    "Documentary evidence towards Experience as per clause II)",
+    "Documentary evidence towards PAN & GST Registration as per clause IV) & V)",
+    "Undertakings/Declarations as per clause VI) a),b),c)",
+    "Undertaking for Land border sharing criteria as per clause no. XI)"
+  ]
+}

@@ -1,0 +1,38 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\dell\\Downloads\\gem_tender_tool\\tender_app']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [27528] using WatchFiles
+INFO:     Started server process [2500]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'ai_extractor.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2500]
+WARNING:  WatchFiles detected changes in 'database.py', 'main.py'. Reloading...
+C:\Users\dell\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\_subprocess.py:84: RuntimeWarning: coroutine 'Server.serve' was never awaited
+  pass
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+INFO:     Started server process [21132]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'ai_extractor.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21132]
+WARNING:  WatchFiles detected changes in 'database.py', 'ai_extractor.py', 'main.py'. Reloading...
+C:\Users\dell\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\_subprocess.py:84: RuntimeWarning: coroutine 'Server.serve' was never awaited
+  pass
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+INFO:     Started server process [20632]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'database.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [20632]
+INFO:     Started server process [2428]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

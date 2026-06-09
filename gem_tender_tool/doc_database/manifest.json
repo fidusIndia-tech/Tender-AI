@@ -1,0 +1,68 @@
+{
+  "_comment": "Maps each doc_key the extractor can emit to a source in the database. type=static -> copy the file as-is. type=template -> fill placeholders from company profile + tender data. type=manual -> we can't auto-produce it; flag it for the user.",
+
+  "one_bid_declaration": {
+    "type": "template",
+    "file": "templates/one_bid_declaration.docx",
+    "output_name": "Annexure-II_One_Bid_Declaration.docx"
+  },
+  "mse_declaration": {
+    "type": "template",
+    "file": "templates/mse_declaration.docx",
+    "output_name": "MSE_Manufacturer_Declaration.docx",
+    "only_if": "msme_eligible"
+  },
+  "oem_authorization": {
+    "type": "static",
+    "file": "static/OEM_Authorization_Certificate.pdf",
+    "output_name": "OEM_Authorization_Certificate.pdf"
+  },
+  "technical_datasheet": {
+    "type": "static",
+    "file": "static/IFM_Datasheets.pdf",
+    "output_name": "Technical_Datasheets.pdf"
+  },
+  "pqc_document": {
+    "type": "manual",
+    "note": "Provide either authorization certificate OR a past PO (last 3 yrs) to a PSU/govt with COC from OEM."
+  },
+  "signed_buyer_spec": {
+    "type": "manual",
+    "note": "Download buyer specification from the bid, sign & stamp each page, upload as seller specification."
+  },
+  "boq_compliance": {
+    "type": "manual",
+    "note": "Fill the BoQ compliance statement against each line item; needs engineering sign-off."
+  },
+  "hsn_gst_excel": {
+    "type": "manual",
+    "note": "Fill HSN code + GST% in the buyer's provided excel template (no price in technical bid)."
+  },
+  "warranty_certificate": {
+    "type": "manual",
+    "note": "Submitted at delivery, not at bid stage. Listed for tracking only."
+  },
+  "annexure_f": {
+    "type": "manual",
+    "note": "Payment Annexure-F submitted to paying authority after dispatch, not at bid stage."
+  },
+
+  "oem_authorization_certificate": {
+    "type": "static",
+    "file": "static/OEM_Authorization_Certificate.pdf",
+    "output_name": "OEM_Authorization_Certificate.pdf"
+  },
+  "certificate_requested_in_atc": {
+    "type": "static",
+    "file": "static/OEM_Authorization_Certificate.pdf",
+    "output_name": "OEM_Authorization_Certificate.pdf"
+  },
+  "additional_doc_1_requested_in_atc": {
+    "type": "manual",
+    "note": "Payment Annexure-F submitted to paying authority after dispatch, not at bid stage."
+  },
+  "compliance_of_boq_specification_and_supporting_document": {
+    "type": "manual",
+    "note": "Fill the BoQ compliance statement against each line item; needs engineering sign-off."
+  }
+}

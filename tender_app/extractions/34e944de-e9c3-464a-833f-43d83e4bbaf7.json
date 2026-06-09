@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7547578",
+    "date": "17-05-2026",
+    "bid_end_datetime": "08-06-2026 16:00:00",
+    "bid_opening_datetime": "08-06-2026 16:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Border Security Force (bsf)",
+    "office_name_location": "Agartala",
+    "total_quantity": "780"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Engine oil 10w30 API SL for motor cycle , Add blue Ashok Leyland 1015 or 1615 Gulf AL , Add blue Swaraj Mazda SML , Engine oil 15w40 CI 4 Plus or CK 4 Plus , Gear oil HP 90 , Grease MP , Break oil Dot 4",
+      "quantity": "780"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover"
+  ]
+}

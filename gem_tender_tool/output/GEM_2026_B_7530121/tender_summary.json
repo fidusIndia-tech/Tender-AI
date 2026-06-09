@@ -1,0 +1,153 @@
+{
+  "source_pdf": "C:\\Users\\dell\\Downloads\\GeM-Bidding-9318524_IFM.pdf",
+  "bid_end_datetime": "10-06-2026 11:00:00",
+  "bid_opening_datetime": "10-06-2026 11:30:00",
+  "bid_validity": "120 (Days)",
+  "ministry": "Pmo",
+  "department": "Department Of Atomic Energy",
+  "organisation": "Nuclear Power Corporation Of India Limited",
+  "office": "Tamilnadu",
+  "total_quantity": "80",
+  "item_category": "IFM make flow sensing element, OrderCode - SF5700, Model - SFD10ADT US-100 , IFM make Flow switch, Order Code - SR5906,Model - SRM12XXAKO W LS-100-IRF , Level Sensor head with display Make - IFM Model - LR8000 , LR PROBE L450, Rod of 450 mm length, Make - IFM Model - E43204 , LR COAX TUBE G3 4L450, Co Ax Rod 450 mm, Make - IFM Model - E43212 , FLANGE PLATE 65-80 G3 4, Flange Adapter, Make - IFM Model - E43202 , M12 Connector cable of 10 meter length ADOGH040MSS0010H04 make - IFM Model - EVC003",
+  "boq_title": "IFM make sensor",
+  "documents_required_raw": "Certificate (Requested in ATC),OEM Authorization Certificate,Additional Doc 1 (Requested in ATC),Compliance of BoQ specification and supporting document *In case any bidder is seeking exemption from Experience / Turnover Criteria, the supporting documents to prove his eligibility for exemption must be uploaded for evaluation by the buyer",
+  "bid_type": "Two Packet Bid",
+  "primary_product": "IFM make flow sensing element, OrderCode - SF5700, Model - SFD10ADT US-100",
+  "evaluation_method": "Item wise evaluation",
+  "epbg_percentage": "5.00",
+  "epbg_duration_months": "20",
+  "bid_number": "GEM/2026/B/7530121",
+  "bid_dated": "20-05-2026",
+  "schedules": [
+    {
+      "schedule": 1,
+      "item": "Ifm Make Flow Sensing Element, Ordercode - Sf5700, Model - Sfd10adt Us-100",
+      "quantity": "30"
+    },
+    {
+      "schedule": 2,
+      "item": "Ifm Make Flow Switch, Order Code - Sr5906,model - Srm12xxako W Ls-100-irf",
+      "quantity": "30"
+    },
+    {
+      "schedule": 3,
+      "item": "Level Sensor Head With Display Make - Ifm Model - Lr8000",
+      "quantity": "4"
+    },
+    {
+      "schedule": 4,
+      "item": "Lr Probe L450, Rod Of 450 Mm Length, Make - Ifm Model - E43204",
+      "quantity": "4"
+    },
+    {
+      "schedule": 5,
+      "item": "Lr Coax Tube G3 4l450, Co Ax Rod 450 Mm, Make - Ifm Model - E43212",
+      "quantity": "4"
+    },
+    {
+      "schedule": 6,
+      "item": "Flange Plate 65-80 G3 4, Flange Adapter, Make - Ifm Model - E43202",
+      "quantity": "4"
+    },
+    {
+      "schedule": 7,
+      "item": "M12 Connector Cable Of 10 Meter Length Adogh040mss0010h04 Make - Ifm Model - Evc003",
+      "quantity": "4"
+    }
+  ],
+  "emd": {
+    "schedule_1": "35635",
+    "schedule_2": "23733",
+    "schedule_3": "4754",
+    "schedule_4": "280",
+    "schedule_5": "828",
+    "schedule_6": "436",
+    "schedule_7": "229"
+  },
+  "required_documents": [
+    {
+      "doc_key": "certificate_requested_in_atc",
+      "label": "Certificate (Requested in ATC)",
+      "source": "Document required field",
+      "fillable": null
+    },
+    {
+      "doc_key": "oem_authorization_certificate",
+      "label": "OEM Authorization Certificate",
+      "source": "Document required field",
+      "fillable": null
+    },
+    {
+      "doc_key": "additional_doc_1_requested_in_atc",
+      "label": "Additional Doc 1 (Requested in ATC)",
+      "source": "Document required field",
+      "fillable": null
+    },
+    {
+      "doc_key": "compliance_of_boq_specification_and_supporting_document",
+      "label": "Compliance of BoQ specification and supporting document",
+      "source": "Document required field",
+      "fillable": null
+    },
+    {
+      "doc_key": "oem_authorization",
+      "label": "OEM Authorization Certificate",
+      "source": "ATC clause",
+      "fillable": false
+    },
+    {
+      "doc_key": "one_bid_declaration",
+      "label": "One Bid Per Bidder declaration (Annexure-II)",
+      "source": "ATC clause",
+      "fillable": true
+    },
+    {
+      "doc_key": "pqc_document",
+      "label": "Pre-Qualification Criteria proof (auth cert OR PO+COC)",
+      "source": "ATC clause",
+      "fillable": false
+    },
+    {
+      "doc_key": "technical_datasheet",
+      "label": "Technical catalogues / datasheets / manuals",
+      "source": "ATC clause",
+      "fillable": false
+    },
+    {
+      "doc_key": "signed_buyer_spec",
+      "label": "Buyer specification signed & stamped",
+      "source": "ATC clause",
+      "fillable": false
+    },
+    {
+      "doc_key": "mse_declaration",
+      "label": "MSE: Udyam cert + manufacturer declaration (if claiming)",
+      "source": "ATC clause",
+      "fillable": true
+    },
+    {
+      "doc_key": "boq_compliance",
+      "label": "Compliance of BoQ specification + supporting docs",
+      "source": "ATC clause",
+      "fillable": true
+    },
+    {
+      "doc_key": "warranty_certificate",
+      "label": "Warranty certificate (at delivery)",
+      "source": "ATC clause",
+      "fillable": false
+    },
+    {
+      "doc_key": "hsn_gst_excel",
+      "label": "HSN code & GST % excel upload",
+      "source": "ATC clause",
+      "fillable": true
+    },
+    {
+      "doc_key": "annexure_f",
+      "label": "Annexure-F payment document",
+      "source": "ATC clause",
+      "fillable": true
+    }
+  ]
+}

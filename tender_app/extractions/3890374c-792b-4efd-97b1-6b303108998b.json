@@ -1,0 +1,56 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7530121",
+    "date": "20-05-2026",
+    "bid_end_datetime": "10-06-2026 11:00:00",
+    "bid_opening_datetime": "10-06-2026 11:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Nuclear Power Corporation Of India Limited",
+    "office_name_location": "Tamilnadu",
+    "total_quantity": "80"
+  },
+  "items": [
+    {
+      "part_number": "SF5700",
+      "item_description": "IFM make flow sensing element, Model - SFD10ADT US-100",
+      "quantity": "30"
+    },
+    {
+      "part_number": "SR5906",
+      "item_description": "IFM make Flow switch, Model - SRM12XXAKO W LS-100-IRF",
+      "quantity": "30"
+    },
+    {
+      "part_number": "LR8000",
+      "item_description": "Level Sensor head with display Make - IFM",
+      "quantity": "4"
+    },
+    {
+      "part_number": "E43204",
+      "item_description": "LR PROBE L450, Rod of 450 mm length, Make - IFM",
+      "quantity": "4"
+    },
+    {
+      "part_number": "E43212",
+      "item_description": "LR COAX TUBE G3 4L450, Co Ax Rod 450 mm, Make - IFM",
+      "quantity": "4"
+    },
+    {
+      "part_number": "E43202",
+      "item_description": "Flange Plate 65-80 G3 4, Flange Adapter, Make - IFM",
+      "quantity": "4"
+    },
+    {
+      "part_number": "EVC003",
+      "item_description": "M12 Connector cable of 10 meter length ADOGH040MSS0010H04 make - IFM",
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Pre-Qualification Criteria document"
+  ]
+}

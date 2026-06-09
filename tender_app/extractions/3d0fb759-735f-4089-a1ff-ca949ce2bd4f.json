@@ -1,0 +1,57 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7547578",
+    "date": "17-05-2026",
+    "bid_end_datetime": "08-06-2026 16:00:00",
+    "bid_opening_datetime": "08-06-2026 16:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Border Security Force (bsf)",
+    "office_name_location": "Agartala",
+    "total_quantity": "780",
+    "item_category": "Engine oil 10w30 API SL for motor cycle , Add blue Ashok Leyland 1015 or 1615 Gulf AL , Add blue Swaraj Mazda SML , Engine oil 15w40 CI 4 Plus or CK 4 Plus , Gear oil HP 90 , Grease MP , Break oil Dot 4"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Engine Oil 10w30 API SL For Motor Cycle",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "Add Blue Ashok Leyland 1015 Or 1615 Gulf AL",
+      "quantity": "400"
+    },
+    {
+      "part_number": null,
+      "item_description": "Add Blue Swaraj Mazda SML",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Engine Oil 15w40 CI 4 Plus Or CK 4 Plus",
+      "quantity": "180"
+    },
+    {
+      "part_number": null,
+      "item_description": "Gear Oil HP 90",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Grease MP",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Break Oil Dot 4",
+      "quantity": "10"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Documentary evidence in the form of certified Audited Balance Sheets",
+    "Supporting documents to prove eligibility for exemption from Experience / Turnover Criteria"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "tender_number": "GEM/2026/B/7530121",
+  "organisation": "Nuclear Power Corporation Of India Limited",
+  "office": "Tamilnadu",
+  "consignee": "Kudankulam Nuclear Power Project, Kudankulam PO, Radhapuram Taluk, Tirunelveli Dist – 627106, Tamil Nadu",
+  "bid_end_date": "2026-06-10",
+  "bid_end_time": "11:00",
+  "bid_start_date": null,
+  "financial_year": null,
+  "total_quantity": 80,
+  "emd_amount": "35635",
+  "boq_items": [
+    {
+      "sl_no": "1",
+      "item_description": "IFM make flow sensing element, OrderCode - SF5700, Model - SFD10ADT US-100",
+      "quantity": 30,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "2",
+      "item_description": "IFM make Flow switch, Order Code - SR5906,Model - SRM12XXAKO W LS-100-IRF",
+      "quantity": 30,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "3",
+      "item_description": "Level Sensor head with display Make - IFM Model - LR8000",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "4",
+      "item_description": "LR PROBE L450, Rod Of 450 Mm Length, Make - IFM Model - E43204",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "5",
+      "item_description": "LR COAX TUBE G3 4L450, Co Ax Rod 450 Mm, Make - IFM Model - E43212",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "6",
+      "item_description": "Flange Plate 65-80 G3 4, Flange Adapter, Make - IFM Model - E43202",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    },
+    {
+      "sl_no": "7",
+      "item_description": "M12 Connector cable of 10 meter length ADOGH040MSS0010H04 make - IFM Model - EVC003",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Refer attached BOQ document for detailed consignee list and delivery period."
+    }
+  ],
+  "required_documents": [
+    {
+      "label": "Certificate (Requested in ATC)",
+      "doc_key": "certificate_requested_in_atc"
+    },
+    {
+      "label": "OEM Authorization Certificate",
+      "doc_key": "oem_authorization_certificate"
+    },
+    {
+      "label": "Additional Doc 1 (Requested in ATC)",
+      "doc_key": "additional_doc_1_requested_in_atc"
+    },
+    {
+      "label": "Compliance of BoQ specification and supporting document",
+      "doc_key": "compliance_of_boq_specification_and_supporting_document"
+    }
+  ],
+  "pdf_path": "C:\\Users\\dell\\Downloads\\gem_tender_tool\\tender_app\\uploads\\c3ea347d-9ab9-46c9-b1cc-272f39003b06_GeM-Bidding-9318524_IFM.pdf"
+}

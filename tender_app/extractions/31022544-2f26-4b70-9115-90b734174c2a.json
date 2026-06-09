@@ -1,0 +1,86 @@
+{
+  "tender_number": "GEM/2026/B/7530121",
+  "organisation": "Nuclear Power Corporation Of India Limited",
+  "office": "Tamilnadu",
+  "consignee": null,
+  "bid_end_date": "2026-06-10",
+  "bid_end_time": "11:00",
+  "bid_start_date": null,
+  "financial_year": null,
+  "total_quantity": 80,
+  "emd_amount": "66195",
+  "boq_items": [
+    {
+      "sl_no": "1",
+      "item_description": "IFM Make Flow Sensing Element, OrderCode - SF5700, Model - SFD10ADT US-100",
+      "quantity": 30,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "2",
+      "item_description": "IFM Make Flow Switch, Order Code - SR5906, Model - SRM12XXAKO W LS-100-IRF",
+      "quantity": 30,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "3",
+      "item_description": "Level Sensor Head With Display Make - IFM Model - LR8000",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "4",
+      "item_description": "LR PROBE L450, Rod Of 450 Mm Length, Make - IFM Model - E43204",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "5",
+      "item_description": "LR COAX TUBE G3 4L450, Co Ax Rod 450 Mm, Make - IFM Model - E43212",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "6",
+      "item_description": "Flange Plate 65-80 G3 4, Flange Adapter, Make - IFM Model - E43202",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    },
+    {
+      "sl_no": "7",
+      "item_description": "M12 Connector Cable Of 10 Meter Length ADOGH040MSS0010H04 Make - IFM Model - EVC003",
+      "quantity": 4,
+      "unit": null,
+      "specifications": "Specification Document View File"
+    }
+  ],
+  "required_documents": [
+    {
+      "label": "MSE - Purchase preference / MSE - EMD Exemption",
+      "doc_key": "mse_purchase_preference"
+    },
+    {
+      "label": "Compliance to Clause No-29 (One bid per bidder)",
+      "doc_key": "compliance_to_clause_no_29"
+    },
+    {
+      "label": "Pre-Qualification Criteria",
+      "doc_key": "pre_qualification_criteria"
+    },
+    {
+      "label": "Technical Document",
+      "doc_key": "technical_document"
+    },
+    {
+      "label": "Additional Doc-1",
+      "doc_key": "additional_doc_1"
+    }
+  ],
+  "pdf_path": "C:\\Users\\dell\\Downloads\\gem_tender_tool\\tender_app\\uploads\\31022544-2f26-4b70-9115-90b734174c2a_GeM-Bidding-9318524_IFM.pdf"
+}
