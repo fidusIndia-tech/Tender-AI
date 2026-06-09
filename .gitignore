@@ -1,6 +1,7 @@
 .env
 node_modules/
 .venv/
+run.bat
 venv/
 __pycache__/
 dist/
