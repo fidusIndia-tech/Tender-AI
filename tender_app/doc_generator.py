@@ -3,6 +3,7 @@ doc_generator.py — Generate .docx documents for tender preparation using GPT-4
 Only generates declarations, letters, and undertakings — never government-issued documents.
 """
 
+import os
 from datetime import datetime
 from pathlib import Path
 from docx import Document
@@ -75,7 +76,10 @@ def _add_image_or_space(doc, path: str | None, width_inches: float = 1.5, blank_
 
 def generate_ai_document(document_type: str, profile: dict, tender: dict, output_path: str) -> str:
     """Call GPT-4o to generate document text and save as a formatted .docx file."""
-    client = OpenAI()
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
+    client = OpenAI(api_key=api_key)
     prompt = GENERATION_PROMPT.format(
         document_type=document_type,
         company_details=_fmt_company(profile),

@@ -1,4 +1,5 @@
 import json
+import os
 import pdfplumber
 from openai import OpenAI
 
@@ -191,6 +192,9 @@ def process_pdf(pdf_path: str) -> dict:
     relevant = filter_relevant_pages(pages)
     chunks = build_chunks(relevant)
 
-    client = OpenAI()
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
+    client = OpenAI(api_key=api_key)
     results = [extract_chunk(client, chunk) for chunk in chunks]
     return merge_results(results)
