@@ -35,6 +35,9 @@ async def health():
         "status": "ok",
         "openai_key_set": bool(key),
         "openai_key_preview": (key[:8] + "...") if key else "NOT SET",
+        "PORT": os.environ.get("PORT", "NOT SET"),
+        "RAILWAY_ENVIRONMENT": os.environ.get("RAILWAY_ENVIRONMENT", "NOT SET"),
+        "all_env_keys": [k for k in os.environ.keys()],
     }
 
 
