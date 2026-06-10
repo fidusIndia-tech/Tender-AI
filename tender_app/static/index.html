@@ -1007,12 +1007,25 @@ function refreshTenderList() {
   renderTenderTable(tenderListCache);
 }
 function parseDateValue(value) {
+  if (!value) return Infinity; // null/empty → always last
+  // Handle DD-MM-YYYY HH:mm:ss or DD-MM-YYYY HH:mm (GeM PDF format)
+  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (ddmm) {
+    const [, dd, mm, yyyy, hh = '00', min = '00', ss = '00'] = ddmm;
+    const iso = `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+    const ts = Date.parse(iso);
+    console.debug('[BidSort] DD-MM-YYYY →', value, '→ ISO:', iso, '→ ts:', ts);
+    return Number.isNaN(ts) ? Infinity : ts;
+  }
+  // Fallback: try any browser-parseable format (e.g. ISO stored directly)
   const ts = Date.parse(value);
-  return Number.isNaN(ts) ? 0 : ts;
+  console.debug('[BidSort] fallback →', value, '→ ts:', ts);
+  return Number.isNaN(ts) ? Infinity : ts;
 }
 function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
   const searchQ = getSearchQuery();
+  console.debug('[BidSort] sort direction:', bidSortMode, '| org sort:', orgSortMode);
   const rows = tenders.slice().filter(t => {
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
     return true;
