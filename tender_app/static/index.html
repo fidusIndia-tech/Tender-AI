@@ -317,24 +317,13 @@ main { padding: 24px 28px 60px; }
   margin-bottom: 16px;
 }
 .table-wrap { overflow-x: auto; }
-.list-controls {
-  display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;
-  padding:14px 16px 0;
+.th-filter-select {
+  margin-left:6px; padding:2px 4px;
+  border:1px solid var(--slate-300); border-radius:6px;
+  background:#fff; color:var(--slate-700); font-size:11px;
+  font-weight:400; cursor:pointer; max-width:110px;
 }
-.list-controls .filter-group {
-  display:flex; flex-direction:column; gap:5px;
-  min-width:220px; max-width:320px;
-}
-.list-controls label {
-  font-size: 12px; color: var(--slate-500);
-  text-transform: uppercase; letter-spacing:.4px;
-}
-.list-controls select {
-  width:100%; padding:10px 12px;
-  border:1px solid var(--slate-200); border-radius:10px;
-  background:#fff; color:var(--slate-700); font-size:13px;
-}
-.list-controls select:focus {
+.th-filter-select:focus {
   outline:none; border-color:var(--blue-500);
   box-shadow:0 0 0 2px rgba(59,130,246,.12);
 }
@@ -731,21 +720,6 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
       <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Tender Records</span>
     </div>
-    <div class="list-controls">
-      <div class="filter-group">
-        <label for="orgFilter">Organisation</label>
-        <select id="orgFilter" onchange="refreshTenderList()">
-          <option value="">All Organisations</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="bidEndSort">Bid End Date</label>
-        <select id="bidEndSort" onchange="refreshTenderList()">
-          <option value="DESC" selected>Newest First</option>
-          <option value="ASC">Oldest First</option>
-        </select>
-      </div>
-    </div>
     <div class="table-wrap">
       <table class="list-table">
         <thead>
@@ -753,8 +727,19 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
             <th>GeM Bidding No.</th>
             <th>Tender Number</th>
-            <th>Organisation</th>
-            <th>Bid End Date</th>
+            <th style="white-space:nowrap">
+              Organisation
+              <select id="orgFilter" class="th-filter-select" onchange="refreshTenderList()" title="Filter by organisation">
+                <option value="">All</option>
+              </select>
+            </th>
+            <th style="white-space:nowrap">
+              Bid End Date
+              <select id="bidEndSort" class="th-filter-select" onchange="refreshTenderList()" title="Sort by bid end date">
+                <option value="DESC" selected>↓ Newest</option>
+                <option value="ASC">↑ Oldest</option>
+              </select>
+            </th>
             <th>Make</th>
             <th style="width:56px;text-align:center">Qty</th>
             <th>Upload Date</th>
