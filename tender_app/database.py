@@ -274,7 +274,7 @@ def list_tenders():
     conn = get_db()
     rows = conn.execute(
         """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
-                  total_quantity, participation_status, uploaded_at,
+                  make, total_quantity, participation_status, uploaded_at,
                   won_text, lost_text, participant_text, pdf_path
            FROM tenders ORDER BY uploaded_at DESC"""
     ).fetchall()

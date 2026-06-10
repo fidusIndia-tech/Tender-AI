@@ -417,6 +417,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .list-table .col-tn  { color:var(--slate-700);font-size:12px;white-space:nowrap; }
 .list-table .col-org { color:var(--slate-700);font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .list-table .col-date{ color:var(--slate-500);font-size:12px;white-space:nowrap; }
+.list-table .col-make{ color:var(--slate-600);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .list-table .col-qty { text-align:center;font-weight:700;color:var(--slate-800); }
 .record-input {
   width:100%;padding:4px 7px;border:1.5px solid var(--slate-200);
@@ -754,6 +755,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th>Tender Number</th>
             <th>Organisation</th>
             <th>Bid End Date</th>
+            <th>Make</th>
             <th style="width:56px;text-align:center">Qty</th>
             <th>Upload Date</th>
             <th style="width:104px">Actions</th>
@@ -995,6 +997,7 @@ function renderTenderTable(tenders) {
         <td class="col-tn">${esc(t.tender_number)||'—'}</td>
         <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
         <td class="col-date">${t.bid_end_datetime||'—'}</td>
+        <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
         <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
