@@ -194,102 +194,96 @@ main { padding: 24px 28px 60px; }
   padding-right: 32px;
 }
 
-/* ── Upload Zone ─────────────────────────────────────────────────────────── */
+/* ── Upload Zone (unified) ───────────────────────────────────────────────── */
 #uploadZone {
   border: 2px dashed var(--slate-200);
   border-radius: var(--radius-lg);
-  padding: 64px 32px;
+  padding: 56px 40px 48px;
   text-align: center;
   cursor: pointer;
-  transition: all .2s;
+  transition: border-color .2s, background .2s, box-shadow .2s;
   background: #fff;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
+  position: relative;
 }
 #uploadZone:hover, #uploadZone.drag-over {
-  border-color: var(--blue-600);
+  border-color: var(--blue-500);
   background: var(--blue-50);
   box-shadow: 0 0 0 4px rgba(16,185,129,.1);
 }
-.upload-icon {
-  width: 64px; height: 64px;
-  background: var(--blue-50);
+#uploadZone.drag-over { border-style: solid; }
+.upload-icon-wrap {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--blue-50) 0%, #d1fae5 100%);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px;
+  margin: 0 auto 20px;
   color: var(--blue-600);
+  box-shadow: 0 4px 12px rgba(16,185,129,.15);
 }
-#uploadZone h2 { font-size: 20px; font-weight: 700; color: var(--slate-800); margin-bottom: 8px; }
-#uploadZone p { color: var(--slate-500); font-size: 13px; margin-bottom: 20px; }
-.upload-hint {
-  display: inline-flex; align-items: center; gap: 6px;
+#uploadZone h2 {
+  font-size: 22px; font-weight: 700; color: var(--slate-800); margin-bottom: 8px; line-height: 1.3;
+}
+#uploadZone p {
+  color: var(--slate-500); font-size: 13.5px; margin-bottom: 24px; line-height: 1.6;
+}
+.upload-hint-row {
+  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-top: 18px;
+}
+.upload-hint-chip {
+  display: inline-flex; align-items: center; gap: 5px;
   background: var(--slate-50); border: 1px solid var(--slate-200);
   border-radius: 20px; padding: 4px 12px;
-  font-size: 11px; color: var(--slate-500); margin-top: 14px;
+  font-size: 11px; color: var(--slate-500);
 }
-#uploadStatus { margin-top: 18px; font-size: 13px; text-align: center; min-height: 20px; }
-.status-loading { color: var(--blue-600); }
-.status-error   { color: var(--red-600); }
-.status-success { color: var(--green-600); }
-.progress-bar { width:100%;height:3px;background:var(--slate-100);border-radius:2px;overflow:hidden;margin-top:12px;display:none; }
-.progress-bar-fill { height:100%;background:var(--blue-600);animation:progress-pulse 1.5s ease-in-out infinite; }
-@keyframes progress-pulse { 0%,100%{opacity:.5}50%{opacity:1} }
-
-/* ── Bulk Upload ─────────────────────────────────────────────────────────── */
-#bulkZone {
-  border: 2px dashed var(--slate-200);
-  border-radius: var(--radius-lg);
-  padding: 28px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all .2s;
-  background: #fff;
-  box-shadow: var(--shadow-sm);
-}
-#bulkZone:hover, #bulkZone.drag-over {
-  border-color: var(--blue-600);
-  background: var(--blue-50);
-  box-shadow: 0 0 0 4px rgba(16,185,129,.1);
-}
-.bulk-file-list {
-  margin-top: 12px;
+/* Queue list */
+.upload-queue {
+  margin-top: 14px;
   border: 1px solid var(--slate-200);
   border-radius: var(--radius);
   background: #fff;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
-.bulk-file-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 14px;
+.upload-queue-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-200);
+  font-size: 12px; font-weight: 600; color: var(--slate-600);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.upload-queue-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--slate-100);
   font-size: 13px;
 }
-.bulk-file-row:last-child { border-bottom: none; }
-.bulk-file-name { flex: 1; color: var(--slate-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bulk-badge {
-  font-size: 11px; font-weight: 600; padding: 2px 9px;
+.upload-queue-row:last-child { border-bottom: none; }
+.upload-queue-name { flex: 1; color: var(--slate-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upload-queue-size { font-size: 11px; color: var(--slate-400); flex-shrink: 0; min-width: 52px; text-align: right; }
+.upload-queue-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
   border-radius: 20px; white-space: nowrap; flex-shrink: 0;
 }
-.bulk-badge.pending    { background: var(--slate-100); color: var(--slate-500); }
-.bulk-badge.uploading  { background: var(--cyan-100);  color: var(--cyan-700); }
-.bulk-badge.extracting { background: var(--amber-100); color: var(--amber-700); }
-.bulk-badge.completed  { background: var(--green-100); color: var(--green-600); }
-.bulk-badge.failed     { background: var(--red-100);   color: var(--red-600); }
-.bulk-badge.duplicate  { background: var(--purple-100);color: var(--purple-600); }
-.bulk-error-text { font-size: 11px; color: var(--red-600); flex-shrink: 0; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bulk-summary {
-  margin-top: 10px; padding: 10px 14px;
+.upload-queue-badge.pending    { background: var(--slate-100); color: var(--slate-500); }
+.upload-queue-badge.uploading  { background: var(--cyan-100);  color: var(--cyan-700); }
+.upload-queue-badge.extracting { background: var(--amber-100); color: var(--amber-700); }
+.upload-queue-badge.completed  { background: var(--green-100); color: var(--green-600); }
+.upload-queue-badge.failed     { background: var(--red-100);   color: var(--red-600); }
+.upload-queue-badge.duplicate  { background: var(--purple-100);color: var(--purple-600); }
+.upload-queue-error { font-size: 11px; color: var(--red-600); flex-shrink: 0; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upload-actions {
+  display: none; margin-top: 12px; gap: 8px;
+}
+.upload-summary {
+  display: none; margin-top: 10px; padding: 11px 16px;
   background: var(--slate-50); border: 1px solid var(--slate-200);
   border-radius: var(--radius); font-size: 13px; color: var(--slate-600);
-  display: none;
 }
-.bulk-divider {
-  display: flex; align-items: center; gap: 12px;
-  margin: 22px 0 0;
-  color: var(--slate-400); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
-}
-.bulk-divider::before, .bulk-divider::after {
-  content: ''; flex: 1; height: 1px; background: var(--slate-200);
-}
+.status-loading { color: var(--blue-600); }
+.status-error   { color: var(--red-600); }
+.status-success { color: var(--green-600); }
 
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
 .tab-bar {
@@ -545,51 +539,57 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 <!-- UPLOAD VIEW                                                             -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="view active" id="view-upload">
-  <div style="max-width:560px;margin:0 auto;padding-top:8px">
-    <div id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-icon">
-        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+  <div style="max-width:620px;margin:0 auto;padding-top:8px">
+
+    <!-- Upload Zone -->
+    <div id="uploadZone" onclick="document.getElementById('unifiedFileInput').click()">
+      <div class="upload-icon-wrap">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
         </svg>
       </div>
-      <h2>Drop your GeM Tender PDF here</h2>
-      <p>AI will extract all tender details automatically</p>
-      <button class="btn btn-primary" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+      <h2>Drag &amp; Drop Tender PDF(s) Here</h2>
+      <p>Upload one or multiple GeM Tender PDFs<br>AI will extract all tender details automatically</p>
+      <button class="btn btn-primary" onclick="event.stopPropagation();document.getElementById('unifiedFileInput').click()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Select PDF File
+        Select PDF Files
       </button>
-      <div><span class="upload-hint">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        PDF files only · GeM-Bidding-XXXXXXX.pdf
-      </span></div>
+      <div class="upload-hint-row">
+        <span class="upload-hint-chip">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          PDF files only
+        </span>
+        <span class="upload-hint-chip">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
+          Single or multiple files
+        </span>
+        <span class="upload-hint-chip">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          GeM-Bidding-XXXXXXX.pdf
+        </span>
+      </div>
     </div>
-    <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFileSelect(this)">
-    <div class="progress-bar" id="progressBar"><div class="progress-bar-fill"></div></div>
-    <div id="uploadStatus"></div>
+    <input type="file" id="unifiedFileInput" accept=".pdf" multiple style="display:none" onchange="handleUnifiedFileSelect(this)">
 
-    <!-- ── Bulk Upload ──────────────────────────────────────────────────── -->
-    <div class="bulk-divider">Bulk Upload</div>
-    <div id="bulkZone" onclick="document.getElementById('bulkFileInput').click()">
-      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--blue-600);margin-bottom:8px">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m-6 3.75l3 3m0 0l3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5a2.25 2.25 0 01-2.25-2.25v-.75"/>
-      </svg>
-      <div style="font-size:14px;font-weight:600;color:var(--slate-700);margin-bottom:4px">Drop multiple PDFs here</div>
-      <div style="font-size:12px;color:var(--slate-400);margin-bottom:14px">Or click to select — files are saved automatically, no review step</div>
-      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();document.getElementById('bulkFileInput').click()">
-        Select Multiple PDFs
-      </button>
+    <!-- File Queue -->
+    <div id="uploadQueue" class="upload-queue" style="display:none">
+      <div class="upload-queue-header">
+        <span id="queueHeaderLabel">Files selected</span>
+        <span id="queueHeaderCount" style="color:var(--slate-400);font-weight:400"></span>
+      </div>
+      <div id="uploadQueueBody"></div>
     </div>
-    <input type="file" id="bulkFileInput" accept=".pdf" multiple style="display:none" onchange="handleBulkFileSelect(this)">
 
-    <div id="bulkFileList" class="bulk-file-list" style="display:none"></div>
-    <div style="display:none;margin-top:10px;gap:8px" id="bulkActions">
-      <button class="btn btn-primary" id="bulkUploadBtn" onclick="startBulkUpload()">
+    <!-- Actions -->
+    <div class="upload-actions" id="uploadActions">
+      <button class="btn btn-primary" id="uploadStartBtn" onclick="startUnifiedUpload()">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
         Upload All
       </button>
-      <button class="btn btn-outline" onclick="clearBulkQueue()">Clear</button>
+      <button class="btn btn-outline" onclick="clearUploadQueue()">Clear</button>
     </div>
-    <div class="bulk-summary" id="bulkSummary"></div>
+    <div class="upload-summary" id="uploadSummary"></div>
+
   </div>
 </div>
 
@@ -1040,133 +1040,131 @@ function switchTab(name, btn) {
   if (name === 'prepared') loadPreparedDocs();
 }
 
-// ── Upload ─────────────────────────────────────────────────────────────────
+// ── Unified Upload ─────────────────────────────────────────────────────────
+let uploadQueue = []; // [{file, status, error}]
+
 const uploadZone = document.getElementById('uploadZone');
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('dragleave', e => { if (!uploadZone.contains(e.relatedTarget)) uploadZone.classList.remove('drag-over'); });
 uploadZone.addEventListener('drop', e => {
   e.preventDefault(); uploadZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
-});
-function handleFileSelect(input) { if (input.files[0]) uploadFile(input.files[0]); input.value = ''; }
-
-async function uploadFile(file) {
-  if (!file.name.toLowerCase().endsWith('.pdf')) { setStatus('Only PDF files accepted.', 'error'); return; }
-  setStatus('<span class="spinner"></span>&nbsp; Uploading and extracting — this may take 30–60 seconds…', 'loading');
-  document.getElementById('progressBar').style.display = 'block';
-  const fd = new FormData(); fd.append('file', file);
-  try {
-    const res = await fetch('/api/tenders/upload', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (res.status === 409) throw new Error(data.detail || 'This tender already exists.');
-    if (!res.ok) throw new Error(data.detail || 'Upload failed');
-    pendingExtraction = data; currentTenderId = null;
-    setStatus('Extraction complete! Opening review…', 'success');
-    setTimeout(() => { document.getElementById('progressBar').style.display='none'; setStatus('',''); openReviewWithData(data, null); }, 700);
-  } catch (err) {
-    document.getElementById('progressBar').style.display = 'none';
-    setStatus('Error: ' + err.message, 'error');
-  }
-}
-function setStatus(html, type) {
-  const el = document.getElementById('uploadStatus'); el.innerHTML = html; el.className = 'status-' + type;
-}
-
-// ── Bulk Upload ────────────────────────────────────────────────────────────
-let bulkQueue = []; // [{file, status, error}]
-
-const bulkZone = document.getElementById('bulkZone');
-bulkZone.addEventListener('dragover', e => { e.preventDefault(); bulkZone.classList.add('drag-over'); });
-bulkZone.addEventListener('dragleave', () => bulkZone.classList.remove('drag-over'));
-bulkZone.addEventListener('drop', e => {
-  e.preventDefault(); bulkZone.classList.remove('drag-over');
   const pdfs = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
-  if (pdfs.length) addToBulkQueue(pdfs);
+  if (pdfs.length) addToUploadQueue(pdfs);
 });
 
-function handleBulkFileSelect(input) {
+function handleUnifiedFileSelect(input) {
   const pdfs = Array.from(input.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
-  if (pdfs.length) addToBulkQueue(pdfs);
+  if (pdfs.length) addToUploadQueue(pdfs);
   input.value = '';
 }
 
-function addToBulkQueue(files) {
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function addToUploadQueue(files) {
   files.forEach(f => {
-    if (!bulkQueue.find(q => q.file.name === f.name && q.file.size === f.size))
-      bulkQueue.push({ file: f, status: 'pending', error: null });
+    if (!uploadQueue.find(q => q.file.name === f.name && q.file.size === f.size))
+      uploadQueue.push({ file: f, status: 'pending', error: null });
   });
-  renderBulkList();
-  const actions = document.getElementById('bulkActions');
-  actions.style.display = 'flex';
-  document.getElementById('bulkSummary').style.display = 'none';
+  renderUploadQueue();
+  document.getElementById('uploadActions').style.display = 'flex';
+  document.getElementById('uploadSummary').style.display = 'none';
+  const btn = document.getElementById('uploadStartBtn');
+  btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg> ' + (uploadQueue.length === 1 ? 'Upload' : 'Upload All');
+  btn.disabled = false;
 }
 
-function renderBulkList() {
-  const list = document.getElementById('bulkFileList');
-  if (!bulkQueue.length) { list.style.display = 'none'; return; }
-  list.style.display = 'block';
-  list.innerHTML = bulkQueue.map((item, i) => {
-    const badgeLabel = { pending:'Pending', uploading:'Uploading', extracting:'Extracting', completed:'Completed', failed:'Failed', duplicate:'Duplicate' }[item.status] || item.status;
-    return `<div class="bulk-file-row" id="bulk-row-${i}">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-      <span class="bulk-file-name" title="${esc(item.file.name)}">${esc(item.file.name)}</span>
-      ${item.error ? `<span class="bulk-error-text" title="${esc(item.error)}">${esc(item.error)}</span>` : ''}
-      <span class="bulk-badge ${item.status}">${badgeLabel}</span>
-    </div>`;
-  }).join('');
+function renderUploadQueue() {
+  const wrap = document.getElementById('uploadQueue');
+  const body = document.getElementById('uploadQueueBody');
+  const count = document.getElementById('queueHeaderCount');
+  if (!uploadQueue.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  count.textContent = uploadQueue.length + ' file' + (uploadQueue.length > 1 ? 's' : '');
+  const LABELS = { pending:'Pending', uploading:'Uploading', extracting:'Extracting', completed:'Completed', failed:'Failed', duplicate:'Duplicate' };
+  body.innerHTML = uploadQueue.map((item, i) => `
+    <div class="upload-queue-row">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+      <span class="upload-queue-name" title="${esc(item.file.name)}">${esc(item.file.name)}</span>
+      <span class="upload-queue-size">${fmtSize(item.file.size)}</span>
+      ${item.error ? `<span class="upload-queue-error" title="${esc(item.error)}">${esc(item.error)}</span>` : ''}
+      <span class="upload-queue-badge ${item.status}">${LABELS[item.status] || item.status}</span>
+    </div>`).join('');
 }
 
-function setBulkRowStatus(index, status, error) {
-  bulkQueue[index].status = status;
-  bulkQueue[index].error = error || null;
-  renderBulkList();
+function setQueueItemStatus(index, status, error) {
+  uploadQueue[index].status = status;
+  uploadQueue[index].error = error || null;
+  renderUploadQueue();
 }
 
-async function startBulkUpload() {
-  const btn = document.getElementById('bulkUploadBtn');
+async function startUnifiedUpload() {
+  const btn = document.getElementById('uploadStartBtn');
   btn.disabled = true; btn.textContent = 'Uploading…';
-  document.getElementById('bulkSummary').style.display = 'none';
+  document.getElementById('uploadSummary').style.display = 'none';
 
-  for (let i = 0; i < bulkQueue.length; i++) {
-    const item = bulkQueue[i];
-    if (item.status === 'completed' || item.status === 'duplicate') continue;
-
-    setBulkRowStatus(i, 'uploading', null);
-    const fd = new FormData();
-    fd.append('files', item.file);
-
+  // Single file — extract then open review
+  if (uploadQueue.length === 1) {
+    const item = uploadQueue[0];
+    setQueueItemStatus(0, 'uploading', null);
+    const fd = new FormData(); fd.append('file', item.file);
     try {
-      setBulkRowStatus(i, 'extracting', null);
+      setQueueItemStatus(0, 'extracting', null);
+      const res = await fetch('/api/tenders/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.status === 409) throw new Error(data.detail || 'This tender already exists.');
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      setQueueItemStatus(0, 'completed', null);
+      pendingExtraction = data; currentTenderId = null;
+      setTimeout(() => { clearUploadQueue(); openReviewWithData(data, null); }, 600);
+    } catch (err) {
+      setQueueItemStatus(0, 'failed', err.message);
+      btn.disabled = false; btn.textContent = 'Retry';
+    }
+    return;
+  }
+
+  // Multiple files — auto-save each via bulk endpoint
+  for (let i = 0; i < uploadQueue.length; i++) {
+    const item = uploadQueue[i];
+    if (item.status === 'completed' || item.status === 'duplicate') continue;
+    setQueueItemStatus(i, 'uploading', null);
+    const fd = new FormData(); fd.append('files', item.file);
+    try {
+      setQueueItemStatus(i, 'extracting', null);
       const res = await fetch('/api/tenders/bulk-upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       const result = Array.isArray(data) ? data[0] : data;
-      if (result.status === 'completed')  setBulkRowStatus(i, 'completed', null);
-      else if (result.status === 'duplicate') setBulkRowStatus(i, 'duplicate', result.error);
-      else setBulkRowStatus(i, 'failed', result.error || 'Unknown error');
+      if (result.status === 'completed') setQueueItemStatus(i, 'completed', null);
+      else if (result.status === 'duplicate') setQueueItemStatus(i, 'duplicate', result.error);
+      else setQueueItemStatus(i, 'failed', result.error || 'Unknown error');
     } catch (err) {
-      setBulkRowStatus(i, 'failed', err.message);
+      setQueueItemStatus(i, 'failed', err.message);
     }
   }
 
-  const completed  = bulkQueue.filter(q => q.status === 'completed').length;
-  const duplicates = bulkQueue.filter(q => q.status === 'duplicate').length;
-  const failed     = bulkQueue.filter(q => q.status === 'failed').length;
+  const done  = uploadQueue.filter(q => q.status === 'completed').length;
+  const dups  = uploadQueue.filter(q => q.status === 'duplicate').length;
+  const fails = uploadQueue.filter(q => q.status === 'failed').length;
   const parts = [];
-  if (completed)  parts.push(`<strong>${completed}</strong> completed`);
-  if (duplicates) parts.push(`<strong>${duplicates}</strong> duplicate`);
-  if (failed)     parts.push(`<strong>${failed}</strong> failed`);
-  const summary = document.getElementById('bulkSummary');
+  if (done)  parts.push(`<strong>${done}</strong> completed`);
+  if (dups)  parts.push(`<strong>${dups}</strong> duplicate`);
+  if (fails) parts.push(`<strong>${fails}</strong> failed`);
+  const summary = document.getElementById('uploadSummary');
   summary.innerHTML = 'Done — ' + parts.join(', ');
   summary.style.display = 'block';
   btn.disabled = false; btn.textContent = 'Upload All';
 }
 
-function clearBulkQueue() {
-  bulkQueue = [];
-  renderBulkList();
-  document.getElementById('bulkActions').style.display = 'none';
-  document.getElementById('bulkSummary').style.display = 'none';
+function clearUploadQueue() {
+  uploadQueue = [];
+  renderUploadQueue();
+  document.getElementById('uploadActions').style.display = 'none';
+  document.getElementById('uploadSummary').style.display = 'none';
 }
 
 // ── Review ─────────────────────────────────────────────────────────────────
