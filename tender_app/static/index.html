@@ -544,6 +544,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
           <a id="sw-inquiry" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">📨 InquiryTracker</a>
           <a id="sw-price" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">💹 PriceDesk</a>
           <a id="sw-lead" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">🎯 LeadFlow</a>
+          <a id="sw-crm" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">🤝 CRM</a>
           <div style="height:1px;background:#f1f5f9;margin:6px 4px;"></div>
           <a id="sw-portal" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#64748b;font-size:12px;font-weight:500;" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background='transparent'">🏠 FidusSource Portal</a>
         </div>
@@ -1813,6 +1814,7 @@ const _PORTAL = (window.__PORTAL_URL__ || 'https://practical-amazement-productio
   document.getElementById('sw-inquiry').href = _PORTAL + '/go?app=inquiry-tracker';
   document.getElementById('sw-price').href   = _PORTAL + '/go?app=price-desk';
   document.getElementById('sw-lead').href    = _PORTAL + '/go?app=lead-clip';
+  document.getElementById('sw-crm').href     = _PORTAL + '/go?app=crm';
   document.getElementById('sw-portal').href  = _PORTAL + '/dashboard';
 })();
 
