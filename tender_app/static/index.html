@@ -1022,7 +1022,7 @@ function buildOrgFilterMenu(tenders) {
   menu.innerHTML = ['all', ...names].map(v => {
     const label = v === 'all' ? 'All Organisations' : v;
     const sel = orgFilterValue === v ? ' selected' : '';
-    return `<div class="th-filter-option${sel}" onclick="setOrgFilter(${JSON.stringify(v)},this)">${esc(label)}</div>`;
+    return `<div class="th-filter-option${sel}" onclick='setOrgFilter(${JSON.stringify(v)},this)'>${esc(label)}</div>`;
   }).join('');
 }
 function setOrgFilter(value, el) {
