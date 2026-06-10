@@ -38,6 +38,7 @@ database.init_db()
 
 _SSO_SECRET = os.environ.get("SSO_SECRET", "")
 _PORTAL_URL = os.environ.get("PORTAL_URL", "https://practical-amazement-production-3539.up.railway.app")
+_SELF_URL   = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "https://tender-ai-production-5a7d.up.railway.app")
 
 app.add_middleware(
     CORSMiddleware,
