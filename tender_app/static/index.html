@@ -793,8 +793,8 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
                 </span>
                 <div class="th-filter-menu" id="bidFilterMenu">
-                  <div class="th-filter-option selected" onclick="setBidSort('desc',this)">Newest First</div>
-                  <div class="th-filter-option" onclick="setBidSort('asc',this)">Oldest First</div>
+                  <div class="th-filter-option selected" onclick="setBidSort('desc',this)">Descending</div>
+                  <div class="th-filter-option" onclick="setBidSort('asc',this)">Ascending</div>
                 </div>
               </span>
             </th>
@@ -1063,18 +1063,16 @@ function refreshTenderList() {
 }
 function parseDateValue(value) {
   if (!value) return Infinity; // null/empty → always last
-  // Handle DD-MM-YYYY HH:mm:ss or DD-MM-YYYY HH:mm (GeM PDF format)
-  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  // Handle DD-MM-YYYY ... (GeM PDF format) — sort by date only, ignore time
+  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})/);
   if (ddmm) {
-    const [, dd, mm, yyyy, hh = '00', min = '00', ss = '00'] = ddmm;
-    const iso = `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
-    const ts = Date.parse(iso);
-    console.debug('[BidSort] DD-MM-YYYY →', value, '→ ISO:', iso, '→ ts:', ts);
+    const [, dd, mm, yyyy] = ddmm;
+    const ts = Date.parse(`${yyyy}-${mm}-${dd}`);
     return Number.isNaN(ts) ? Infinity : ts;
   }
-  // Fallback: try any browser-parseable format (e.g. ISO stored directly)
-  const ts = Date.parse(value);
-  console.debug('[BidSort] fallback →', value, '→ ts:', ts);
+  // Fallback: ISO or other format — strip time by taking date part only
+  const datePart = value.slice(0, 10);
+  const ts = Date.parse(datePart);
   return Number.isNaN(ts) ? Infinity : ts;
 }
 function renderTenderTable(tenders) {
