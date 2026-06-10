@@ -317,16 +317,27 @@ main { padding: 24px 28px 60px; }
   margin-bottom: 16px;
 }
 .table-wrap { overflow-x: auto; }
-.th-filter-select {
-  margin-left:6px; padding:2px 4px;
-  border:1px solid var(--slate-300); border-radius:6px;
-  background:#fff; color:var(--slate-700); font-size:11px;
-  font-weight:400; cursor:pointer; max-width:110px;
+.th-filter-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-left:3px; padding:2px 3px; border-radius:4px;
+  cursor:pointer; color:var(--slate-400); vertical-align:middle; user-select:none;
 }
-.th-filter-select:focus {
-  outline:none; border-color:var(--blue-500);
-  box-shadow:0 0 0 2px rgba(59,130,246,.12);
+.th-filter-btn:hover { background:var(--slate-200); color:var(--slate-600); }
+.th-filter-btn.active { color:var(--blue-600); }
+.th-filter-menu {
+  display:none; position:absolute; top:calc(100% + 6px); left:50%;
+  transform:translateX(-50%);
+  background:#fff; border:1px solid var(--slate-200); border-radius:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:200;
+  min-width:150px; padding:4px 0;
 }
+.th-filter-menu.open { display:block; }
+.th-filter-option {
+  padding:7px 14px; font-size:12px; font-weight:400;
+  cursor:pointer; color:var(--slate-700); white-space:nowrap;
+}
+.th-filter-option:hover { background:var(--slate-50); }
+.th-filter-option.selected { color:var(--blue-600); font-weight:600; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead { background: var(--slate-50); border-bottom: 1px solid var(--slate-200); }
 th {
@@ -737,17 +748,27 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th>GeM Bidding No.</th>
             <th>Tender Number</th>
             <th style="white-space:nowrap">
-              Organisation
-              <select id="orgFilter" class="th-filter-select" onchange="refreshTenderList()" title="Filter by organisation">
-                <option value="">All</option>
-              </select>
+              Organisation<span style="position:relative;display:inline-block">
+                <span class="th-filter-btn" id="orgFilterBtn" onclick="toggleFilterMenu('org',event)" title="Sort by organisation">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg>
+                </span>
+                <div class="th-filter-menu" id="orgFilterMenu">
+                  <div class="th-filter-option selected" onclick="setOrgSort('all',this)">All Organisations</div>
+                  <div class="th-filter-option" onclick="setOrgSort('asc',this)">A → Z</div>
+                  <div class="th-filter-option" onclick="setOrgSort('desc',this)">Z → A</div>
+                </div>
+              </span>
             </th>
             <th style="white-space:nowrap">
-              Bid End Date
-              <select id="bidEndSort" class="th-filter-select" onchange="refreshTenderList()" title="Sort by bid end date">
-                <option value="DESC" selected>↓ Newest</option>
-                <option value="ASC">↑ Oldest</option>
-              </select>
+              Bid End Date<span style="position:relative;display:inline-block">
+                <span class="th-filter-btn active" id="bidFilterBtn" onclick="toggleFilterMenu('bid',event)" title="Sort by bid end date">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
+                </span>
+                <div class="th-filter-menu" id="bidFilterMenu">
+                  <div class="th-filter-option selected" onclick="setBidSort('desc',this)">Newest First</div>
+                  <div class="th-filter-option" onclick="setBidSort('asc',this)">Oldest First</div>
+                </div>
+              </span>
             </th>
             <th>Make</th>
             <th style="width:56px;text-align:center">Qty</th>
@@ -952,23 +973,38 @@ function getSearchQuery() {
   const el = document.getElementById('gemSearch');
   return el ? el.value.trim().toLowerCase() : '';
 }
-function getSelectedOrganisation() {
-  const sel = document.getElementById('orgFilter');
-  return sel ? sel.value : '';
+let orgSortMode = 'all';  // 'all' | 'asc' | 'desc'
+let bidSortMode = 'desc'; // 'desc' | 'asc'
+
+function toggleFilterMenu(which, e) {
+  e.stopPropagation();
+  const menu = document.getElementById(which + 'FilterMenu');
+  const isOpen = menu.classList.contains('open');
+  closeAllFilterMenus();
+  if (!isOpen) menu.classList.add('open');
 }
-function getSelectedBidEndSort() {
-  const sel = document.getElementById('bidEndSort');
-  return sel ? sel.value : 'DESC';
+function closeAllFilterMenus() {
+  document.querySelectorAll('.th-filter-menu').forEach(m => m.classList.remove('open'));
 }
-function refreshTenderList() {
+function setOrgSort(mode, el) {
+  orgSortMode = mode;
+  document.querySelectorAll('#orgFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  const btn = document.getElementById('orgFilterBtn');
+  if (btn) btn.classList.toggle('active', mode !== 'all');
+  closeAllFilterMenus();
   renderTenderTable(tenderListCache);
 }
-function populateOrganisationFilter(tenders) {
-  const select = document.getElementById('orgFilter');
-  if (!select) return;
-  const organisations = Array.from(new Set(tenders.map(t => (t.organization_name || '').trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b, undefined, { sensitivity:'base' }));
-  const current = select.value || '';
-  select.innerHTML = '<option value="">All Organisations</option>' + organisations.map(org => `<option value="${esc(org)}"${org===current ? ' selected' : ''}>${esc(org)}</option>`).join('');
+function setBidSort(mode, el) {
+  bidSortMode = mode;
+  document.querySelectorAll('#bidFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  closeAllFilterMenus();
+  renderTenderTable(tenderListCache);
+}
+document.addEventListener('click', closeAllFilterMenus);
+function refreshTenderList() {
+  renderTenderTable(tenderListCache);
 }
 function parseDateValue(value) {
   const ts = Date.parse(value);
@@ -976,19 +1012,17 @@ function parseDateValue(value) {
 }
 function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
-  const selectedOrg = getSelectedOrganisation();
-  const sortOrder = getSelectedBidEndSort();
   const searchQ = getSearchQuery();
   const rows = tenders.slice().filter(t => {
-    if (selectedOrg && (t.organization_name || '') !== selectedOrg) return false;
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
     return true;
-  })
-    .sort((a,b) => {
-      const aDate = parseDateValue(a.bid_end_datetime);
-      const bDate = parseDateValue(b.bid_end_datetime);
-      return sortOrder === 'ASC' ? aDate - bDate : bDate - aDate;
-    });
+  }).sort((a, b) => {
+    if (orgSortMode === 'asc') return (a.organization_name || '').localeCompare(b.organization_name || '', undefined, {sensitivity:'base'});
+    if (orgSortMode === 'desc') return (b.organization_name || '').localeCompare(a.organization_name || '', undefined, {sensitivity:'base'});
+    const aDate = parseDateValue(a.bid_end_datetime);
+    const bDate = parseDateValue(b.bid_end_datetime);
+    return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
+  });
   tbody.innerHTML = rows.map(t => {
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : '';
     return `
@@ -1285,7 +1319,6 @@ async function loadTenderList() {
     empty.style.display = 'none';
 
     tenderListCache = tenders;
-    populateOrganisationFilter(tenders);
 
     // Stats
     const total  = tenders.length;
