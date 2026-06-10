@@ -732,11 +732,11 @@ async def logout(response: Response):
 # ── Data Recovery ────────────────────────────────────────────────────────────
 
 @app.post("/api/admin/recover-tenders")
-async def recover_tenders():
+async def recover_tenders(limit: int = 3):
     """
-    Re-extract and restore tender records from all PDFs still in PostgreSQL
-    (uploaded_files table). Safe to call multiple times — skips files that
-    already have a matching tender record.
+    Re-extract and restore tender records from PDFs still in PostgreSQL.
+    Processes at most `limit` files per call (default 3) to avoid timeouts.
+    Call repeatedly until recovered=0.
     """
     files = database.list_uploaded_file_ids()
     print(f"[RECOVER] found {len(files)} uploaded PDF(s) in PostgreSQL")
@@ -744,6 +744,9 @@ async def recover_tenders():
     recovered, skipped, failed = 0, 0, []
 
     for meta in files:
+        if recovered >= limit:
+            break
+
         file_id = meta["id"]
         original_name = meta.get("original_name") or ""
         pdf_path = f"/files/{file_id}"
@@ -801,7 +804,16 @@ async def recover_tenders():
             failed.append({"file_id": file_id, "original_name": original_name, "error": str(e)})
             print(f"[RECOVER] DB save failed: {original_name!r} — {e}")
 
-    return {"recovered": recovered, "skipped": skipped, "failed": failed}
+    total_in_pg = len(files)
+    already_done = skipped + recovered
+    remaining = total_in_pg - already_done - len(failed)
+    return {
+        "recovered": recovered,
+        "skipped": skipped,
+        "failed": failed,
+        "remaining": max(remaining, 0),
+        "total_in_pg": total_in_pg,
+    }
 
 
 # ── Static SPA (must be last) ─────────────────────────────────────────────────
