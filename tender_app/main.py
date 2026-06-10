@@ -176,6 +176,7 @@ async def upload_tender(file: UploadFile = File(...)):
 
     file_id = str(uuid.uuid4())
     file_bytes = await file.read()
+    print(f"[UPLOAD] file received: {file.filename!r} size={len(file_bytes)} bytes file_id={file_id}")
 
     # Save to PostgreSQL permanently
     database.save_uploaded_file(
@@ -187,6 +188,7 @@ async def upload_tender(file: UploadFile = File(...)):
         file_data=file_bytes,
         file_category="tender_pdf",
     )
+    print(f"[UPLOAD] saved to PostgreSQL: file_id={file_id} pdf_path=/files/{file_id}")
 
     # Write temp file for AI extraction only
     tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
@@ -249,6 +251,8 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
             results.append({"filename": filename, "status": "failed", "error": f"Could not read file: {e}"})
             continue
 
+        print(f"[BULK UPLOAD] file received: {filename!r} size={len(file_bytes)} bytes file_id={file_id}")
+
         # Save to PostgreSQL permanently
         try:
             database.save_uploaded_file(
@@ -260,6 +264,7 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
                 file_data=file_bytes,
                 file_category="tender_pdf",
             )
+            print(f"[BULK UPLOAD] saved to PostgreSQL: file_id={file_id} pdf_path=/files/{file_id}")
         except Exception as e:
             results.append({"filename": filename, "status": "failed", "error": f"Could not store file: {e}"})
             continue
@@ -309,6 +314,7 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
                 boq_items,
                 required_documents,
             )
+            print(f"[BULK UPLOAD] DB insert success: tender_id={tender_id} file={filename!r}")
             results.append({"filename": filename, "status": "completed", "tender_id": tender_id})
         except Exception as e:
             results.append({"filename": filename, "status": "failed", "error": f"Could not save tender: {e}"})
@@ -325,6 +331,7 @@ async def create_tender(payload: TenderPayload):
         [i.model_dump() for i in payload.boq_items],
         [d.model_dump() for d in payload.required_documents],
     )
+    print(f"[DB] tender saved: id={tender_id} pdf_path={payload.pdf_path!r} gem={payload.gem_bidding_number!r}")
     return {"id": tender_id}
 
 
@@ -387,15 +394,7 @@ async def get_tender_pdf(tender_id: int):
 @app.post("/api/admin/clear-tender-data", status_code=200)
 async def clear_tender_data():
     """One-time endpoint to wipe all tender records and old upload files."""
-    conn = database.get_db()
-    conn.executescript("""
-        DELETE FROM tender_prepared_documents;
-        DELETE FROM tender_required_documents;
-        DELETE FROM tender_items;
-        DELETE FROM tenders;
-    """)
-    conn.commit()
-    conn.close()
+    database.clear_tenders()
 
     # Remove files from uploads folder only (leave company_docs untouched)
     deleted_files = 0
@@ -727,6 +726,81 @@ async def me(request: Request):
 async def logout(response: Response):
     response.delete_cookie("tender_session", samesite="none", secure=True)
     return {"status": "logged_out"}
+
+
+# ── Data Recovery ────────────────────────────────────────────────────────────
+
+@app.post("/api/admin/recover-tenders")
+async def recover_tenders():
+    """
+    Re-extract and restore tender records from all PDFs still in PostgreSQL
+    (uploaded_files table). Safe to call multiple times — skips files that
+    already have a matching tender record.
+    """
+    files = database.list_uploaded_file_ids()
+    print(f"[RECOVER] found {len(files)} uploaded PDF(s) in PostgreSQL")
+
+    recovered, skipped, failed = 0, 0, []
+
+    for meta in files:
+        file_id = meta["id"]
+        original_name = meta.get("original_name") or ""
+        pdf_path = f"/files/{file_id}"
+
+        if database.find_tender_by_pdf_path(pdf_path):
+            print(f"[RECOVER] skip (already exists): {original_name!r} file_id={file_id}")
+            skipped += 1
+            continue
+
+        # Fetch PDF binary and re-extract
+        row = database.get_uploaded_file(file_id)
+        if not row:
+            failed.append({"file_id": file_id, "error": "File data missing from uploaded_files"})
+            continue
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        try:
+            tmp.write(bytes(row["file_data"]))
+            tmp.flush()
+            tmp.close()
+            print(f"[RECOVER] extracting: {original_name!r} file_id={file_id}")
+            raw = ai_extractor.process_pdf(tmp.name)
+        except Exception as e:
+            failed.append({"file_id": file_id, "original_name": original_name, "error": str(e)})
+            print(f"[RECOVER] extraction failed: {original_name!r} — {e}")
+            continue
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+        m = re.search(r"GeM-Bidding-(\d+)", original_name, re.IGNORECASE)
+        gem_bidding_number = m.group(1) if m else None
+
+        ti = raw.get("tender_information", {})
+        extracted = dict(ti)
+        extracted["gem_bidding_number"] = gem_bidding_number
+        extracted["pdf_path"] = pdf_path
+        extracted["extraction_json_path"] = None
+
+        boq_items = raw.get("items", [])
+        docs = raw.get("required_documents", [])
+        required_documents = [{"label": d} if isinstance(d, str) else d for d in docs]
+
+        try:
+            tender_id = database.save_tender(
+                {k: v for k, v in extracted.items() if k not in ("boq_items", "required_documents")},
+                boq_items,
+                required_documents,
+            )
+            print(f"[RECOVER] restored: tender_id={tender_id} file={original_name!r}")
+            recovered += 1
+        except Exception as e:
+            failed.append({"file_id": file_id, "original_name": original_name, "error": str(e)})
+            print(f"[RECOVER] DB save failed: {original_name!r} — {e}")
+
+    return {"recovered": recovered, "skipped": skipped, "failed": failed}
 
 
 # ── Static SPA (must be last) ─────────────────────────────────────────────────
