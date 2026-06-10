@@ -145,6 +145,71 @@ async def upload_tender(file: UploadFile = File(...)):
     return extracted
 
 
+@app.post("/api/tenders/bulk-upload")
+async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
+    results = []
+    for file in files:
+        filename = file.filename or "unknown.pdf"
+        if not filename.lower().endswith(".pdf"):
+            results.append({"filename": filename, "status": "failed", "error": "Not a PDF file"})
+            continue
+
+        file_id = str(uuid.uuid4())
+        pdf_path = UPLOADS_DIR / f"{file_id}_{filename}"
+
+        try:
+            with open(pdf_path, "wb") as f:
+                f.write(await file.read())
+        except Exception as e:
+            results.append({"filename": filename, "status": "failed", "error": f"Could not save file: {e}"})
+            continue
+
+        m = re.search(r"GeM-Bidding-(\d+)", filename, re.IGNORECASE)
+        gem_bidding_number = m.group(1) if m else None
+
+        try:
+            raw = ai_extractor.process_pdf(str(pdf_path))
+        except Exception as e:
+            pdf_path.unlink(missing_ok=True)
+            results.append({"filename": filename, "status": "failed", "error": f"AI extraction failed: {e}"})
+            continue
+
+        ti = raw.get("tender_information", {})
+        extracted = dict(ti)
+        extracted["gem_bidding_number"] = gem_bidding_number
+        tender_number = extracted.get("tender_number")
+
+        if gem_bidding_number and tender_number:
+            duplicate = database.find_tender_duplicate(gem_bidding_number, tender_number)
+            if duplicate:
+                pdf_path.unlink(missing_ok=True)
+                results.append({"filename": filename, "status": "duplicate", "error": "Tender already exists"})
+                continue
+
+        boq_items = raw.get("items", [])
+        docs = raw.get("required_documents", [])
+        required_documents = [{"label": d} if isinstance(d, str) else d for d in docs]
+
+        extracted["pdf_path"] = str(pdf_path)
+        json_path = EXTRACTIONS_DIR / f"{file_id}.json"
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(raw, f, indent=2, ensure_ascii=False)
+        extracted["extraction_json_path"] = str(json_path)
+
+        try:
+            tender_id = database.save_tender(
+                {k: v for k, v in extracted.items() if k not in ("boq_items", "required_documents")},
+                boq_items,
+                required_documents,
+            )
+            results.append({"filename": filename, "status": "completed", "tender_id": tender_id})
+        except Exception as e:
+            pdf_path.unlink(missing_ok=True)
+            results.append({"filename": filename, "status": "failed", "error": f"Could not save tender: {e}"})
+
+    return results
+
+
 # ── Tender CRUD ───────────────────────────────────────────────────────────────
 
 @app.post("/api/tenders", status_code=201)
