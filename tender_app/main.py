@@ -1,13 +1,18 @@
+import base64
+import hashlib
+import hmac
 import json
 import os
 import re
 import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, Form, HTTPException, UploadFile, File
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -28,6 +33,69 @@ for d in (UPLOADS_DIR, EXTRACTIONS_DIR, COMPANY_DOCS_DIR, GENERATED_DIR):
 
 app = FastAPI(title="AI Tender Management System")
 database.init_db()
+
+# ── SSO / Auth ─────────────────────────────────────────────────────────────────
+
+_SSO_SECRET = os.environ.get("SSO_SECRET", "")
+_PORTAL_URL = os.environ.get("PORTAL_URL", "https://practical-amazement-production-3539.up.railway.app")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[_PORTAL_URL, "http://localhost:3000", "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def _b64url_dec(s: str) -> bytes:
+    s += "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s)
+
+
+def _verify_sso_token(token: str) -> dict:
+    if not _SSO_SECRET:
+        raise HTTPException(500, "SSO_SECRET not configured on this service")
+    try:
+        h, p, sig = token.split(".")
+        expected = hmac.new(_SSO_SECRET.encode(), f"{h}.{p}".encode(), hashlib.sha256).digest()
+        actual = _b64url_dec(sig)
+        if not hmac.compare_digest(expected, actual):
+            raise ValueError("bad signature")
+        payload = json.loads(_b64url_dec(p))
+        if payload.get("exp", 0) < time.time():
+            raise ValueError("token expired")
+        return payload
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(401, str(exc))
+
+
+def _make_session(username: str, role: str) -> str:
+    hdr = base64.urlsafe_b64encode(b'{"alg":"HS256","typ":"JWT"}').rstrip(b"=").decode()
+    pay = base64.urlsafe_b64encode(
+        json.dumps({"sub": username, "role": role, "exp": int(time.time()) + 86400}).encode()
+    ).rstrip(b"=").decode()
+    secret = _SSO_SECRET.encode() or b"_local_fallback_"
+    sig = base64.urlsafe_b64encode(
+        hmac.new(secret, f"{hdr}.{pay}".encode(), hashlib.sha256).digest()
+    ).rstrip(b"=").decode()
+    return f"{hdr}.{pay}.{sig}"
+
+
+def _decode_session(token: str) -> dict:
+    try:
+        h, p, sig = token.split(".")
+        secret = _SSO_SECRET.encode() or b"_local_fallback_"
+        expected = hmac.new(secret, f"{h}.{p}".encode(), hashlib.sha256).digest()
+        actual = _b64url_dec(sig)
+        if not hmac.compare_digest(expected, actual):
+            raise ValueError("bad sig")
+        payload = json.loads(_b64url_dec(p))
+        if payload.get("exp", 0) < time.time():
+            raise ValueError("expired")
+        return payload
+    except Exception:
+        raise HTTPException(401, "Not authenticated")
 
 
 @app.get("/api/health")
@@ -628,6 +696,37 @@ async def download_prepared_doc(tender_id: int, doc_id: int):
     if not p.exists():
         raise HTTPException(404, "File not found on disk")
     return FileResponse(str(p), filename=p.name)
+
+
+# ── Auth endpoints ────────────────────────────────────────────────────────────
+
+@app.get("/api/auth/sso")
+async def sso_login(token: str):
+    """Portal redirects here with a signed SSO token after the user authenticates."""
+    payload = _verify_sso_token(token)
+    username = payload.get("sub", "")
+    if not username:
+        raise HTTPException(401, "Invalid token: missing sub")
+    role = payload.get("role", "employee")
+    session = _make_session(username, role)
+    resp = RedirectResponse(url="/", status_code=302)
+    resp.set_cookie("tender_session", session, httponly=True, samesite="none", secure=True, max_age=86400)
+    return resp
+
+
+@app.get("/api/auth/me")
+async def me(request: Request):
+    token = request.cookies.get("tender_session")
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+    payload = _decode_session(token)
+    return {"username": payload["sub"], "role": payload.get("role", "employee")}
+
+
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("tender_session", samesite="none", secure=True)
+    return {"status": "logged_out"}
 
 
 # ── Static SPA (must be last) ─────────────────────────────────────────────────

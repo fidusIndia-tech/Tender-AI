@@ -532,7 +532,26 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 <div id="app">
   <div class="page-topbar">
     <h2 id="topbarTitle">Upload Tender</h2>
-    <div class="page-topbar-actions" id="topbarActions"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="page-topbar-actions" id="topbarActions"></div>
+      <!-- App Switcher -->
+      <div id="appSwitcherWrap" style="position:relative;">
+        <button onclick="toggleSwitcher()" title="Switch app" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(15,23,42,0.09);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;" onmouseenter="this.style.background='rgba(15,23,42,0.06)'" onmouseleave="this.style.background='transparent'">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="0" y="0" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="5" y="0" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="10" y="0" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="0" y="5" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="5" y="5" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="10" y="5" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="0" y="10" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="5" y="10" width="3" height="3" rx="0.8" fill="#64748b"/><rect x="10" y="10" width="3" height="3" rx="0.8" fill="#64748b"/></svg>
+        </button>
+        <div id="appSwitcherMenu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:8px 6px;min-width:190px;box-shadow:0 12px 40px rgba(0,0,0,0.12);z-index:9999;">
+          <p style="font-size:10px;color:#94a3b8;padding:2px 10px 8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0;">Switch app</p>
+          <a id="sw-inquiry" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">📨 InquiryTracker</a>
+          <a id="sw-price" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">💹 PriceDesk</a>
+          <a id="sw-lead" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#0f172a;font-size:13px;font-weight:600;" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='transparent'">🎯 LeadFlow</a>
+          <div style="height:1px;background:#f1f5f9;margin:6px 4px;"></div>
+          <a id="sw-portal" href="#" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;text-decoration:none;color:#64748b;font-size:12px;font-weight:500;" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background='transparent'">🏠 FidusSource Portal</a>
+        </div>
+      </div>
+      <!-- User + Sign out -->
+      <span id="userInfo" style="font-size:12px;font-weight:600;color:#475569;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:50px;padding:4px 12px;"></span>
+      <button onclick="signOut()" style="font-size:12px;font-weight:500;color:#64748b;background:transparent;border:1px solid var(--slate-200);border-radius:6px;padding:5px 12px;cursor:pointer;" onmouseenter="this.style.background='var(--slate-100)'" onmouseleave="this.style.background='transparent'">Sign out</button>
+    </div>
   </div>
   <main>
 
@@ -1749,6 +1768,45 @@ function toast(msg, type='success') {
 }
 
 showView('upload');
+
+// ── SSO / Auth ────────────────────────────────────────────────────────────────
+const _PORTAL = (window.__PORTAL_URL__ || 'https://practical-amazement-production-3539.up.railway.app').replace(/\/$/, '');
+
+(function initSwitcherLinks() {
+  document.getElementById('sw-inquiry').href = _PORTAL + '/go?app=inquiry-tracker';
+  document.getElementById('sw-price').href   = _PORTAL + '/go?app=price-desk';
+  document.getElementById('sw-lead').href    = _PORTAL + '/go?app=lead-clip';
+  document.getElementById('sw-portal').href  = _PORTAL + '/dashboard';
+})();
+
+function toggleSwitcher() {
+  const m = document.getElementById('appSwitcherMenu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('mousedown', function(e) {
+  const wrap = document.getElementById('appSwitcherWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('appSwitcherMenu').style.display = 'none';
+  }
+});
+
+async function signOut() {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (_) {}
+  window.location.href = _PORTAL + '/login';
+}
+
+(async function checkAuth() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) { window.location.href = _PORTAL + '/login'; return; }
+    const data = await res.json();
+    const el = document.getElementById('userInfo');
+    if (el) el.textContent = data.username;
+  } catch (_) {
+    window.location.href = _PORTAL + '/login';
+  }
+})();
 </script>
 </body>
 </html>
