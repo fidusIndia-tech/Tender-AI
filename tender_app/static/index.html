@@ -716,9 +716,18 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 <div class="view" id="view-list">
   <div id="statRow" class="stat-row" style="display:none"></div>
   <div class="table-card">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
-      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
-      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Tender Records</span>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600);flex-shrink:0">Tender Records</span>
+      <div style="flex:1"></div>
+      <div style="position:relative;display:flex;align-items:center">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:8px;color:var(--slate-400);pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+        <input type="text" id="gemSearch" placeholder="Search GeM Bidding Number..." oninput="refreshTenderList()" style="padding:6px 10px 6px 28px;border:1px solid var(--slate-200);border-radius:8px;font-size:12px;width:230px;color:var(--slate-700);outline:none" onfocus="this.style.borderColor='var(--blue-400)'" onblur="this.style.borderColor='var(--slate-200)'">
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="loadTenderList()" title="Reload tenders from server" style="display:flex;align-items:center;gap:5px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+        Refresh
+      </button>
     </div>
     <div class="table-wrap">
       <table class="list-table">
@@ -939,6 +948,10 @@ const PAGE_ACTIONS = {
 };
 
 let tenderListCache = [];
+function getSearchQuery() {
+  const el = document.getElementById('gemSearch');
+  return el ? el.value.trim().toLowerCase() : '';
+}
 function getSelectedOrganisation() {
   const sel = document.getElementById('orgFilter');
   return sel ? sel.value : '';
@@ -965,7 +978,12 @@ function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
   const selectedOrg = getSelectedOrganisation();
   const sortOrder = getSelectedBidEndSort();
-  const rows = tenders.slice().filter(t => !selectedOrg || (t.organization_name || '') === selectedOrg)
+  const searchQ = getSearchQuery();
+  const rows = tenders.slice().filter(t => {
+    if (selectedOrg && (t.organization_name || '') !== selectedOrg) return false;
+    if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
+    return true;
+  })
     .sort((a,b) => {
       const aDate = parseDateValue(a.bid_end_datetime);
       const bDate = parseDateValue(b.bid_end_datetime);
