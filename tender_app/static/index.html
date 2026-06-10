@@ -266,6 +266,27 @@ main { padding: 24px 28px 60px; }
   margin-bottom: 16px;
 }
 .table-wrap { overflow-x: auto; }
+.list-controls {
+  display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;
+  padding:14px 16px 0;
+}
+.list-controls .filter-group {
+  display:flex; flex-direction:column; gap:5px;
+  min-width:220px; max-width:320px;
+}
+.list-controls label {
+  font-size: 12px; color: var(--slate-500);
+  text-transform: uppercase; letter-spacing:.4px;
+}
+.list-controls select {
+  width:100%; padding:10px 12px;
+  border:1px solid var(--slate-200); border-radius:10px;
+  background:#fff; color:var(--slate-700); font-size:13px;
+}
+.list-controls select:focus {
+  outline:none; border-color:var(--blue-500);
+  box-shadow:0 0 0 2px rgba(59,130,246,.12);
+}
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead { background: var(--slate-50); border-bottom: 1px solid var(--slate-200); }
 th {
@@ -628,6 +649,21 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
       <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Tender Records</span>
     </div>
+    <div class="list-controls">
+      <div class="filter-group">
+        <label for="orgFilter">Organisation</label>
+        <select id="orgFilter" onchange="refreshTenderList()">
+          <option value="">All Organisations</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="bidEndSort">Bid End Date</label>
+        <select id="bidEndSort" onchange="refreshTenderList()">
+          <option value="DESC" selected>Newest First</option>
+          <option value="ASC">Oldest First</option>
+        </select>
+      </div>
+    </div>
     <div class="table-wrap">
       <table class="list-table">
         <thead>
@@ -834,6 +870,73 @@ const PAGE_ACTIONS = {
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
 };
 
+let tenderListCache = [];
+function getSelectedOrganisation() {
+  const sel = document.getElementById('orgFilter');
+  return sel ? sel.value : '';
+}
+function getSelectedBidEndSort() {
+  const sel = document.getElementById('bidEndSort');
+  return sel ? sel.value : 'DESC';
+}
+function refreshTenderList() {
+  renderTenderTable(tenderListCache);
+}
+function populateOrganisationFilter(tenders) {
+  const select = document.getElementById('orgFilter');
+  if (!select) return;
+  const organisations = Array.from(new Set(tenders.map(t => (t.organization_name || '').trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b, undefined, { sensitivity:'base' }));
+  const current = select.value || '';
+  select.innerHTML = '<option value="">All Organisations</option>' + organisations.map(org => `<option value="${esc(org)}"${org===current ? ' selected' : ''}>${esc(org)}</option>`).join('');
+}
+function parseDateValue(value) {
+  const ts = Date.parse(value);
+  return Number.isNaN(ts) ? 0 : ts;
+}
+function renderTenderTable(tenders) {
+  const tbody = document.getElementById('tendersTableBody');
+  const selectedOrg = getSelectedOrganisation();
+  const sortOrder = getSelectedBidEndSort();
+  const rows = tenders.slice().filter(t => !selectedOrg || (t.organization_name || '') === selectedOrg)
+    .sort((a,b) => {
+      const aDate = parseDateValue(a.bid_end_datetime);
+      const bDate = parseDateValue(b.bid_end_datetime);
+      return sortOrder === 'ASC' ? aDate - bDate : bDate - aDate;
+    });
+  tbody.innerHTML = rows.map(t => {
+    const st = t.participation_status || '';
+    return `
+      <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
+        <td class="check-col" onclick="event.stopPropagation()">
+          <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
+        </td>
+        <td class="col-gem">${esc(t.gem_bidding_number)||'—'}</td>
+        <td class="col-tn">${esc(t.tender_number)||'—'}</td>
+        <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
+        <td class="col-date">${t.bid_end_datetime||'—'}</td>
+        <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
+        <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          <a href="/api/tenders/${t.id}/pdf" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>
+          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete">Del</button>
+        </td>
+        <td onclick="event.stopPropagation()">
+          <select class="status-select" value="${esc(st)}" onchange="updateTenderStatus(${t.id}, this)">
+            <option value="">— Status —</option>
+            <option value="WON"${st==='WON'?' selected':''}>Won</option>
+            <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
+            <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
+            <option value="FILED"${st==='FILED'?' selected':''}>Filed</option>
+          </select>
+        </td>
+        <td onclick="event.stopPropagation()">
+          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Enter participants…">
+        </td>
+      </tr>`;
+  }).join('');
+  document.querySelectorAll('.status-select').forEach(sel => applyStatusColor(sel, sel.value));
+}
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
@@ -999,6 +1102,9 @@ async function loadTenderList() {
     }
     empty.style.display = 'none';
 
+    tenderListCache = tenders;
+    populateOrganisationFilter(tenders);
+
     // Stats
     const total  = tenders.length;
     const won    = tenders.filter(t => t.participation_status === 'WON').length;
@@ -1021,8 +1127,7 @@ async function loadTenderList() {
         <div class="stat-label">${s.label}</div>
       </div>`).join('');
 
-    tbody.innerHTML = tenders.map(t => {
-      const st = t.participation_status || '';
+    renderTenderTable(tenders);
       return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="check-col" onclick="event.stopPropagation()">
