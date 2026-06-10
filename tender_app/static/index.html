@@ -1306,36 +1306,6 @@ async function loadTenderList() {
       </div>`).join('');
 
     renderTenderTable(tenders);
-      return `
-      <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
-        <td class="check-col" onclick="event.stopPropagation()">
-          <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
-        </td>
-        <td class="col-gem">${esc(t.gem_bidding_number)||'—'}</td>
-        <td class="col-tn">${esc(t.tender_number)||'—'}</td>
-        <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
-        <td class="col-date">${t.bid_end_datetime||'—'}</td>
-        <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
-        <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          <a href="/api/tenders/${t.id}/pdf" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>
-          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete">Del</button>
-        </td>
-        <td onclick="event.stopPropagation()">
-          <select class="status-select" value="${esc(st)}" onchange="updateTenderStatus(${t.id}, this)">
-            <option value="">— Status —</option>
-            <option value="WON"${st==='WON'?' selected':''}>Won</option>
-            <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
-            <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
-            <option value="FILED"${st==='FILED'?' selected':''}>Filed</option>
-          </select>
-        </td>
-        <td onclick="event.stopPropagation()">
-          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Enter participants…">
-        </td>
-      </tr>`;
-    }).join('');
-    document.querySelectorAll('.status-select').forEach(sel => applyStatusColor(sel, sel.value));
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
   }
