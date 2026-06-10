@@ -1,12 +1,14 @@
 import json
 import os
 import re
+import shutil
+import tempfile
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -105,19 +107,36 @@ async def upload_tender(file: UploadFile = File(...)):
         raise HTTPException(400, "Only PDF files are accepted")
 
     file_id = str(uuid.uuid4())
-    pdf_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
+    file_bytes = await file.read()
 
-    with open(pdf_path, "wb") as f:
-        f.write(await file.read())
+    # Save to PostgreSQL permanently
+    database.save_uploaded_file(
+        file_id=file_id,
+        file_name=f"{file_id}_{file.filename}",
+        original_name=file.filename,
+        content_type="application/pdf",
+        file_size=len(file_bytes),
+        file_data=file_bytes,
+        file_category="tender_pdf",
+    )
+
+    # Write temp file for AI extraction only
+    tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    try:
+        tmp.write(file_bytes)
+        tmp.flush()
+        tmp.close()
+        raw = ai_extractor.process_pdf(tmp.name)
+    except Exception as e:
+        raise HTTPException(500, f"AI extraction failed: {e}")
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
     m = re.search(r"GeM-Bidding-(\d+)", file.filename, re.IGNORECASE)
     gem_bidding_number = m.group(1) if m else None
-
-    try:
-        raw = ai_extractor.process_pdf(str(pdf_path))
-    except Exception as e:
-        pdf_path.unlink(missing_ok=True)
-        raise HTTPException(500, f"AI extraction failed: {e}")
 
     ti = raw.get("tender_information", {})
     extracted = dict(ti)
@@ -128,14 +147,14 @@ async def upload_tender(file: UploadFile = File(...)):
     if gem_bidding_number and tender_number:
         duplicate = database.find_tender_duplicate(gem_bidding_number, tender_number)
         if duplicate:
-            pdf_path.unlink(missing_ok=True)
             raise HTTPException(409, "This tender already exists.")
+
     extracted["boq_items"] = raw.get("items", [])
     docs = raw.get("required_documents", [])
     extracted["required_documents"] = [
         {"label": d} if isinstance(d, str) else d for d in docs
     ]
-    extracted["pdf_path"] = str(pdf_path)
+    extracted["pdf_path"] = f"/files/{file_id}"
 
     json_path = EXTRACTIONS_DIR / f"{file_id}.json"
     with open(json_path, "w", encoding="utf-8") as f:
@@ -155,24 +174,45 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
             continue
 
         file_id = str(uuid.uuid4())
-        pdf_path = UPLOADS_DIR / f"{file_id}_{filename}"
 
         try:
-            with open(pdf_path, "wb") as f:
-                f.write(await file.read())
+            file_bytes = await file.read()
         except Exception as e:
-            results.append({"filename": filename, "status": "failed", "error": f"Could not save file: {e}"})
+            results.append({"filename": filename, "status": "failed", "error": f"Could not read file: {e}"})
+            continue
+
+        # Save to PostgreSQL permanently
+        try:
+            database.save_uploaded_file(
+                file_id=file_id,
+                file_name=f"{file_id}_{filename}",
+                original_name=filename,
+                content_type="application/pdf",
+                file_size=len(file_bytes),
+                file_data=file_bytes,
+                file_category="tender_pdf",
+            )
+        except Exception as e:
+            results.append({"filename": filename, "status": "failed", "error": f"Could not store file: {e}"})
             continue
 
         m = re.search(r"GeM-Bidding-(\d+)", filename, re.IGNORECASE)
         gem_bidding_number = m.group(1) if m else None
 
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         try:
-            raw = ai_extractor.process_pdf(str(pdf_path))
+            tmp.write(file_bytes)
+            tmp.flush()
+            tmp.close()
+            raw = ai_extractor.process_pdf(tmp.name)
         except Exception as e:
-            pdf_path.unlink(missing_ok=True)
             results.append({"filename": filename, "status": "failed", "error": f"AI extraction failed: {e}"})
             continue
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
 
         ti = raw.get("tender_information", {})
         extracted = dict(ti)
@@ -182,7 +222,6 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
         if gem_bidding_number and tender_number:
             duplicate = database.find_tender_duplicate(gem_bidding_number, tender_number)
             if duplicate:
-                pdf_path.unlink(missing_ok=True)
                 results.append({"filename": filename, "status": "duplicate", "error": "Tender already exists"})
                 continue
 
@@ -190,7 +229,7 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
         docs = raw.get("required_documents", [])
         required_documents = [{"label": d} if isinstance(d, str) else d for d in docs]
 
-        extracted["pdf_path"] = str(pdf_path)
+        extracted["pdf_path"] = f"/files/{file_id}"
         json_path = EXTRACTIONS_DIR / f"{file_id}.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(raw, f, indent=2, ensure_ascii=False)
@@ -204,7 +243,6 @@ async def bulk_upload_tenders(files: List[UploadFile] = File(...)):
             )
             results.append({"filename": filename, "status": "completed", "tender_id": tender_id})
         except Exception as e:
-            pdf_path.unlink(missing_ok=True)
             results.append({"filename": filename, "status": "failed", "error": f"Could not save tender: {e}"})
 
     return results
@@ -248,6 +286,18 @@ async def update_tender(tender_id: int, payload: TenderPayload):
     return {"id": tender_id}
 
 
+@app.get("/files/{file_id}")
+async def serve_uploaded_file(file_id: str):
+    row = database.get_uploaded_file(file_id)
+    if not row:
+        raise HTTPException(404, "File not found")
+    return Response(
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
+    )
+
+
 @app.get("/api/tenders/{tender_id}/pdf")
 async def get_tender_pdf(tender_id: int):
     tender = database.get_tender(tender_id)
@@ -256,10 +306,39 @@ async def get_tender_pdf(tender_id: int):
     pdf_path = tender.get("pdf_path")
     if not pdf_path:
         raise HTTPException(404, "No PDF linked to this tender")
+    # New-style path: /files/{file_id}
+    if pdf_path.startswith("/files/"):
+        return RedirectResponse(url=pdf_path)
+    # Old-style local path — attempt disk fallback
     p = Path(pdf_path)
     if not p.exists():
-        raise HTTPException(404, "PDF file not found on disk")
+        raise HTTPException(404, "PDF file not found")
     return FileResponse(str(p), media_type="application/pdf", filename=p.name)
+
+
+@app.post("/api/admin/clear-tender-data", status_code=200)
+async def clear_tender_data():
+    """One-time endpoint to wipe all tender records and old upload files."""
+    conn = database.get_db()
+    conn.executescript("""
+        DELETE FROM tender_prepared_documents;
+        DELETE FROM tender_required_documents;
+        DELETE FROM tender_items;
+        DELETE FROM tenders;
+    """)
+    conn.commit()
+    conn.close()
+
+    # Remove files from uploads folder only (leave company_docs untouched)
+    deleted_files = 0
+    for f in UPLOADS_DIR.iterdir():
+        try:
+            f.unlink()
+            deleted_files += 1
+        except OSError:
+            pass
+
+    return {"message": "Cleared", "deleted_upload_files": deleted_files}
 
 
 @app.delete("/api/tenders/{tender_id}", status_code=204)

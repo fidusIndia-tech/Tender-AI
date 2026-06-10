@@ -998,7 +998,7 @@ function renderTenderTable(tenders) {
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
         <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          <a href="/api/tenders/${t.id}/pdf" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>
+          ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.4;cursor:default" title="No PDF">PDF</span>`}
           <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete">Del</button>
         </td>
         <td onclick="event.stopPropagation()">

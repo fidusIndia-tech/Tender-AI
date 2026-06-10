@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
 from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "tenders.db")
@@ -9,6 +11,67 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+# ── PostgreSQL (uploaded_files only) ─────────────────────────────────────────
+
+def get_pg_conn():
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
+    return psycopg2.connect(url)
+
+
+def init_uploaded_files_table():
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        return  # no PG configured, skip silently
+    try:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS uploaded_files (
+                    id TEXT PRIMARY KEY,
+                    file_name TEXT,
+                    original_name TEXT,
+                    content_type TEXT,
+                    file_size INTEGER,
+                    file_data BYTEA,
+                    file_category TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[PG] init_uploaded_files_table failed: {e}")
+
+
+def save_uploaded_file(file_id, file_name, original_name, content_type, file_size, file_data, file_category="tender_pdf"):
+    conn = get_pg_conn()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO uploaded_files
+               (id, file_name, original_name, content_type, file_size, file_data, file_category)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (file_id, file_name, original_name, content_type, file_size, psycopg2.Binary(file_data), file_category),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_uploaded_file(file_id):
+    conn = get_pg_conn()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT id, file_name, original_name, content_type, file_size, file_data FROM uploaded_files WHERE id=%s",
+            (file_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return dict(row)
 
 
 def init_db():
@@ -118,6 +181,7 @@ def init_db():
             pass  # Column already exists
 
     conn.close()
+    init_uploaded_files_table()
 
 
 # ── Tenders ───────────────────────────────────────────────────────────────────
@@ -211,7 +275,7 @@ def list_tenders():
     rows = conn.execute(
         """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
                   total_quantity, participation_status, uploaded_at,
-                  won_text, lost_text, participant_text
+                  won_text, lost_text, participant_text, pdf_path
            FROM tenders ORDER BY uploaded_at DESC"""
     ).fetchall()
     conn.close()
