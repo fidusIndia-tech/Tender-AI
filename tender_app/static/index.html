@@ -972,7 +972,7 @@ function renderTenderTable(tenders) {
       return sortOrder === 'ASC' ? aDate - bDate : bDate - aDate;
     });
   tbody.innerHTML = rows.map(t => {
-    const st = t.participation_status || '';
+    const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : '';
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="check-col" onclick="event.stopPropagation()">
@@ -991,7 +991,7 @@ function renderTenderTable(tenders) {
         </td>
         <td onclick="event.stopPropagation()">
           <select class="status-select" value="${esc(st)}" onchange="updateTenderStatus(${t.id}, this)">
-            <option value="">— Status —</option>
+            <option value="">Select Status</option>
             <option value="WON"${st==='WON'?' selected':''}>Won</option>
             <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
             <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>

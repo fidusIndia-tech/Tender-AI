@@ -97,7 +97,7 @@ def init_db():
             pdf_path TEXT,
             extraction_json_path TEXT,
             status TEXT DEFAULT 'extracted',
-            participation_status TEXT DEFAULT 'new'
+            participation_status TEXT DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS tender_items (
@@ -165,7 +165,7 @@ def init_db():
     # Migrate existing databases — add columns that may be missing
     migrations = [
         ("tenders",                    "gem_bidding_number",   "TEXT"),
-        ("tenders",                    "participation_status", "TEXT DEFAULT 'new'"),
+        ("tenders",                    "participation_status", "TEXT DEFAULT NULL"),
         ("tenders",                    "make",                 "TEXT"),
         ("tenders",                    "tender_approx_value",  "TEXT"),
         ("tenders",                    "won_text",             "TEXT"),
@@ -207,7 +207,7 @@ def save_tender(data, items, documents):
             data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
             data.get("won_text"), data.get("lost_text"), data.get("participant_text"),
             now, data.get("pdf_path"), data.get("extraction_json_path"),
-            "saved", "new",
+            "saved", None,
         ),
     )
     tender_id = c.lastrowid
