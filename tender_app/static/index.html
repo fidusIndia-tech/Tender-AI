@@ -325,10 +325,9 @@ main { padding: 24px 28px 60px; }
 .th-filter-btn:hover { background:var(--slate-200); color:var(--slate-600); }
 .th-filter-btn.active { color:var(--blue-600); }
 .th-filter-menu {
-  display:none; position:absolute; top:calc(100% + 6px); left:50%;
-  transform:translateX(-50%);
+  display:none; position:fixed;
   background:#fff; border:1px solid var(--slate-200); border-radius:8px;
-  box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:200;
+  box-shadow:0 8px 24px rgba(0,0,0,.14); z-index:9999;
   min-width:150px; padding:4px 0;
 }
 .th-filter-menu.open { display:block; }
@@ -1071,10 +1070,22 @@ let bidSortMode = 'desc';           // 'desc' | 'asc'
 
 function toggleFilterMenu(which, e) {
   e.stopPropagation();
+  const btn = e.currentTarget;
   const menu = document.getElementById(which + 'FilterMenu');
   const isOpen = menu.classList.contains('open');
   closeAllFilterMenus();
-  if (!isOpen) menu.classList.add('open');
+  if (!isOpen) {
+    const rect = btn.getBoundingClientRect();
+    const menuMinW = parseFloat(menu.style.minWidth) || 150;
+    let top = rect.bottom + 6;
+    let left = rect.left;
+    // Clamp so menu doesn't overflow viewport right edge
+    if (left + menuMinW > window.innerWidth - 8) left = window.innerWidth - menuMinW - 8;
+    if (left < 8) left = 8;
+    menu.style.top  = top  + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.add('open');
+  }
 }
 function closeAllFilterMenus() {
   document.querySelectorAll('.th-filter-menu').forEach(m => m.classList.remove('open'));
@@ -1177,6 +1188,8 @@ function setBidSort(mode, el) {
   renderTenderTable(tenderListCache);
 }
 document.addEventListener('click', closeAllFilterMenus);
+window.addEventListener('scroll', closeAllFilterMenus, true);
+window.addEventListener('resize', closeAllFilterMenus);
 function refreshTenderList() {
   renderTenderTable(tenderListCache);
 }
