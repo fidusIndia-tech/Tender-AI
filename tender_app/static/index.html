@@ -1086,19 +1086,25 @@ document.addEventListener('click', closeAllFilterMenus);
 function refreshTenderList() {
   renderTenderTable(tenderListCache);
 }
-function parseDateValue(value) {
-  if (!value) return Infinity; // null/empty → always last
-  // Handle DD-MM-YYYY HH:MM or DD-MM-YYYY HH:MM:SS (GeM PDF format)
-  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:[T ](\d{2}:\d{2}(?::\d{2})?))?/);
-  if (ddmm) {
-    const [, dd, mm, yyyy, time] = ddmm;
-    const isoStr = time ? `${yyyy}-${mm}-${dd}T${time}` : `${yyyy}-${mm}-${dd}`;
-    const ts = Date.parse(isoStr);
-    return Number.isNaN(ts) ? Infinity : ts;
+function parseBidEndDate(value) {
+  if (!value) return 0;
+  // Remove "at" (e.g. "22.06.2026 at 12:00 PM" → "22.06.2026 12:00 PM")
+  let s = value.trim().replace(/\s+at\s+/i, ' ');
+  // Normalise separators: replace "." with "-" for date part only
+  // Match DD.MM.YYYY or DD/MM/YYYY and convert to DD-MM-YYYY
+  s = s.replace(/^(\d{2})[./](\d{2})[./](\d{4})/, '$1-$2-$3');
+  // Now s is DD-MM-YYYY [HH:mm[:ss] [AM/PM]]
+  const m = s.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?)?/i);
+  if (!m) return 0;
+  const [, dd, mm, yyyy, hRaw, min = '00', sec = '00', ampm] = m;
+  let h = hRaw ? parseInt(hRaw, 10) : 0;
+  if (ampm) {
+    if (/pm/i.test(ampm) && h !== 12) h += 12;
+    if (/am/i.test(ampm) && h === 12) h = 0;
   }
-  // Fallback: ISO or other recognised format
-  const ts = Date.parse(value);
-  return Number.isNaN(ts) ? Infinity : ts;
+  const isoStr = `${yyyy}-${mm}-${dd}T${String(h).padStart(2,'0')}:${min}:${sec}`;
+  const ts = new Date(isoStr).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
 }
 function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
@@ -1113,8 +1119,8 @@ function renderTenderTable(tenders) {
   }).sort((a, b) => {
     if (orgSortMode === 'asc') return (a.organization_name || '').localeCompare(b.organization_name || '', undefined, {sensitivity:'base'});
     if (orgSortMode === 'desc') return (b.organization_name || '').localeCompare(a.organization_name || '', undefined, {sensitivity:'base'});
-    const aDate = parseDateValue(a.bid_end_datetime);
-    const bDate = parseDateValue(b.bid_end_datetime);
+    const aDate = parseBidEndDate(a.bid_end_datetime);
+    const bDate = parseBidEndDate(b.bid_end_datetime);
     return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
   });
   tbody.innerHTML = rows.map(t => {
