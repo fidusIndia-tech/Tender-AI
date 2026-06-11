@@ -1088,16 +1088,16 @@ function refreshTenderList() {
 }
 function parseDateValue(value) {
   if (!value) return Infinity; // null/empty → always last
-  // Handle DD-MM-YYYY ... (GeM PDF format) — sort by date only, ignore time
-  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})/);
+  // Handle DD-MM-YYYY HH:MM or DD-MM-YYYY HH:MM:SS (GeM PDF format)
+  const ddmm = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:[T ](\d{2}:\d{2}(?::\d{2})?))?/);
   if (ddmm) {
-    const [, dd, mm, yyyy] = ddmm;
-    const ts = Date.parse(`${yyyy}-${mm}-${dd}`);
+    const [, dd, mm, yyyy, time] = ddmm;
+    const isoStr = time ? `${yyyy}-${mm}-${dd}T${time}` : `${yyyy}-${mm}-${dd}`;
+    const ts = Date.parse(isoStr);
     return Number.isNaN(ts) ? Infinity : ts;
   }
-  // Fallback: ISO or other format — strip time by taking date part only
-  const datePart = value.slice(0, 10);
-  const ts = Date.parse(datePart);
+  // Fallback: ISO or other recognised format
+  const ts = Date.parse(value);
   return Number.isNaN(ts) ? Infinity : ts;
 }
 function renderTenderTable(tenders) {
