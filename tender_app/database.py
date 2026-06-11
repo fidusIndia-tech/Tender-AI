@@ -124,9 +124,89 @@ def init_db():
         cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS original_name TEXT")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS government_portals (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                url TEXT,
+                username TEXT,
+                password_encrypted TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     conn.commit()
     conn.close()
     print("[DB] All PostgreSQL tables initialized")
+
+
+# ── Government Portals ────────────────────────────────────────────────────────
+
+def list_portals():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT id, name, url, username, notes, created_at FROM government_portals ORDER BY name"
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_portal(portal_id: int):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT id, name, url, username, notes FROM government_portals WHERE id=%s",
+            (portal_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_portal_with_password(portal_id: int):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT id, name, url, username, password_encrypted, notes FROM government_portals WHERE id=%s",
+            (portal_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def create_portal(name: str, url, username, password_encrypted: str, notes) -> int:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO government_portals (name, url, username, password_encrypted, notes) VALUES (%s,%s,%s,%s,%s) RETURNING id",
+            (name, url, username, password_encrypted, notes),
+        )
+        portal_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return portal_id
+
+
+def update_portal(portal_id: int, name: str, url, username, password_encrypted: str, notes):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE government_portals SET name=%s, url=%s, username=%s, password_encrypted=%s, notes=%s WHERE id=%s",
+            (name, url, username, password_encrypted, notes, portal_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def delete_portal(portal_id: int):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM government_portals WHERE id=%s", (portal_id,))
+    conn.commit()
+    conn.close()
 
 
 # ── Uploaded Files ────────────────────────────────────────────────────────────

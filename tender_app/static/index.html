@@ -3,121 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Tender Management System</title>
+<title>TenderAI — FIAPL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ── Reset & Tokens ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  /* Primary = Emerald */
-  --blue-50:#ecfdf5;  --blue-100:#d1fae5;  --blue-500:#10b981;
-  --blue-600:#059669; --blue-700:#047857;  --blue-800:#065f46;
+  /* Primary = Blue */
+  --blue-50:#eff6ff;  --blue-100:#dbeafe;  --blue-200:#bfdbfe;
+  --blue-500:#3b82f6; --blue-600:#2563eb;  --blue-700:#1d4ed8;
   --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0;
   --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b;
   --slate-600:#475569; --slate-700:#334155; --slate-800:#1e293b;
   --slate-900:#0f172a;
   --green-50:#f0fdf4; --green-100:#dcfce7; --green-600:#16a34a; --green-700:#15803d;
+  --green-300:#86efac;
   --red-50:#fef2f2; --red-100:#fee2e2; --red-600:#dc2626; --red-700:#b91c1c;
   --amber-50:#fffbeb; --amber-100:#fef3c7; --amber-600:#d97706; --amber-700:#b45309;
   --purple-50:#faf5ff; --purple-100:#ede9fe; --purple-600:#9333ea; --purple-700:#7e22ce;
   --cyan-50:#ecfeff; --cyan-100:#cffafe; --cyan-600:#0891b2; --cyan-700:#0e7490;
 
-  --sidebar-w: 220px;
+  --topnav-h: 52px;
+  --sidebar-w: 0px;
   --header-h: 0px;
   --radius-sm: 6px; --radius: 10px; --radius-lg: 14px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-  --shadow: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shadow: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+  --shadow-lg: 0 10px 20px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.05);
   --transition: 150ms ease;
 }
 html { font-size: 14px; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-  background: var(--slate-100);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #F0F4F8;
   color: var(--slate-800);
   line-height: 1.55;
   min-height: 100vh;
   display: flex;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+/* ── Top Navigation ──────────────────────────────────────────────────────── */
 #sidebar {
-  width: var(--sidebar-w);
-  min-height: 100vh;
-  background: #0B3D2E;
+  width: 100%;
+  height: var(--topnav-h);
+  min-height: unset;
+  background: #fff;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   position: fixed;
-  left: 0; top: 0; bottom: 0;
-  z-index: 200;
+  left: 0; top: 0; right: 0; bottom: auto;
+  z-index: 300;
   padding: 0;
-  box-shadow: 2px 0 12px rgba(0,0,0,.18);
+  border-bottom: 1px solid var(--slate-200);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 .sidebar-brand {
-  padding: 18px 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 0 18px;
+  border-bottom: none;
+  border-right: 1px solid var(--slate-200);
   display: flex; align-items: center; justify-content: center;
+  height: 100%;
+  flex-shrink: 0;
 }
-.sidebar-section-label {
-  font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,.28);
-  text-transform: uppercase; letter-spacing: 1px;
-  padding: 18px 20px 5px;
-}
+.sidebar-section-label { display: none; }
 .nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 16px 9px 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 13px;
   cursor: pointer;
-  color: rgba(255,255,255,.55);
+  color: var(--slate-500);
   font-size: 13px; font-weight: 500;
-  border-left: 3px solid transparent;
-  transition: background .15s, color .15s, border-color .15s;
+  border-left: none;
+  border-bottom: 2px solid transparent;
+  border-top: 2px solid transparent;
+  transition: color .15s, border-color .15s, background .15s;
   border-radius: 0;
   user-select: none;
-  margin: 1px 0;
+  height: 100%;
+  white-space: nowrap;
 }
 .nav-item:hover {
-  background: rgba(255,255,255,.07);
-  color: rgba(255,255,255,.9);
-  border-left-color: rgba(255,255,255,.2);
+  background: var(--blue-50);
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-200);
 }
 .nav-item.active {
-  background: rgba(110,231,183,.14);
-  color: #6ee7b7;
-  border-left-color: #6ee7b7;
+  color: var(--blue-600);
+  background: transparent;
+  border-left-color: transparent;
+  border-bottom-color: var(--blue-600);
   font-weight: 600;
 }
-.nav-item svg { flex-shrink: 0; opacity: .65; transition: opacity .15s; }
-.nav-item:hover svg { opacity: .9; }
-.nav-item.active svg { opacity: 1; }
-.sidebar-footer {
-  margin-top: auto;
-  padding: 14px 20px;
-  border-top: 1px solid rgba(255,255,255,.08);
-  font-size: 11px;
-  color: rgba(255,255,255,.32);
-}
+.nav-item svg { flex-shrink: 0; opacity: .6; transition: opacity .15s; }
+.nav-item:hover svg, .nav-item.active svg { opacity: 1; }
+.sidebar-footer { display: none; }
 
 /* ── Main Content ─────────────────────────────────────────────────────────── */
 #app {
-  margin-left: var(--sidebar-w);
+  margin-left: 0;
+  margin-top: var(--topnav-h);
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--topnav-h));
+  width: 100%;
 }
 .page-topbar {
   background: #fff;
   border-bottom: 1px solid var(--slate-200);
-  padding: 0 28px;
-  height: 56px;
+  padding: 0 24px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky; top: 0; z-index: 100;
-  box-shadow: var(--shadow-sm);
+  position: sticky; top: var(--topnav-h); z-index: 100;
 }
-.page-topbar h2 { font-size: 16px; font-weight: 700; color: var(--slate-900); }
+.page-topbar h2 { font-size: 14px; font-weight: 700; color: var(--slate-800); }
 .page-topbar-actions { display: flex; gap: 8px; }
-main { padding: 24px 28px 60px; }
+main { padding: 20px 24px 60px; }
 
 /* ── Views ───────────────────────────────────────────────────────────────── */
 .view { display: none; }
@@ -151,8 +156,8 @@ main { padding: 24px 28px 60px; }
   text-decoration: none;
   line-height: 1.4;
 }
-.btn-primary { background: var(--blue-600); color: #fff; box-shadow: 0 1px 2px rgba(5,150,105,.3); }
-.btn-primary:hover { background: var(--blue-700); box-shadow: 0 2px 6px rgba(5,150,105,.4); }
+.btn-primary { background: var(--blue-600); color: #fff; box-shadow: 0 1px 3px rgba(37,99,235,.3); }
+.btn-primary:hover { background: var(--blue-700); box-shadow: 0 2px 6px rgba(37,99,235,.35); }
 .btn-success { background: var(--green-600); color: #fff; box-shadow: 0 1px 2px rgba(22,163,74,.25); }
 .btn-success:hover { background: var(--green-700); }
 .btn-danger { background: var(--red-50); color: var(--red-600); border: 1px solid var(--red-100); }
@@ -317,9 +322,9 @@ main { padding: 24px 28px 60px; }
 .table-card {
   background: #fff;
   border: 1px solid var(--slate-200);
-  border-radius: var(--radius);
+  border-radius: 12px;
   overflow: visible;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 4px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
   margin-bottom: 16px;
 }
 .table-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 8px; }
@@ -378,11 +383,11 @@ main { padding: 24px 28px 60px; }
   padding:0 5px; line-height:16px; margin-left:2px; vertical-align:middle;
 }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead { background: var(--slate-50); border-bottom: 1px solid var(--slate-200); }
+thead { background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
 th {
-  padding: 10px 14px; text-align: left;
-  font-size: 11px; font-weight: 700; color: var(--slate-500);
-  text-transform: uppercase; letter-spacing: .5px;
+  padding: 9px 12px; text-align: left;
+  font-size: 10.5px; font-weight: 700; color: #3B6EC4;
+  text-transform: uppercase; letter-spacing: .45px;
   white-space: nowrap;
   border-left: none; border-right: none; outline: none;
 }
@@ -428,18 +433,20 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .doc-row input:focus { outline:none;border-color:var(--blue-500); }
 
 /* ── Stat bar (list page) ─────────────────────────────────────────────────── */
-.stat-row { display:flex;gap:14px;margin-bottom:20px; }
+.stat-row { display:flex;gap:12px;margin-bottom:20px; }
 .stat-card {
   flex:1;background:#fff;border:1px solid var(--slate-200);
-  border-radius:var(--radius);padding:14px 18px;
-  box-shadow:var(--shadow-sm);
+  border-radius:12px;padding:16px 18px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05),0 1px 2px rgba(0,0,0,.04);
+  transition:box-shadow .2s;
 }
-.stat-card .stat-val { font-size:22px;font-weight:800;color:var(--slate-900);line-height:1; }
-.stat-card .stat-label { font-size:11px;color:var(--slate-400);margin-top:3px;font-weight:500; }
+.stat-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.09); }
+.stat-card .stat-val { font-size:26px;font-weight:800;color:var(--slate-900);line-height:1.1; }
+.stat-card .stat-label { font-size:11px;color:var(--slate-400);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.4px; }
 .stat-card .stat-icon {
-  width:36px;height:36px;border-radius:var(--radius-sm);
+  width:38px;height:38px;border-radius:9px;
   display:flex;align-items:center;justify-content:center;
-  float:right; margin-top:-4px;
+  float:right; margin-top:-2px;
 }
 
 /* ── Prep actions ────────────────────────────────────────────────────────── */
@@ -527,6 +534,86 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .divider { border:none;border-top:1px solid var(--slate-100);margin:4px 0 14px; }
+
+/* ── Government Portals Modal ────────────────────────────────────────────── */
+.portals-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 8000;
+  align-items: center; justify-content: center;
+}
+.portals-overlay.open { display: flex; }
+.portals-modal {
+  background: #fff; border-radius: 14px;
+  width: 740px; max-width: 96vw; max-height: 88vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+.portals-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--slate-200);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.portals-header h3 { font-size: 15px; font-weight: 700; color: var(--slate-800); flex: 1; }
+.portals-toolbar {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--slate-100);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.portals-search {
+  flex: 1; padding: 6px 11px; border-radius: 8px;
+  border: 1px solid var(--slate-200); font-size: 13px;
+  color: var(--slate-700); outline: none;
+}
+.portals-search:focus { border-color: var(--blue-500); }
+.portals-body {
+  overflow-y: auto; flex: 1; padding: 14px 20px 16px;
+}
+.portal-card {
+  border: 1px solid var(--slate-200); border-radius: 10px;
+  padding: 13px 15px; margin-bottom: 10px; background: #fff;
+  transition: box-shadow .15s;
+}
+.portal-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.portal-card-title {
+  font-size: 14px; font-weight: 700; color: var(--slate-800);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.portal-card-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; margin-top: 5px;
+}
+.portal-label {
+  color: var(--slate-400); font-size: 11px;
+  min-width: 80px; font-weight: 500; flex-shrink: 0;
+}
+.portals-add-form {
+  border-top: 1px solid var(--slate-200);
+  padding: 16px 20px 18px;
+  flex-shrink: 0;
+  background: var(--slate-50);
+}
+.portals-add-form h4 { font-size: 13px; font-weight: 700; color: var(--slate-700); margin-bottom: 12px; }
+.portals-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.portals-form-grid .full { grid-column: 1 / -1; }
+.portals-input {
+  width: 100%; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--slate-200); font-size: 12.5px;
+  color: var(--slate-700); outline: none; background: #fff;
+}
+.portals-input:focus { border-color: var(--blue-500); }
+.portals-pw-wrap { position: relative; display: flex; }
+.portals-pw-wrap .portals-input { padding-right: 36px; }
+.portals-pw-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--slate-400);
+  font-size: 13px; padding: 2px; line-height: 1;
+}
+.portals-pw-eye:hover { color: var(--slate-700); }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -560,6 +647,12 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>
     </svg>
     Document Library
+  </div>
+  <div class="nav-item" id="nav-portals" onclick="openPortalsModal()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/>
+    </svg>
+    Gov Portals
   </div>
   <div class="nav-item" id="nav-profile" onclick="showView('profile')">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1058,6 +1151,58 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 </div><!-- end #app -->
 
 <div id="toast"></div>
+
+<!-- ── Government Portals Modal ──────────────────────────────────────────── -->
+<div class="portals-overlay" id="portalsOverlay" onclick="if(event.target===this)closePortalsModal()">
+  <div class="portals-modal">
+    <div class="portals-header">
+      <svg width="18" height="18" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/>
+      </svg>
+      <h3>Government Portals</h3>
+      <button class="btn btn-outline btn-sm" onclick="showPortalForm()">+ Add Portal</button>
+      <button onclick="closePortalsModal()" style="background:none;border:none;cursor:pointer;color:var(--slate-400);font-size:20px;line-height:1;padding:2px 6px;" title="Close">&times;</button>
+    </div>
+    <div class="portals-toolbar">
+      <input class="portals-search" type="search" placeholder="Search portals by name…" oninput="searchPortals(this.value)" id="portalsSearchInput">
+    </div>
+    <div class="portals-body" id="portalsBody">
+      <div style="text-align:center;color:var(--slate-400);padding:36px">Loading…</div>
+    </div>
+    <div class="portals-add-form" id="portalAddForm" style="display:none">
+      <h4 id="portalFormTitle">Add Portal</h4>
+      <div class="portals-form-grid">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--slate-600);display:block;margin-bottom:4px">Portal Name *</label>
+          <input class="portals-input" id="pf-name" type="text">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--slate-600);display:block;margin-bottom:4px">URL</label>
+          <input class="portals-input" id="pf-url" type="url">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--slate-600);display:block;margin-bottom:4px">Username / Login ID</label>
+          <input class="portals-input" id="pf-username" type="text" autocomplete="off">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--slate-600);display:block;margin-bottom:4px">Password</label>
+          <div class="portals-pw-wrap">
+            <input class="portals-input" id="pf-password" type="password" autocomplete="new-password">
+            <button type="button" class="portals-pw-eye" id="pf-pw-eye" onclick="toggleFormPwVisibility()" title="Show/hide">&#128065;</button>
+          </div>
+        </div>
+        <div class="full">
+          <label style="font-size:11px;font-weight:600;color:var(--slate-600);display:block;margin-bottom:4px">Notes</label>
+          <input class="portals-input" id="pf-notes" type="text">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary btn-sm" onclick="savePortalForm()">Save</button>
+        <button class="btn btn-outline btn-sm" onclick="cancelPortalForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
@@ -2125,10 +2270,220 @@ async function signOut() {
     const data = await res.json();
     const el = document.getElementById('userInfo');
     if (el) el.textContent = data.username;
+    window._userRole = data.role || 'employee';
   } catch (_) {
     window.location.href = _PORTAL + '/login';
   }
 })();
+
+// ── Government Portals ─────────────────────────────────────────────────────
+
+let _portalsCache = [];
+let _editingPortalId = null;
+let _revealedPw = {};  // { id: plaintext } — cleared on modal close
+
+function _esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openPortalsModal() {
+  document.getElementById('portalsOverlay').classList.add('open');
+  document.getElementById('portalsSearchInput').value = '';
+  cancelPortalForm();
+  loadPortals();
+}
+
+function closePortalsModal() {
+  document.getElementById('portalsOverlay').classList.remove('open');
+  _revealedPw = {};  // clear revealed passwords from memory
+}
+
+async function loadPortals() {
+  const body = document.getElementById('portalsBody');
+  body.innerHTML = '<div style="text-align:center;color:var(--slate-400);padding:36px">Loading…</div>';
+  try {
+    const res = await fetch('/api/portals');
+    if (res.status === 403) {
+      body.innerHTML = '<div style="text-align:center;color:var(--red-600);padding:36px">Access restricted to admin / director.</div>';
+      return;
+    }
+    if (!res.ok) throw new Error('Failed to load portals');
+    _portalsCache = await res.json();
+    renderPortalList(_portalsCache);
+  } catch (err) {
+    body.innerHTML = `<div style="text-align:center;color:var(--red-600);padding:36px">${_esc(err.message)}</div>`;
+  }
+}
+
+function renderPortalList(list) {
+  const body = document.getElementById('portalsBody');
+  if (!list.length) {
+    body.innerHTML = '<div style="text-align:center;color:var(--slate-400);padding:36px">No portals found. Click "Add Portal" to get started.</div>';
+    return;
+  }
+  body.innerHTML = list.map(p => `
+    <div class="portal-card">
+      <div class="portal-card-title">
+        <svg width="14" height="14" fill="none" stroke="var(--blue-500)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582"/></svg>
+        ${_esc(p.name)}
+        <span style="flex:1"></span>
+        ${p.url ? `<a href="${_esc(p.url)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">Open</a>` : ''}
+        <button class="btn btn-outline btn-xs" onclick="editPortal(${p.id})">Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="deletePortal(${p.id})">Delete</button>
+      </div>
+      ${p.url ? `<div class="portal-card-row"><span class="portal-label">URL</span><a href="${_esc(p.url)}" target="_blank" rel="noopener" style="color:var(--blue-600);font-size:12px;word-break:break-all">${_esc(p.url)}</a></div>` : ''}
+      <div class="portal-card-row">
+        <span class="portal-label">Username</span>
+        <code style="font-size:12px;background:var(--slate-50);padding:2px 7px;border-radius:4px;border:1px solid var(--slate-100)">${_esc(p.username || '—')}</code>
+        ${p.username ? `<button class="btn btn-ghost btn-xs" onclick="portalCopy(${_esc(JSON.stringify(p.username))},'Username copied')">Copy</button>` : ''}
+      </div>
+      <div class="portal-card-row">
+        <span class="portal-label">Password</span>
+        <span id="pw-disp-${p.id}" style="letter-spacing:2px;font-size:13px">••••••••</span>
+        <button class="btn btn-ghost btn-xs" id="pw-eye-${p.id}" onclick="togglePortalPw(${p.id})">&#128065; Show</button>
+        <button class="btn btn-ghost btn-xs" onclick="portalCopyPw(${p.id})">Copy</button>
+      </div>
+      ${p.notes ? `<div style="font-size:11px;color:var(--slate-400);margin-top:8px;border-top:1px solid var(--slate-100);padding-top:6px">${_esc(p.notes)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function searchPortals(query) {
+  const q = (query || '').toLowerCase().trim();
+  renderPortalList(q ? _portalsCache.filter(p => p.name.toLowerCase().includes(q)) : _portalsCache);
+}
+
+async function togglePortalPw(id) {
+  const disp = document.getElementById(`pw-disp-${id}`);
+  const eye  = document.getElementById(`pw-eye-${id}`);
+  if (_revealedPw[id] !== undefined) {
+    if (disp.style.letterSpacing === '2px' || disp.textContent === '••••••••') {
+      disp.textContent = _revealedPw[id] || '(no password)';
+      disp.style.letterSpacing = 'normal';
+      if (eye) eye.innerHTML = '&#128584; Hide';
+    } else {
+      disp.textContent = '••••••••';
+      disp.style.letterSpacing = '2px';
+      if (eye) eye.innerHTML = '&#128065; Show';
+    }
+    return;
+  }
+  try {
+    const res = await fetch(`/api/portals/${id}/reveal`, { method: 'POST' });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+    const data = await res.json();
+    _revealedPw[id] = data.password || '';
+    disp.textContent = _revealedPw[id] || '(no password)';
+    disp.style.letterSpacing = 'normal';
+    if (eye) eye.innerHTML = '&#128584; Hide';
+  } catch (err) {
+    toast('Failed to reveal password: ' + err.message, 'error');
+  }
+}
+
+async function portalCopyPw(id) {
+  if (_revealedPw[id] !== undefined) { portalCopy(_revealedPw[id], 'Password copied'); return; }
+  try {
+    const res = await fetch(`/api/portals/${id}/reveal`, { method: 'POST' });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+    const data = await res.json();
+    _revealedPw[id] = data.password || '';
+    portalCopy(_revealedPw[id], 'Password copied');
+  } catch (err) {
+    toast('Failed to copy password: ' + err.message, 'error');
+  }
+}
+
+function portalCopy(text, msg) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast(msg || 'Copied', 'success'))
+    .catch(() => toast('Copy failed — please copy manually', 'error'));
+}
+
+function showPortalForm() {
+  _editingPortalId = null;
+  document.getElementById('portalFormTitle').textContent = 'Add Portal';
+  document.getElementById('pf-name').value = '';
+  document.getElementById('pf-url').value = '';
+  document.getElementById('pf-username').value = '';
+  document.getElementById('pf-password').value = '';
+  document.getElementById('pf-password').placeholder = '';
+  document.getElementById('pf-notes').value = '';
+  document.getElementById('pf-password').type = 'password';
+  document.getElementById('portalAddForm').style.display = 'block';
+  document.getElementById('pf-name').focus();
+}
+
+function editPortal(id) {
+  const p = _portalsCache.find(x => x.id === id);
+  if (!p) return;
+  _editingPortalId = id;
+  document.getElementById('portalFormTitle').textContent = 'Edit Portal';
+  document.getElementById('pf-name').value = p.name || '';
+  document.getElementById('pf-url').value = p.url || '';
+  document.getElementById('pf-username').value = p.username || '';
+  document.getElementById('pf-password').value = '';
+  document.getElementById('pf-password').placeholder = 'Leave blank to keep existing password';
+  document.getElementById('pf-notes').value = p.notes || '';
+  document.getElementById('pf-password').type = 'password';
+  document.getElementById('portalAddForm').style.display = 'block';
+  document.getElementById('pf-name').focus();
+}
+
+function cancelPortalForm() {
+  _editingPortalId = null;
+  document.getElementById('portalAddForm').style.display = 'none';
+}
+
+function toggleFormPwVisibility() {
+  const inp = document.getElementById('pf-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function savePortalForm() {
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) { toast('Portal name is required', 'error'); return; }
+  const body = {
+    name,
+    url:      document.getElementById('pf-url').value.trim() || null,
+    username: document.getElementById('pf-username').value.trim() || null,
+    password: document.getElementById('pf-password').value || null,
+    notes:    document.getElementById('pf-notes').value.trim() || null,
+  };
+  try {
+    let res;
+    if (_editingPortalId) {
+      res = await fetch(`/api/portals/${_editingPortalId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+    } else {
+      res = await fetch('/api/portals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+    }
+    if (!res.ok) throw new Error((await res.json()).detail || 'Save failed');
+    toast(_editingPortalId ? 'Portal updated' : 'Portal added', 'success');
+    cancelPortalForm();
+    await loadPortals();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function deletePortal(id) {
+  const p = _portalsCache.find(x => x.id === id);
+  if (!confirm(`Delete portal "${p ? p.name : id}"?\nThis cannot be undone.`)) return;
+  try {
+    const res = await fetch(`/api/portals/${id}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 204) throw new Error('Delete failed');
+    toast('Portal deleted', 'success');
+    delete _revealedPw[id];
+    await loadPortals();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
 </script>
 </body>
 </html>

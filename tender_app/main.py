@@ -11,6 +11,8 @@ import uuid
 from pathlib import Path
 from typing import List, Optional
 
+from cryptography.fernet import Fernet
+
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, RedirectResponse
@@ -33,6 +35,43 @@ for d in (UPLOADS_DIR, EXTRACTIONS_DIR, COMPANY_DOCS_DIR, GENERATED_DIR):
 
 app = FastAPI(title="AI Tender Management System")
 database.init_db()
+
+# ── Portal Encryption (Fernet symmetric) ──────────────────────────────────────
+
+def _init_fernet() -> Fernet:
+    key_str = os.environ.get("PORTAL_ENCRYPTION_KEY", "")
+    if key_str:
+        try:
+            return Fernet(key_str.encode())
+        except Exception:
+            pass
+    generated = Fernet.generate_key()
+    print("[WARN] PORTAL_ENCRYPTION_KEY not set or invalid — using ephemeral key. Portal passwords will be unreadable after restart.")
+    return Fernet(generated)
+
+_fernet = _init_fernet()
+
+
+def _encrypt_password(plain: str) -> str:
+    if not plain:
+        return ""
+    return _fernet.encrypt(plain.encode()).decode()
+
+
+def _decrypt_password(encrypted: str) -> str:
+    if not encrypted:
+        return ""
+    return _fernet.decrypt(encrypted.encode()).decode()
+
+
+def _require_admin(request: Request) -> dict:
+    token = request.cookies.get("tender_session")
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+    payload = _decode_session(token)
+    if payload.get("role", "employee") not in ("admin", "director"):
+        raise HTTPException(403, "Access restricted to admin/director")
+    return payload
 
 # ── SSO / Auth ─────────────────────────────────────────────────────────────────
 
@@ -829,6 +868,82 @@ async def recover_tenders(limit: int = 3):
         "remaining": max(remaining, 0),
         "total_in_pg": total_in_pg,
     }
+
+
+# ── Government Portals ────────────────────────────────────────────────────────
+
+class PortalCreate(BaseModel):
+    name: str
+    url: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class PortalUpdate(BaseModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None  # None = keep existing encrypted password
+    notes: Optional[str] = None
+
+
+@app.get("/api/portals")
+async def list_portals(request: Request):
+    _require_admin(request)
+    return database.list_portals()
+
+
+@app.post("/api/portals", status_code=201)
+async def create_portal(portal: PortalCreate, request: Request):
+    _require_admin(request)
+    enc_pw = _encrypt_password(portal.password) if portal.password else ""
+    portal_id = database.create_portal(
+        name=portal.name,
+        url=portal.url,
+        username=portal.username,
+        password_encrypted=enc_pw,
+        notes=portal.notes,
+    )
+    return {"id": portal_id, "status": "created"}
+
+
+@app.put("/api/portals/{portal_id}")
+async def update_portal(portal_id: int, portal: PortalUpdate, request: Request):
+    _require_admin(request)
+    existing = database.get_portal_with_password(portal_id)
+    if not existing:
+        raise HTTPException(404, "Portal not found")
+    new_name = portal.name if portal.name is not None else existing["name"]
+    new_url = portal.url if portal.url is not None else existing.get("url")
+    new_username = portal.username if portal.username is not None else existing.get("username")
+    new_notes = portal.notes if portal.notes is not None else existing.get("notes")
+    new_enc_pw = _encrypt_password(portal.password) if portal.password else existing.get("password_encrypted", "")
+    database.update_portal(portal_id, new_name, new_url, new_username, new_enc_pw, new_notes)
+    return {"status": "updated"}
+
+
+@app.delete("/api/portals/{portal_id}", status_code=204)
+async def delete_portal(portal_id: int, request: Request):
+    _require_admin(request)
+    if not database.get_portal(portal_id):
+        raise HTTPException(404, "Portal not found")
+    database.delete_portal(portal_id)
+
+
+@app.post("/api/portals/{portal_id}/reveal")
+async def reveal_portal_password(portal_id: int, request: Request):
+    _require_admin(request)
+    portal = database.get_portal_with_password(portal_id)
+    if not portal:
+        raise HTTPException(404, "Portal not found")
+    enc = portal.get("password_encrypted", "")
+    if not enc:
+        return {"password": ""}
+    try:
+        return {"password": _decrypt_password(enc)}
+    except Exception:
+        raise HTTPException(500, "Failed to decrypt password — encryption key may have changed")
 
 
 # ── Static SPA (must be last) ─────────────────────────────────────────────────
