@@ -112,6 +112,18 @@ def init_db():
                 created_at TEXT
             )
         """)
+        # Persistent binary storage migrations
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS signature_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS signature_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS signature_original_name TEXT")
+        cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS file_data BYTEA")
+        cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS content_type TEXT")
+        cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS original_name TEXT")
+        cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
+        cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
     conn.commit()
     conn.close()
     print("[DB] All PostgreSQL tables initialized")
@@ -180,7 +192,7 @@ def save_tender(data, items, documents):
                 data.get("total_quantity"), data.get("make"), data.get("tender_approx_value"),
                 data.get("won_text"), data.get("lost_text"), data.get("participant_text"),
                 now, data.get("pdf_path"), data.get("extraction_json_path"),
-                "saved", None,
+                "saved", "IN PROGRESS",
             ),
         )
         tender_id = cur.fetchone()[0]
@@ -402,17 +414,20 @@ def list_company_documents():
     return [dict(r) for r in rows]
 
 
-def save_company_document(data):
+def save_company_document(data, file_bytes=None):
     conn = get_db()
     with conn.cursor() as cur:
         now = datetime.now().isoformat()
+        fd = psycopg2.Binary(file_bytes) if file_bytes else None
         cur.execute(
             """INSERT INTO company_documents
-               (document_name, category, financial_year, brand_oem, file_path, tags, uploaded_at)
-               VALUES (%s,%s,%s,%s,%s,%s,%s)
+               (document_name, category, financial_year, brand_oem, file_path, tags, uploaded_at,
+                file_data, content_type, original_name)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                RETURNING id""",
             (data.get("document_name"), data.get("category"), data.get("financial_year"),
-             data.get("brand_oem"), data.get("file_path"), data.get("tags"), now),
+             data.get("brand_oem"), data.get("file_path"), data.get("tags"), now,
+             fd, data.get("content_type"), data.get("original_name")),
         )
         doc_id = cur.fetchone()[0]
     conn.commit()
@@ -503,3 +518,125 @@ def clear_prepared_documents(tender_id):
         cur.execute("DELETE FROM tender_prepared_documents WHERE tender_id=%s", (tender_id,))
     conn.commit()
     conn.close()
+
+
+def save_prepared_document_file(doc_id, file_data, file_name):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE tender_prepared_documents SET generated_file_data=%s, generated_file_name=%s WHERE id=%s",
+            (psycopg2.Binary(file_data), file_name, doc_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_prepared_document_file(doc_id):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT generated_file_data, generated_file_name FROM tender_prepared_documents WHERE id=%s",
+            (doc_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row["generated_file_data"]:
+        return None
+    return dict(row)
+
+
+# ── Stamp / Signature binary storage ─────────────────────────────────────────
+
+def _ensure_profile_row(cur):
+    cur.execute("SELECT id FROM company_profile LIMIT 1")
+    return cur.fetchone()
+
+
+def save_stamp(data_bytes, content_type, original_name):
+    conn = get_db()
+    with conn.cursor() as cur:
+        row = _ensure_profile_row(cur)
+        if row:
+            cur.execute(
+                "UPDATE company_profile SET stamp_data=%s, stamp_content_type=%s, stamp_original_name=%s",
+                (psycopg2.Binary(data_bytes), content_type, original_name),
+            )
+        else:
+            cur.execute(
+                "INSERT INTO company_profile (stamp_data, stamp_content_type, stamp_original_name) VALUES (%s,%s,%s)",
+                (psycopg2.Binary(data_bytes), content_type, original_name),
+            )
+    conn.commit()
+    conn.close()
+
+
+def get_stamp():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT stamp_data, stamp_content_type, stamp_original_name FROM company_profile LIMIT 1")
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row["stamp_data"]:
+        return None
+    return dict(row)
+
+
+def clear_stamp():
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("UPDATE company_profile SET stamp_data=NULL, stamp_content_type=NULL, stamp_original_name=NULL")
+    conn.commit()
+    conn.close()
+
+
+def save_signature(data_bytes, content_type, original_name):
+    conn = get_db()
+    with conn.cursor() as cur:
+        row = _ensure_profile_row(cur)
+        if row:
+            cur.execute(
+                "UPDATE company_profile SET signature_data=%s, signature_content_type=%s, signature_original_name=%s",
+                (psycopg2.Binary(data_bytes), content_type, original_name),
+            )
+        else:
+            cur.execute(
+                "INSERT INTO company_profile (signature_data, signature_content_type, signature_original_name) VALUES (%s,%s,%s)",
+                (psycopg2.Binary(data_bytes), content_type, original_name),
+            )
+    conn.commit()
+    conn.close()
+
+
+def get_signature():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT signature_data, signature_content_type, signature_original_name FROM company_profile LIMIT 1")
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row["signature_data"]:
+        return None
+    return dict(row)
+
+
+def clear_signature():
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("UPDATE company_profile SET signature_data=NULL, signature_content_type=NULL, signature_original_name=NULL")
+    conn.commit()
+    conn.close()
+
+
+# ── Company Document binary storage ──────────────────────────────────────────
+
+def get_company_document_file(doc_id):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT file_data, content_type, original_name FROM company_documents WHERE id=%s",
+            (doc_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row["file_data"]:
+        return None
+    return dict(row)

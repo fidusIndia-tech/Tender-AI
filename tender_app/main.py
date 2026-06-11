@@ -128,7 +128,7 @@ class RequiredDocument(BaseModel):
     label: Optional[str] = None
 
 
-ALLOWED_PARTICIPATION_STATUSES = {"WON", "LOST", "FAILED", "FILED"}
+ALLOWED_PARTICIPATION_STATUSES = {"IN PROGRESS", "WON", "LOST", "FAILED", "FILED"}
 
 
 class TenderPayload(BaseModel):
@@ -471,76 +471,51 @@ async def save_profile(payload: CompanyProfilePayload):
 
 @app.post("/api/company/profile/stamp")
 async def upload_stamp(file: UploadFile = File(...)):
-    safe = file.filename.replace(" ", "_")
-    new_path = COMPANY_DOCS_DIR / f"stamp_{uuid.uuid4()}_{safe}"
-    with open(new_path, "wb") as f:
-        f.write(await file.read())
-    profile = database.get_company_profile()
-    # Delete old stamp file before replacing
-    if profile.get("stamp_file_path"):
-        old = Path(profile["stamp_file_path"])
-        old.unlink(missing_ok=True)
-    profile["stamp_file_path"] = str(new_path)
-    database.upsert_company_profile(profile)
-    return {"stamp_file_path": str(new_path)}
+    data = await file.read()
+    database.save_stamp(data, file.content_type or "application/octet-stream", file.filename)
+    return {"message": "stamp saved"}
 
 
 @app.post("/api/company/profile/signature")
 async def upload_signature(file: UploadFile = File(...)):
-    safe = file.filename.replace(" ", "_")
-    new_path = COMPANY_DOCS_DIR / f"sig_{uuid.uuid4()}_{safe}"
-    with open(new_path, "wb") as f:
-        f.write(await file.read())
-    profile = database.get_company_profile()
-    # Delete old signature file before replacing
-    if profile.get("signature_file_path"):
-        old = Path(profile["signature_file_path"])
-        old.unlink(missing_ok=True)
-    profile["signature_file_path"] = str(new_path)
-    database.upsert_company_profile(profile)
-    return {"signature_file_path": str(new_path)}
+    data = await file.read()
+    database.save_signature(data, file.content_type or "application/octet-stream", file.filename)
+    return {"message": "signature saved"}
 
 
 @app.get("/api/company/profile/stamp/file")
 async def get_stamp_file():
-    profile = database.get_company_profile()
-    path = profile.get("stamp_file_path")
-    if not path:
+    row = database.get_stamp()
+    if not row:
         raise HTTPException(404, "No stamp uploaded")
-    p = Path(path)
-    if not p.exists():
-        raise HTTPException(404, "Stamp file not found on disk")
-    return FileResponse(str(p), filename=p.name)
+    return Response(
+        content=bytes(row["stamp_data"]),
+        media_type=row["stamp_content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["stamp_original_name"]}"'},
+    )
 
 
 @app.get("/api/company/profile/signature/file")
 async def get_signature_file():
-    profile = database.get_company_profile()
-    path = profile.get("signature_file_path")
-    if not path:
+    row = database.get_signature()
+    if not row:
         raise HTTPException(404, "No signature uploaded")
-    p = Path(path)
-    if not p.exists():
-        raise HTTPException(404, "Signature file not found on disk")
-    return FileResponse(str(p), filename=p.name)
+    return Response(
+        content=bytes(row["signature_data"]),
+        media_type=row["signature_content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["signature_original_name"]}"'},
+    )
 
 
 @app.delete("/api/company/profile/stamp")
 async def delete_stamp():
-    profile = database.get_company_profile()
-    if profile.get("stamp_file_path"):
-        Path(profile["stamp_file_path"]).unlink(missing_ok=True)
-    database.clear_profile_image_path("stamp_file_path")
+    database.clear_stamp()
     return {"message": "removed"}
-
 
 
 @app.delete("/api/company/profile/signature")
 async def delete_signature():
-    profile = database.get_company_profile()
-    if profile.get("signature_file_path"):
-        Path(profile["signature_file_path"]).unlink(missing_ok=True)
-    database.clear_profile_image_path("signature_file_path")
+    database.clear_signature()
     return {"message": "removed"}
 
 
@@ -560,18 +535,20 @@ async def upload_company_doc(
     brand_oem: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
 ):
-    safe = file.filename.replace(" ", "_")
-    path = COMPANY_DOCS_DIR / f"{uuid.uuid4()}_{safe}"
-    with open(path, "wb") as f:
-        f.write(await file.read())
-    doc_id = database.save_company_document({
-        "document_name": document_name,
-        "category": category,
-        "financial_year": financial_year,
-        "brand_oem": brand_oem,
-        "file_path": str(path),
-        "tags": tags,
-    })
+    file_bytes = await file.read()
+    doc_id = database.save_company_document(
+        {
+            "document_name": document_name,
+            "category": category,
+            "financial_year": financial_year,
+            "brand_oem": brand_oem,
+            "file_path": None,
+            "tags": tags,
+            "content_type": file.content_type or "application/octet-stream",
+            "original_name": file.filename,
+        },
+        file_bytes=file_bytes,
+    )
     return {"id": doc_id}
 
 
@@ -580,23 +557,20 @@ async def delete_company_doc(doc_id: int):
     doc = database.get_company_document(doc_id)
     if not doc:
         raise HTTPException(404, "Document not found")
-    if doc.get("file_path"):
-        p = Path(doc["file_path"])
-        if p.exists():
-            p.unlink()
     database.delete_company_document(doc_id)
     return {"message": "deleted"}
 
 
 @app.get("/api/company/documents/{doc_id}/file")
 async def get_company_doc_file(doc_id: int):
-    doc = database.get_company_document(doc_id)
-    if not doc or not doc.get("file_path"):
+    row = database.get_company_document_file(doc_id)
+    if not row:
         raise HTTPException(404, "File not found")
-    p = Path(doc["file_path"])
-    if not p.exists():
-        raise HTTPException(404, "File not found on disk")
-    return FileResponse(str(p), filename=p.name)
+    return Response(
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{row["original_name"]}"'},
+    )
 
 
 # ── Tender Prepared Documents (Phase 3) ──────────────────────────────────────
@@ -641,20 +615,60 @@ async def generate_prepared_doc(tender_id: int, doc_id: int):
     tender = database.get_tender(tender_id)
     profile = database.get_company_profile()
 
-    out_dir = GENERATED_DIR / str(tender_id)
-    out_dir.mkdir(exist_ok=True)
-    safe_name = (prepared["document_name"] or "document").replace(" ", "_")
-    out_path = str(out_dir / f"{doc_id}_{safe_name}.docx")
-
+    # Write stamp/signature bytes to temp files so doc_generator can embed them
+    tmp_files = []
     try:
-        doc_generator.generate_ai_document(
-            prepared["document_name"], profile, tender, out_path
-        )
-    except Exception as e:
-        raise HTTPException(500, f"Generation failed: {e}")
+        stamp_row = database.get_stamp()
+        if stamp_row:
+            sf = tempfile.NamedTemporaryFile(
+                suffix=Path(stamp_row["stamp_original_name"] or "stamp.png").suffix or ".png",
+                delete=False,
+            )
+            sf.write(bytes(stamp_row["stamp_data"]))
+            sf.close()
+            tmp_files.append(sf.name)
+            profile["stamp_file_path"] = sf.name
+        else:
+            profile["stamp_file_path"] = None
 
+        sig_row = database.get_signature()
+        if sig_row:
+            sf2 = tempfile.NamedTemporaryFile(
+                suffix=Path(sig_row["signature_original_name"] or "sig.png").suffix or ".png",
+                delete=False,
+            )
+            sf2.write(bytes(sig_row["signature_data"]))
+            sf2.close()
+            tmp_files.append(sf2.name)
+            profile["signature_file_path"] = sf2.name
+        else:
+            profile["signature_file_path"] = None
+
+        safe_name = (prepared["document_name"] or "document").replace(" ", "_")
+        out_tmp = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
+        out_tmp.close()
+        tmp_files.append(out_tmp.name)
+
+        try:
+            doc_generator.generate_ai_document(
+                prepared["document_name"], profile, tender, out_tmp.name
+            )
+        except Exception as e:
+            raise HTTPException(500, f"Generation failed: {e}")
+
+        with open(out_tmp.name, "rb") as fh:
+            doc_bytes = fh.read()
+    finally:
+        for p in tmp_files:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+
+    file_name = f"{doc_id}_{safe_name}.docx"
+    database.save_prepared_document_file(doc_id, doc_bytes, file_name)
     database.update_prepared_document(doc_id, {
-        "generated_file_path": out_path,
+        "generated_file_path": f"db:{doc_id}",
         "status": "generated",
     })
     return database.get_prepared_document(doc_id)
@@ -671,14 +685,12 @@ async def approve_prepared_doc(tender_id: int, doc_id: int):
 
 @app.post("/api/tenders/{tender_id}/prepared-documents/{doc_id}/upload")
 async def upload_missing_doc(tender_id: int, doc_id: int, file: UploadFile = File(...)):
-    out_dir = GENERATED_DIR / str(tender_id)
-    out_dir.mkdir(exist_ok=True)
+    file_bytes = await file.read()
     safe = file.filename.replace(" ", "_")
-    path = out_dir / f"{doc_id}_{safe}"
-    with open(path, "wb") as f:
-        f.write(await file.read())
+    file_name = f"{doc_id}_{safe}"
+    database.save_prepared_document_file(doc_id, file_bytes, file_name)
     database.update_prepared_document(doc_id, {
-        "generated_file_path": str(path),
+        "generated_file_path": f"db:{doc_id}",
         "status": "uploaded",
         "source_type": "manual_upload",
     })
@@ -690,12 +702,15 @@ async def download_prepared_doc(tender_id: int, doc_id: int):
     prepared = database.get_prepared_document(doc_id)
     if not prepared or prepared.get("tender_id") != tender_id:
         raise HTTPException(404, "Not found")
-    if not prepared.get("generated_file_path"):
-        raise HTTPException(404, "File not generated yet")
-    p = Path(prepared["generated_file_path"])
-    if not p.exists():
-        raise HTTPException(404, "File not found on disk")
-    return FileResponse(str(p), filename=p.name)
+    row = database.get_prepared_document_file(doc_id)
+    if not row:
+        raise HTTPException(404, "File not found")
+    file_name = row["generated_file_name"] or f"document_{doc_id}.docx"
+    return Response(
+        content=bytes(row["generated_file_data"]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+    )
 
 
 # ── Auth endpoints ────────────────────────────────────────────────────────────
