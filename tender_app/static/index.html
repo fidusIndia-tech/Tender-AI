@@ -1866,6 +1866,19 @@ async function saveTender() {
     if (!res.ok) throw new Error(data.detail || 'Save failed');
     if (!currentTenderId) currentTenderId = data.id;
     pendingExtraction = null;
+    // Patch cache immediately so VoT (and other edited fields) render correctly
+    // the moment the list view opens, before loadTenderList() completes
+    const patchId = currentTenderId;
+    const cached = tenderListCache.find(t => t.id === patchId);
+    if (cached) {
+      cached.tender_approx_value = payload.tender_approx_value;
+      cached.make                = payload.make;
+      cached.total_quantity      = payload.total_quantity;
+      cached.organization_name   = payload.organization_name;
+      cached.bid_end_datetime    = payload.bid_end_datetime;
+      cached.gem_bidding_number  = payload.gem_bidding_number;
+      cached.tender_number       = payload.tender_number;
+    }
     toast('Tender saved successfully', 'success');
     setTimeout(() => showView('list'), 500);
   } catch (err) { toast('Error: ' + err.message, 'error'); }
