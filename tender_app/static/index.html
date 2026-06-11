@@ -763,6 +763,10 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
         Refresh
       </button>
+      <button class="btn btn-outline btn-sm" onclick="clearAllFilters()" title="Clear all filters and sorting" style="display:flex;align-items:center;gap:5px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        Clear All
+      </button>
     </div>
     <div class="table-wrap">
       <table class="list-table">
@@ -1087,6 +1091,45 @@ function setBidSort(mode, el) {
 }
 document.addEventListener('click', closeAllFilterMenus);
 function refreshTenderList() {
+  renderTenderTable(tenderListCache);
+}
+function clearAllFilters() {
+  // Clear search
+  const searchEl = document.getElementById('gemSearch');
+  if (searchEl) searchEl.value = '';
+
+  // Reset org filter
+  orgFilterValue = 'all';
+  document.querySelectorAll('#orgFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstOrg = document.querySelector('#orgFilterMenu .th-filter-option');
+  if (firstOrg) firstOrg.classList.add('selected');
+  const orgBtn = document.getElementById('orgFilterBtn');
+  if (orgBtn) orgBtn.classList.remove('active');
+
+  // Reset org sort
+  orgSortMode = 'none';
+  document.querySelectorAll('#orgSortMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstOrgSort = document.querySelector('#orgSortMenu .th-filter-option');
+  if (firstOrgSort) firstOrgSort.classList.add('selected');
+  const orgSortBtn = document.getElementById('orgSortBtn');
+  if (orgSortBtn) orgSortBtn.classList.remove('active');
+
+  // Reset bid end date sort to default (desc)
+  bidSortMode = 'desc';
+  document.querySelectorAll('#bidFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstBid = document.querySelector('#bidFilterMenu .th-filter-option');
+  if (firstBid) firstBid.classList.add('selected');
+  const bidBtn = document.getElementById('bidFilterBtn');
+  if (bidBtn) bidBtn.classList.remove('active');
+
+  // Reset status filter
+  statusFilterValue = 'all';
+  document.querySelectorAll('#statusFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstStatus = document.querySelector('#statusFilterMenu .th-filter-option');
+  if (firstStatus) firstStatus.classList.add('selected');
+  const statusBtn = document.getElementById('statusFilterBtn');
+  if (statusBtn) statusBtn.classList.remove('active');
+
   renderTenderTable(tenderListCache);
 }
 function parseBidEndDate(value) {
