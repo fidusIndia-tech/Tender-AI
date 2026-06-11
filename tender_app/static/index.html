@@ -2294,9 +2294,12 @@ async function removeSignature() {
 // ── Status dropdown (list table) ───────────────────────────────────────────
 function _fmtFiledDate(dt) {
   if (!dt) return '';
-  const d = new Date(dt.replace(' ', 'T'));
-  if (isNaN(d.getTime())) return dt.slice(0, 10);
-  return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+  // Already DD-MM-YYYY — return as-is
+  if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) return dt;
+  // YYYY-MM-DD or YYYY-MM-DD HH:MM:SS — flip without Date() to avoid timezone shifts
+  const p = dt.slice(0, 10).split('-');
+  if (p.length === 3 && p[0].length === 4) return p[2] + '-' + p[1] + '-' + p[0];
+  return dt.slice(0, 10);
 }
 
 async function updateTenderStatus(id, selectEl) {

@@ -362,14 +362,13 @@ def update_tender_record_fields(tender_id, won_text, lost_text, participant_text
 def update_tender_participation_status(tender_id, status):
     conn = get_db()
     filed_date = None
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+    with conn.cursor() as cur:
         if status == 'FILED':
+            filed_date = datetime.now().strftime('%d-%m-%Y')
             cur.execute(
-                "UPDATE tenders SET participation_status=%s, filed_date=to_char(NOW(),'YYYY-MM-DD HH24:MI:SS') WHERE id=%s RETURNING filed_date",
-                (status, tender_id),
+                "UPDATE tenders SET participation_status=%s, filed_date=%s WHERE id=%s",
+                (status, filed_date, tender_id),
             )
-            row = cur.fetchone()
-            filed_date = row['filed_date'] if row else None
         else:
             cur.execute(
                 "UPDATE tenders SET participation_status=%s WHERE id=%s", (status, tender_id)
