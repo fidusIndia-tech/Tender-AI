@@ -784,15 +784,6 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <!-- populated dynamically by buildOrgFilterMenu() -->
                   <div class="th-filter-option selected" onclick="setOrgFilter('all',this)">All Organisations</div>
                 </div>
-              </span><span style="position:relative;display:inline-block">
-                <span class="th-filter-btn" id="orgSortBtn" onclick="toggleOrgSortMenu(event)" title="Sort by organisation">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg>
-                </span>
-                <div class="th-filter-menu" id="orgSortMenu">
-                  <div class="th-filter-option selected" onclick="setOrgSort('none',this)">No Sort</div>
-                  <div class="th-filter-option" onclick="setOrgSort('asc',this)">A → Z</div>
-                  <div class="th-filter-option" onclick="setOrgSort('desc',this)">Z → A</div>
-                </div>
               </span>
             </th>
             <th style="white-space:nowrap">
@@ -1025,7 +1016,6 @@ function getSearchQuery() {
 }
 let orgFilterValue = 'all';    // 'all' or a specific organisation name
 let statusFilterValue = 'all'; // 'all' or a specific status
-let orgSortMode = 'none';      // 'none' | 'asc' | 'desc'
 let bidSortMode = 'desc';      // 'desc' | 'asc'
 
 function toggleFilterMenu(which, e) {
@@ -1066,22 +1056,6 @@ function setStatusFilter(value, el) {
   closeAllFilterMenus();
   renderTenderTable(tenderListCache);
 }
-function toggleOrgSortMenu(e) {
-  e.stopPropagation();
-  const menu = document.getElementById('orgSortMenu');
-  const isOpen = menu.classList.contains('open');
-  closeAllFilterMenus();
-  if (!isOpen) menu.classList.add('open');
-}
-function setOrgSort(mode, el) {
-  orgSortMode = mode;
-  document.querySelectorAll('#orgSortMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  if (el) el.classList.add('selected');
-  const btn = document.getElementById('orgSortBtn');
-  if (btn) btn.classList.toggle('active', mode !== 'none');
-  closeAllFilterMenus();
-  renderTenderTable(tenderListCache);
-}
 function setBidSort(mode, el) {
   bidSortMode = mode;
   document.querySelectorAll('#bidFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
@@ -1105,14 +1079,6 @@ function clearAllFilters() {
   if (firstOrg) firstOrg.classList.add('selected');
   const orgBtn = document.getElementById('orgFilterBtn');
   if (orgBtn) orgBtn.classList.remove('active');
-
-  // Reset org sort
-  orgSortMode = 'none';
-  document.querySelectorAll('#orgSortMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  const firstOrgSort = document.querySelector('#orgSortMenu .th-filter-option');
-  if (firstOrgSort) firstOrgSort.classList.add('selected');
-  const orgSortBtn = document.getElementById('orgSortBtn');
-  if (orgSortBtn) orgSortBtn.classList.remove('active');
 
   // Reset bid end date sort to default (desc)
   bidSortMode = 'desc';
@@ -1155,7 +1121,7 @@ function parseBidEndDate(value) {
 function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
   const searchQ = getSearchQuery();
-  console.debug('[BidSort] sort direction:', bidSortMode, '| org sort:', orgSortMode, '| org filter:', orgFilterValue);
+  console.debug('[BidSort] sort direction:', bidSortMode, '| org filter:', orgFilterValue);
   const rows = tenders.slice().filter(t => {
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
     if (orgFilterValue !== 'all' && t.organization_name !== orgFilterValue) return false;
@@ -1163,8 +1129,6 @@ function renderTenderTable(tenders) {
     if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
     return true;
   }).sort((a, b) => {
-    if (orgSortMode === 'asc') return (a.organization_name || '').localeCompare(b.organization_name || '', undefined, {sensitivity:'base'});
-    if (orgSortMode === 'desc') return (b.organization_name || '').localeCompare(a.organization_name || '', undefined, {sensitivity:'base'});
     const aDate = parseBidEndDate(a.bid_end_datetime);
     const bDate = parseBidEndDate(b.bid_end_datetime);
     return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
