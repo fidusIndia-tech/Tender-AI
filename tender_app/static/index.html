@@ -429,7 +429,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 
 /* ── Status dropdown (list table) ────────────────────────────────────────── */
 .status-select {
-  width:100%;min-width:150px;padding:4px 6px;border:1.5px solid var(--slate-200);
+  width:100%;min-width:120px;max-width:120px;padding:4px 6px;border:1.5px solid var(--slate-200);
   border-radius:5px;font-size:12px;font-weight:600;background:#fff;color:var(--slate-700);
   cursor:pointer;transition:border-color .15s,box-shadow .15s;
   appearance:none;
@@ -804,7 +804,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th style="width:56px;text-align:center">Qty</th>
             <th>Upload Date</th>
             <th style="width:104px">Actions</th>
-            <th style="width:170px;white-space:nowrap">
+            <th style="width:130px;white-space:nowrap;text-align:center">
               Status<span style="position:relative;display:inline-block;margin-left:4px">
                 <span class="th-filter-btn" id="statusFilterBtn" onclick="toggleFilterMenu('status',event)" title="Filter by status">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
