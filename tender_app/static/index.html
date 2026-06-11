@@ -982,7 +982,6 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             </th>
             <th title="VoT = Valuation of Tender">VoT</th>
             <th style="width:56px;text-align:center">Qty</th>
-            <th>Upload Date</th>
             <th style="width:104px">Actions</th>
             <th style="width:115px;white-space:nowrap;text-align:center">
               Status<span style="display:inline-block;margin-left:4px">
@@ -1544,7 +1543,6 @@ function exportToExcel() {
       'Make'             : t.make                  || '',
       'VoT'              : t.tender_approx_value   || '',
       'Qty'              : t.total_quantity != null ? t.total_quantity : '',
-      'Upload Date'      : t.uploaded_at ? t.uploaded_at.slice(0, 10) : '',
       'Status'           : st,
       'Participant'      : t.participant_text       || '',
     };
@@ -1608,7 +1606,6 @@ function renderTenderTable(tenders) {
         <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
         <td class="col-date" title="VoT = Valuation of Tender">${esc(t.tender_approx_value)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
-        <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
           ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.4;cursor:default" title="No PDF">PDF</span>`}
           <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete">Del</button>
