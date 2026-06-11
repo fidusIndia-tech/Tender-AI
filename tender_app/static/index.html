@@ -535,6 +535,23 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .divider { border:none;border-top:1px solid var(--slate-100);margin:4px 0 14px; }
 
+/* ── Custom Calendar Widget ──────────────────────────────────────────────── */
+.cal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+.cal-month-label { font-size:12px;font-weight:700;color:var(--slate-700); }
+.cal-nav { background:none;border:none;cursor:pointer;color:var(--slate-400);padding:2px 6px;border-radius:4px;font-size:16px;line-height:1; }
+.cal-nav:hover { background:var(--slate-100);color:var(--slate-700); }
+.cal-dow { display:grid;grid-template-columns:repeat(7,28px);gap:1px;margin-bottom:2px; }
+.cal-dow span { font-size:9px;font-weight:700;color:var(--slate-400);text-align:center;line-height:20px; }
+.cal-grid { display:grid;grid-template-columns:repeat(7,28px);gap:1px; }
+.cal-day { width:28px;height:26px;display:flex;align-items:center;justify-content:center;font-size:11.5px;cursor:pointer;border-radius:4px;color:var(--slate-700); }
+.cal-day:hover { background:var(--blue-50);color:var(--blue-700); }
+.cal-day.cal-selected { background:var(--blue-600);color:#fff;font-weight:700; }
+.cal-day.cal-today { font-weight:700;color:var(--blue-600); }
+.cal-day.cal-selected.cal-today { color:#fff; }
+.cal-day.cal-other { color:var(--slate-300);pointer-events:none; }
+.cal-clear { margin-top:8px;text-align:center;font-size:11px;color:var(--slate-400);cursor:pointer;padding:3px 0; }
+.cal-clear:hover { color:var(--red-600); }
+
 /* ── Government Portals Modal ────────────────────────────────────────────── */
 .portals-overlay {
   display: none; position: fixed; inset: 0;
@@ -941,15 +958,11 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div class="th-filter-option" onclick="setBidSort('asc',this)">Ascending</div>
                 </div>
               </span><span style="display:inline-block">
-                <span class="th-filter-btn" id="bidDateBtn" onclick="toggleFilterMenu('bidDate',event)" title="Filter by exact date">
+                <span class="th-filter-btn" id="bidDateBtn" onclick="toggleBidCalendar(event)" title="Filter by exact date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 </span>
-                <div class="th-filter-menu" id="bidDateFilterMenu" style="min-width:200px;padding:12px 14px 10px;" onclick="event.stopPropagation()">
-                  <div style="font-size:10px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Filter by date</div>
-                  <input type="date" id="bidDateInput" style="width:100%;padding:5px 8px;border:1.5px solid var(--slate-200);border-radius:5px;font-size:12.5px;color:var(--slate-700);outline:none;cursor:pointer;background:#fff;" onchange="setBidDateFilter(this.value)" onfocus="this.style.borderColor='var(--blue-500)'" onblur="this.style.borderColor='var(--slate-200)'">
-                  <div style="margin-top:8px;text-align:right;">
-                    <span style="font-size:11px;color:var(--slate-400);cursor:pointer;font-weight:500;padding:3px 6px;border-radius:4px;" onmouseover="this.style.color='var(--red-600)';this.style.background='var(--red-50)'" onmouseout="this.style.color='var(--slate-400)';this.style.background=''" onclick="clearBidDateFilter();closeAllFilterMenus()">Clear</span>
-                  </div>
+                <div class="th-filter-menu" id="bidDateFilterMenu" style="min-width:226px;padding:0;" onclick="event.stopPropagation()">
+                  <div id="calendarWidget" style="padding:11px 12px 10px;"></div>
                 </div>
               </span><span id="bidDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearBidDateFilter()" title="Clear date filter">✕</span>
             </th>
@@ -1241,6 +1254,78 @@ let makeSelectedValues = new Set(); // empty = show all
 let statusFilterValue = 'all';      // 'all' or a specific status
 let bidSortMode = 'desc';           // 'desc' | 'asc'
 let bidDateFilter = null;           // null or 'YYYY-MM-DD'
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth();
+
+const _CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function toggleBidCalendar(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('bidDateFilterMenu');
+  const isOpen = menu.classList.contains('open');
+  closeAllFilterMenus();
+  if (!isOpen) {
+    if (bidDateFilter) {
+      const d = new Date(bidDateFilter + 'T00:00:00');
+      _calYear = d.getFullYear(); _calMonth = d.getMonth();
+    } else {
+      const now = new Date();
+      _calYear = now.getFullYear(); _calMonth = now.getMonth();
+    }
+    _renderCalendar();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuW = 226;
+    let left = rect.left;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if (left < 8) left = 8;
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.add('open');
+  }
+}
+
+function _renderCalendar() {
+  const el = document.getElementById('calendarWidget');
+  if (!el) return;
+  const today = new Date();
+  const todayStr = _dateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const firstDow = new Date(_calYear, _calMonth, 1).getDay();
+  const daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-day cal-other"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = _dateStr(_calYear, _calMonth + 1, d);
+    let cls = 'cal-day';
+    if (ds === bidDateFilter) cls += ' cal-selected';
+    if (ds === todayStr) cls += ' cal-today';
+    cells += `<div class="${cls}" onclick="_selectCalDate('${ds}')">${d}</div>`;
+  }
+  el.innerHTML = `
+    <div class="cal-header">
+      <button class="cal-nav" onclick="_calNav(-1)">&#8249;</button>
+      <span class="cal-month-label">${_CAL_MONTHS[_calMonth]} ${_calYear}</span>
+      <button class="cal-nav" onclick="_calNav(1)">&#8250;</button>
+    </div>
+    <div class="cal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="cal-grid">${cells}</div>
+    ${bidDateFilter ? `<div class="cal-clear" onclick="clearBidDateFilter();closeAllFilterMenus()">✕ Clear date filter</div>` : ''}
+  `;
+}
+
+function _dateStr(y, m, d) {
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function _calNav(dir) {
+  _calMonth += dir;
+  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
+  if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
+  _renderCalendar();
+}
+
+function _selectCalDate(ds) {
+  setBidDateFilter(ds);
+}
 
 function setBidDateFilter(val) {
   bidDateFilter = val || null;
@@ -1251,8 +1336,6 @@ function setBidDateFilter(val) {
 }
 function clearBidDateFilter() {
   bidDateFilter = null;
-  const inp = document.getElementById('bidDateInput');
-  if (inp) inp.value = '';
   document.getElementById('bidDateBtn').classList.remove('active');
   document.getElementById('bidDateClearBtn').style.display = 'none';
   renderTenderTable(tenderListCache);
@@ -1262,7 +1345,7 @@ function _bidDateMatches(bidEndDatetime) {
   const ts = parseBidEndDate(bidEndDatetime);
   if (!ts) return false;
   const d = new Date(ts);
-  const tDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const tDate = _dateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return tDate === bidDateFilter;
 }
 
