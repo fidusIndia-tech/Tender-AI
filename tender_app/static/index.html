@@ -561,11 +561,11 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
   </div>
 
   <div class="sidebar-footer">
-    FIAPL © 2026
-    <div style="margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.07)">
       <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.42);letter-spacing:.4px">VoT</div>
       <div style="font-size:10px;color:rgba(255,255,255,.26);margin-top:2px;letter-spacing:.1px">Valuation of Tender</div>
     </div>
+    FIAPL © 2026
   </div>
 </div>
 
@@ -852,6 +852,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
               </span>
             </th>
             <th style="width:56px;text-align:center">Qty</th>
+            <th title="VoT = Valuation of Tender">VoT</th>
             <th>Upload Date</th>
             <th style="width:104px">Actions</th>
             <th style="width:115px;white-space:nowrap;text-align:center">
@@ -1285,6 +1286,7 @@ function renderTenderTable(tenders) {
         <td class="col-date">${t.bid_end_datetime||'—'}</td>
         <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
+        <td class="col-date" title="VoT = Valuation of Tender">${esc(t.tender_approx_value)||'—'}</td>
         <td class="col-date">${t.uploaded_at?t.uploaded_at.slice(0,10):'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
           ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.4;cursor:default" title="No PDF">PDF</span>`}
