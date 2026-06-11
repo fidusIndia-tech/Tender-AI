@@ -797,7 +797,17 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th>Make</th>
+            <th style="white-space:nowrap">
+              Make<span style="position:relative;display:inline-block">
+                <span class="th-filter-btn" id="makeFilterBtn" onclick="toggleFilterMenu('make',event)" title="Filter by make">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
+                </span>
+                <div class="th-filter-menu" id="makeFilterMenu">
+                  <!-- populated dynamically by buildMakeFilterMenu() -->
+                  <div class="th-filter-option selected" onclick="setMakeFilter('all',this)">All Makes</div>
+                </div>
+              </span>
+            </th>
             <th style="width:56px;text-align:center">Qty</th>
             <th>Upload Date</th>
             <th style="width:104px">Actions</th>
@@ -1015,6 +1025,7 @@ function getSearchQuery() {
   return el ? el.value.trim().toLowerCase() : '';
 }
 let orgFilterValue = 'all';    // 'all' or a specific organisation name
+let makeFilterValue = 'all';   // 'all' or a specific make
 let statusFilterValue = 'all'; // 'all' or a specific status
 let bidSortMode = 'desc';      // 'desc' | 'asc'
 
@@ -1043,6 +1054,25 @@ function setOrgFilter(value, el) {
   document.querySelectorAll('#orgFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
   const btn = document.getElementById('orgFilterBtn');
+  if (btn) btn.classList.toggle('active', value !== 'all');
+  closeAllFilterMenus();
+  renderTenderTable(tenderListCache);
+}
+function buildMakeFilterMenu(tenders) {
+  const menu = document.getElementById('makeFilterMenu');
+  if (!menu) return;
+  const makes = [...new Set(tenders.map(t => t.make).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, {sensitivity:'base'}));
+  menu.innerHTML = ['all', ...makes].map(v => {
+    const label = v === 'all' ? 'All Makes' : v;
+    const sel = makeFilterValue === v ? ' selected' : '';
+    return `<div class="th-filter-option${sel}" data-make="${esc(v)}" onclick="setMakeFilter(this.dataset.make,this)">${esc(label)}</div>`;
+  }).join('');
+}
+function setMakeFilter(value, el) {
+  makeFilterValue = value;
+  document.querySelectorAll('#makeFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  const btn = document.getElementById('makeFilterBtn');
   if (btn) btn.classList.toggle('active', value !== 'all');
   closeAllFilterMenus();
   renderTenderTable(tenderListCache);
@@ -1079,6 +1109,14 @@ function clearAllFilters() {
   if (firstOrg) firstOrg.classList.add('selected');
   const orgBtn = document.getElementById('orgFilterBtn');
   if (orgBtn) orgBtn.classList.remove('active');
+
+  // Reset make filter
+  makeFilterValue = 'all';
+  document.querySelectorAll('#makeFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstMake = document.querySelector('#makeFilterMenu .th-filter-option');
+  if (firstMake) firstMake.classList.add('selected');
+  const makeBtn = document.getElementById('makeFilterBtn');
+  if (makeBtn) makeBtn.classList.remove('active');
 
   // Reset bid end date sort to default (desc)
   bidSortMode = 'desc';
@@ -1125,6 +1163,7 @@ function renderTenderTable(tenders) {
   const rows = tenders.slice().filter(t => {
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
     if (orgFilterValue !== 'all' && t.organization_name !== orgFilterValue) return false;
+    if (makeFilterValue !== 'all' && t.make !== makeFilterValue) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
     return true;
@@ -1441,6 +1480,7 @@ async function loadTenderList() {
 
     tenderListCache = tenders;
     buildOrgFilterMenu(tenders);
+    buildMakeFilterMenu(tenders);
 
     statRow.style.display = 'flex';
     statRow.innerHTML = [
