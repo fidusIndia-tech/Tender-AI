@@ -521,6 +521,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .divider { border:none;border-top:1px solid var(--slate-100);margin:4px 0 14px; }
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -803,6 +804,10 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       <button class="btn btn-outline btn-sm" onclick="clearAllFilters()" title="Clear all filters and sorting" style="display:flex;align-items:center;gap:5px">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         Clear All
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="exportToExcel()" title="Export visible records to Excel" style="display:flex;align-items:center;gap:5px;color:var(--green-700,#15803d);border-color:var(--green-300,#86efac)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+        Export Excel
       </button>
     </div>
     <div class="table-wrap">
@@ -1237,6 +1242,47 @@ function clearAllFilters() {
   if (statusBtn) statusBtn.classList.remove('active');
 
   renderTenderTable(tenderListCache);
+}
+function exportToExcel() {
+  if (!window.XLSX) { toast('Excel library not loaded yet, please try again.', 'error'); return; }
+  // Apply same filters as renderTenderTable
+  const searchQ = getSearchQuery();
+  const rows = tenderListCache.slice().filter(t => {
+    if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
+    if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
+    if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
+    const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
+    if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
+    return true;
+  }).sort((a, b) => {
+    const aDate = parseBidEndDate(a.bid_end_datetime);
+    const bDate = parseBidEndDate(b.bid_end_datetime);
+    return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
+  });
+
+  const data = rows.map(t => {
+    const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
+    return {
+      'GeM Bidding No.'  : t.gem_bidding_number   || '',
+      'Tender Number'    : t.tender_number         || '',
+      'Organisation'     : t.organization_name     || '',
+      'Bid End Date'     : t.bid_end_datetime      || '',
+      'Make'             : t.make                  || '',
+      'VoT'              : t.tender_approx_value   || '',
+      'Qty'              : t.total_quantity != null ? t.total_quantity : '',
+      'Upload Date'      : t.uploaded_at ? t.uploaded_at.slice(0, 10) : '',
+      'Status'           : st,
+      'Participant'      : t.participant_text       || '',
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  // Column widths
+  ws['!cols'] = [22,20,35,22,20,16,8,14,14,25].map(w => ({wch: w}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tender Records');
+  const today = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Tender_Records_${today}.xlsx`);
 }
 function parseBidEndDate(value) {
   if (!value) return 0;
