@@ -944,7 +944,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 <span class="th-filter-btn" id="bidDateBtn" onclick="openBidDatePicker()" title="Filter by exact date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 </span>
-                <input type="date" id="bidDateInput" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;top:100%;left:0" onchange="setBidDateFilter(this.value)">
+                <input type="date" id="bidDateInput" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0" onchange="setBidDateFilter(this.value)">
               </span><span id="bidDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearBidDateFilter()" title="Clear date filter">✕</span>
             </th>
             <th style="white-space:nowrap">
@@ -1237,8 +1237,16 @@ let bidSortMode = 'desc';           // 'desc' | 'asc'
 let bidDateFilter = null;           // null or 'YYYY-MM-DD'
 
 function openBidDatePicker() {
+  const btn = document.getElementById('bidDateBtn');
   const inp = document.getElementById('bidDateInput');
-  if (!inp) return;
+  if (!inp || !btn) return;
+  // Anchor the invisible input directly below the calendar button so the
+  // browser's native picker popup opens at the right position
+  const rect = btn.getBoundingClientRect();
+  const top = Math.min(rect.bottom + 2, window.innerHeight - 4);
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - 280));
+  inp.style.top  = top  + 'px';
+  inp.style.left = left + 'px';
   try { inp.showPicker(); } catch(e) { inp.click(); }
 }
 function setBidDateFilter(val) {
