@@ -312,11 +312,11 @@ main { padding: 24px 28px 60px; }
   background: #fff;
   border: 1px solid var(--slate-200);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
 }
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 8px; }
 .th-filter-btn {
   display:inline-flex; align-items:center; justify-content:center;
   margin-left:3px; padding:2px 3px; border-radius:4px;
@@ -429,12 +429,13 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 
 /* ── Status dropdown (list table) ────────────────────────────────────────── */
 .status-select {
-  width:100%;padding:4px 6px;border:1.5px solid var(--slate-200);
+  width:100%;min-width:108px;padding:4px 6px;border:1.5px solid var(--slate-200);
   border-radius:5px;font-size:12px;font-weight:600;background:#fff;color:var(--slate-700);
   cursor:pointer;transition:border-color .15s,box-shadow .15s;
   appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 5px center;padding-right:22px;
+  position:relative; z-index:1;
 }
 .status-select:focus { outline:none;border-color:var(--blue-500);box-shadow:0 0 0 2px rgba(16,185,129,.12); }
 .status-select[value="IN PROGRESS"] { background-color:#ede9fe;color:#6d28d9;border-color:#c4b5fd; }
