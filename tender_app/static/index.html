@@ -43,51 +43,57 @@ body {
 #sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
-  background: #022c22;
+  background: #0B3D2E;
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0; top: 0; bottom: 0;
   z-index: 200;
   padding: 0;
+  box-shadow: 2px 0 12px rgba(0,0,0,.18);
 }
 .sidebar-brand {
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
   display: flex; align-items: center; justify-content: center;
 }
-
 .sidebar-section-label {
-  font-size: 10px; font-weight: 700; color: var(--slate-500);
-  text-transform: uppercase; letter-spacing: .8px;
-  padding: 14px 18px 6px;
+  font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,.28);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 18px 20px 5px;
 }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 18px;
+  padding: 9px 16px 9px 20px;
   cursor: pointer;
-  color: var(--slate-400);
+  color: rgba(255,255,255,.55);
   font-size: 13px; font-weight: 500;
   border-left: 3px solid transparent;
-  transition: all var(--transition);
+  transition: background .15s, color .15s, border-color .15s;
   border-radius: 0;
   user-select: none;
+  margin: 1px 0;
 }
-.nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+.nav-item:hover {
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.9);
+  border-left-color: rgba(255,255,255,.2);
+}
 .nav-item.active {
-  background: rgba(16,185,129,.18);
+  background: rgba(110,231,183,.14);
   color: #6ee7b7;
   border-left-color: #6ee7b7;
+  font-weight: 600;
 }
-.nav-item svg { flex-shrink: 0; opacity: .7; }
+.nav-item svg { flex-shrink: 0; opacity: .65; transition: opacity .15s; }
+.nav-item:hover svg { opacity: .9; }
 .nav-item.active svg { opacity: 1; }
-
 .sidebar-footer {
   margin-top: auto;
-  padding: 14px 18px;
-  border-top: 1px solid rgba(255,255,255,.07);
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
   font-size: 11px;
-  color: var(--slate-500);
+  color: rgba(255,255,255,.32);
 }
 
 /* ── Main Content ─────────────────────────────────────────────────────────── */
