@@ -338,6 +338,40 @@ main { padding: 24px 28px 60px; }
 }
 .th-filter-option:hover { background:var(--slate-50); }
 .th-filter-option.selected { color:var(--blue-600); font-weight:600; }
+/* ── Multi-select filter dropdown ─────────────────────────────────────────── */
+.filter-dropdown { padding:0; min-width:200px; }
+.filter-search-box {
+  padding:7px 8px; border-bottom:1px solid var(--slate-100);
+  position:sticky; top:0; background:#fff; z-index:1;
+}
+.filter-search-box input {
+  width:100%; padding:4px 8px; font-size:12px;
+  border:1px solid var(--slate-200); border-radius:5px;
+  outline:none; color:var(--slate-700); background:#fff;
+}
+.filter-search-box input:focus { border-color:var(--blue-500); }
+.filter-options-scroll { max-height:240px; overflow-y:auto; }
+.filter-check-option {
+  display:flex; align-items:center; gap:7px;
+  padding:5px 12px; font-size:12px; cursor:pointer;
+  color:var(--slate-700); white-space:nowrap; user-select:none;
+}
+.filter-check-option:hover { background:var(--slate-50); }
+.filter-check-option input[type=checkbox] {
+  width:13px; height:13px; accent-color:var(--blue-600);
+  cursor:pointer; flex-shrink:0;
+}
+.filter-clear-btn {
+  padding:6px 14px; font-size:11px; color:var(--slate-400);
+  cursor:pointer; border-top:1px solid var(--slate-100);
+  text-align:center; font-weight:500;
+}
+.filter-clear-btn:hover { color:var(--red-600); background:var(--red-50); }
+.filter-count-badge {
+  display:inline-block; background:var(--blue-600); color:#fff;
+  font-size:10px; font-weight:700; border-radius:999px;
+  padding:0 5px; line-height:16px; margin-left:2px; vertical-align:middle;
+}
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead { background: var(--slate-50); border-bottom: 1px solid var(--slate-200); }
 th {
@@ -776,13 +810,16 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th>GeM Bidding No.</th>
             <th>Tender Number</th>
             <th style="white-space:nowrap">
-              Organisation<span style="position:relative;display:inline-block">
+              Organisation<span id="orgFilterCount"></span><span style="position:relative;display:inline-block">
                 <span class="th-filter-btn" id="orgFilterBtn" onclick="toggleFilterMenu('org',event)" title="Filter by organisation">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
                 </span>
-                <div class="th-filter-menu" id="orgFilterMenu">
-                  <!-- populated dynamically by buildOrgFilterMenu() -->
-                  <div class="th-filter-option selected" onclick="setOrgFilter('all',this)">All Organisations</div>
+                <div class="th-filter-menu filter-dropdown" id="orgFilterMenu" style="min-width:230px">
+                  <div class="filter-search-box">
+                    <input type="text" placeholder="Search Organisation..." oninput="searchOrgFilter(this.value)" onclick="event.stopPropagation()">
+                  </div>
+                  <div class="filter-options-scroll" id="orgFilterList"></div>
+                  <div class="filter-clear-btn" onclick="clearOrgSelection()">Clear Selection</div>
                 </div>
               </span>
             </th>
@@ -798,13 +835,16 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
               </span>
             </th>
             <th style="white-space:nowrap">
-              Make<span style="position:relative;display:inline-block">
+              Make<span id="makeFilterCount"></span><span style="position:relative;display:inline-block">
                 <span class="th-filter-btn" id="makeFilterBtn" onclick="toggleFilterMenu('make',event)" title="Filter by make">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
                 </span>
-                <div class="th-filter-menu" id="makeFilterMenu">
-                  <!-- populated dynamically by buildMakeFilterMenu() -->
-                  <div class="th-filter-option selected" onclick="setMakeFilter('all',this)">All Makes</div>
+                <div class="th-filter-menu filter-dropdown" id="makeFilterMenu" style="min-width:180px">
+                  <div class="filter-search-box">
+                    <input type="text" placeholder="Search Make..." oninput="searchMakeFilter(this.value)" onclick="event.stopPropagation()">
+                  </div>
+                  <div class="filter-options-scroll" id="makeFilterList"></div>
+                  <div class="filter-clear-btn" onclick="clearMakeSelection()">Clear Selection</div>
                 </div>
               </span>
             </th>
@@ -1024,10 +1064,10 @@ function getSearchQuery() {
   const el = document.getElementById('gemSearch');
   return el ? el.value.trim().toLowerCase() : '';
 }
-let orgFilterValue = 'all';    // 'all' or a specific organisation name
-let makeFilterValue = 'all';   // 'all' or a specific make
-let statusFilterValue = 'all'; // 'all' or a specific status
-let bidSortMode = 'desc';      // 'desc' | 'asc'
+let orgSelectedValues  = new Set(); // empty = show all
+let makeSelectedValues = new Set(); // empty = show all
+let statusFilterValue = 'all';      // 'all' or a specific status
+let bidSortMode = 'desc';           // 'desc' | 'asc'
 
 function toggleFilterMenu(which, e) {
   e.stopPropagation();
@@ -1039,43 +1079,86 @@ function toggleFilterMenu(which, e) {
 function closeAllFilterMenus() {
   document.querySelectorAll('.th-filter-menu').forEach(m => m.classList.remove('open'));
 }
+// ── Organisation multi-select filter ──────────────────────────────────────
+let _orgAllNames = [];
 function buildOrgFilterMenu(tenders) {
-  const menu = document.getElementById('orgFilterMenu');
-  if (!menu) return;
-  const names = [...new Set(tenders.map(t => t.organization_name).filter(Boolean))].sort();
-  menu.innerHTML = ['all', ...names].map(v => {
-    const label = v === 'all' ? 'All Organisations' : v;
-    const sel = orgFilterValue === v ? ' selected' : '';
-    return `<div class="th-filter-option${sel}" data-org="${esc(v)}" onclick="setOrgFilter(this.dataset.org,this)">${esc(label)}</div>`;
-  }).join('');
+  _orgAllNames = [...new Set(tenders.map(t => t.organization_name).filter(Boolean))].sort();
+  renderOrgCheckboxes('');
 }
-function setOrgFilter(value, el) {
-  orgFilterValue = value;
-  document.querySelectorAll('#orgFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  if (el) el.classList.add('selected');
+function renderOrgCheckboxes(query) {
+  const list = document.getElementById('orgFilterList');
+  if (!list) return;
+  const filtered = query ? _orgAllNames.filter(n => n.toLowerCase().includes(query.toLowerCase())) : _orgAllNames;
+  list.innerHTML = filtered.length ? filtered.map(n => {
+    const chk = orgSelectedValues.has(n) ? ' checked' : '';
+    return `<label class="filter-check-option">
+      <input type="checkbox"${chk} value="${esc(n)}" onchange="toggleOrgValue(this.value,this.checked)" onclick="event.stopPropagation()">
+      ${esc(n)}
+    </label>`;
+  }).join('') : `<div style="padding:8px 14px;font-size:12px;color:var(--slate-400)">No results</div>`;
+}
+function searchOrgFilter(query) { renderOrgCheckboxes(query); }
+function toggleOrgValue(val, checked) {
+  if (checked) orgSelectedValues.add(val); else orgSelectedValues.delete(val);
+  updateOrgFilterCount();
+  renderTenderTable(tenderListCache);
+}
+function clearOrgSelection() {
+  orgSelectedValues.clear();
+  updateOrgFilterCount();
+  renderOrgCheckboxes('');
+  const inp = document.querySelector('#orgFilterMenu .filter-search-box input');
+  if (inp) inp.value = '';
+  closeAllFilterMenus();
+  renderTenderTable(tenderListCache);
+}
+function updateOrgFilterCount() {
+  const n = orgSelectedValues.size;
+  const el = document.getElementById('orgFilterCount');
+  if (el) el.innerHTML = n > 0 ? `<span class="filter-count-badge">${n}</span>` : '';
   const btn = document.getElementById('orgFilterBtn');
-  if (btn) btn.classList.toggle('active', value !== 'all');
-  closeAllFilterMenus();
-  renderTenderTable(tenderListCache);
+  if (btn) btn.classList.toggle('active', n > 0);
 }
+
+// ── Make multi-select filter ───────────────────────────────────────────────
+let _makeAllNames = [];
 function buildMakeFilterMenu(tenders) {
-  const menu = document.getElementById('makeFilterMenu');
-  if (!menu) return;
-  const makes = [...new Set(tenders.map(t => t.make).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, {sensitivity:'base'}));
-  menu.innerHTML = ['all', ...makes].map(v => {
-    const label = v === 'all' ? 'All Makes' : v;
-    const sel = makeFilterValue === v ? ' selected' : '';
-    return `<div class="th-filter-option${sel}" data-make="${esc(v)}" onclick="setMakeFilter(this.dataset.make,this)">${esc(label)}</div>`;
-  }).join('');
+  _makeAllNames = [...new Set(tenders.map(t => t.make).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, {sensitivity:'base'}));
+  renderMakeCheckboxes('');
 }
-function setMakeFilter(value, el) {
-  makeFilterValue = value;
-  document.querySelectorAll('#makeFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  if (el) el.classList.add('selected');
-  const btn = document.getElementById('makeFilterBtn');
-  if (btn) btn.classList.toggle('active', value !== 'all');
+function renderMakeCheckboxes(query) {
+  const list = document.getElementById('makeFilterList');
+  if (!list) return;
+  const filtered = query ? _makeAllNames.filter(n => n.toLowerCase().includes(query.toLowerCase())) : _makeAllNames;
+  list.innerHTML = filtered.length ? filtered.map(n => {
+    const chk = makeSelectedValues.has(n) ? ' checked' : '';
+    return `<label class="filter-check-option">
+      <input type="checkbox"${chk} value="${esc(n)}" onchange="toggleMakeValue(this.value,this.checked)" onclick="event.stopPropagation()">
+      ${esc(n)}
+    </label>`;
+  }).join('') : `<div style="padding:8px 14px;font-size:12px;color:var(--slate-400)">No results</div>`;
+}
+function searchMakeFilter(query) { renderMakeCheckboxes(query); }
+function toggleMakeValue(val, checked) {
+  if (checked) makeSelectedValues.add(val); else makeSelectedValues.delete(val);
+  updateMakeFilterCount();
+  renderTenderTable(tenderListCache);
+}
+function clearMakeSelection() {
+  makeSelectedValues.clear();
+  updateMakeFilterCount();
+  renderMakeCheckboxes('');
+  const inp = document.querySelector('#makeFilterMenu .filter-search-box input');
+  if (inp) inp.value = '';
   closeAllFilterMenus();
   renderTenderTable(tenderListCache);
+}
+function updateMakeFilterCount() {
+  const n = makeSelectedValues.size;
+  const el = document.getElementById('makeFilterCount');
+  if (el) el.innerHTML = n > 0 ? `<span class="filter-count-badge">${n}</span>` : '';
+  const btn = document.getElementById('makeFilterBtn');
+  if (btn) btn.classList.toggle('active', n > 0);
 }
 function setStatusFilter(value, el) {
   statusFilterValue = value;
@@ -1103,20 +1186,18 @@ function clearAllFilters() {
   if (searchEl) searchEl.value = '';
 
   // Reset org filter
-  orgFilterValue = 'all';
-  document.querySelectorAll('#orgFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  const firstOrg = document.querySelector('#orgFilterMenu .th-filter-option');
-  if (firstOrg) firstOrg.classList.add('selected');
-  const orgBtn = document.getElementById('orgFilterBtn');
-  if (orgBtn) orgBtn.classList.remove('active');
+  orgSelectedValues.clear();
+  updateOrgFilterCount();
+  renderOrgCheckboxes('');
+  const orgSearchInp = document.querySelector('#orgFilterMenu .filter-search-box input');
+  if (orgSearchInp) orgSearchInp.value = '';
 
   // Reset make filter
-  makeFilterValue = 'all';
-  document.querySelectorAll('#makeFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  const firstMake = document.querySelector('#makeFilterMenu .th-filter-option');
-  if (firstMake) firstMake.classList.add('selected');
-  const makeBtn = document.getElementById('makeFilterBtn');
-  if (makeBtn) makeBtn.classList.remove('active');
+  makeSelectedValues.clear();
+  updateMakeFilterCount();
+  renderMakeCheckboxes('');
+  const makeSearchInp = document.querySelector('#makeFilterMenu .filter-search-box input');
+  if (makeSearchInp) makeSearchInp.value = '';
 
   // Reset bid end date sort to default (desc)
   bidSortMode = 'desc';
@@ -1159,11 +1240,10 @@ function parseBidEndDate(value) {
 function renderTenderTable(tenders) {
   const tbody = document.getElementById('tendersTableBody');
   const searchQ = getSearchQuery();
-  console.debug('[BidSort] sort direction:', bidSortMode, '| org filter:', orgFilterValue);
   const rows = tenders.slice().filter(t => {
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
-    if (orgFilterValue !== 'all' && t.organization_name !== orgFilterValue) return false;
-    if (makeFilterValue !== 'all' && t.make !== makeFilterValue) return false;
+    if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
+    if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
     return true;
