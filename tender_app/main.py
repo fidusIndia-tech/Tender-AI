@@ -491,8 +491,8 @@ async def update_participation_status(tender_id: int, body: dict):
         raise HTTPException(400, f"Invalid status. Allowed: {', '.join(sorted(ALLOWED_PARTICIPATION_STATUSES))}")
     if not database.get_tender(tender_id):
         raise HTTPException(404, "Tender not found")
-    database.update_tender_participation_status(tender_id, status)
-    return {"id": tender_id, "participation_status": status}
+    filed_date = database.update_tender_participation_status(tender_id, status)
+    return {"id": tender_id, "participation_status": status, "filed_date": filed_date}
 
 
 # ── Company Profile ───────────────────────────────────────────────────────────

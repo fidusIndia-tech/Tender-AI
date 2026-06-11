@@ -124,6 +124,7 @@ def init_db():
         cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS original_name TEXT")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS government_portals (
                 id SERIAL PRIMARY KEY,
@@ -338,8 +339,8 @@ def list_tenders():
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
-                      make, total_quantity, participation_status, uploaded_at,
-                      won_text, lost_text, participant_text, pdf_path
+                      make, total_quantity, tender_approx_value, participation_status, uploaded_at,
+                      won_text, lost_text, participant_text, pdf_path, filed_date
                FROM tenders ORDER BY uploaded_at DESC"""
         )
         rows = cur.fetchall()
@@ -360,12 +361,22 @@ def update_tender_record_fields(tender_id, won_text, lost_text, participant_text
 
 def update_tender_participation_status(tender_id, status):
     conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE tenders SET participation_status=%s WHERE id=%s", (status, tender_id)
-        )
+    filed_date = None
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        if status == 'FILED':
+            cur.execute(
+                "UPDATE tenders SET participation_status=%s, filed_date=to_char(NOW(),'YYYY-MM-DD HH24:MI:SS') WHERE id=%s RETURNING filed_date",
+                (status, tender_id),
+            )
+            row = cur.fetchone()
+            filed_date = row['filed_date'] if row else None
+        else:
+            cur.execute(
+                "UPDATE tenders SET participation_status=%s WHERE id=%s", (status, tender_id)
+            )
     conn.commit()
     conn.close()
+    return filed_date
 
 
 def find_tender_duplicate(gem_bidding_number, tender_number):

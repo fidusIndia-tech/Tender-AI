@@ -1618,6 +1618,7 @@ function renderTenderTable(tenders) {
             <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
             <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
           </select>
+          <div class="filed-date-display" style="font-size:10px;color:#15803D;margin-top:3px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
         </td>
         <td onclick="event.stopPropagation()">
           <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Enter participants…">
@@ -2278,6 +2279,13 @@ async function removeSignature() {
 }
 
 // ── Status dropdown (list table) ───────────────────────────────────────────
+function _fmtFiledDate(dt) {
+  if (!dt) return '';
+  const d = new Date(dt.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return dt.slice(0, 10);
+  return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+}
+
 async function updateTenderStatus(id, selectEl) {
   const value = selectEl.value;
   applyStatusColor(selectEl, value);
@@ -2287,11 +2295,26 @@ async function updateTenderStatus(id, selectEl) {
       body: JSON.stringify({ status: value }),
     });
     if (!res.ok) throw new Error('Update failed');
+    const data = await res.json();
     toast('Status saved: ' + value, 'success');
     const row = document.querySelector(`tr[data-tender-id="${id}"]`);
-    if (row) row.dataset.status = value;
+    if (row) {
+      row.dataset.status = value;
+      const fdEl = row.querySelector('.filed-date-display');
+      if (fdEl) {
+        if (value === 'FILED' && data.filed_date) {
+          fdEl.textContent = 'Filed: ' + _fmtFiledDate(data.filed_date);
+          fdEl.style.display = 'block';
+        } else {
+          fdEl.style.display = 'none';
+        }
+      }
+    }
     const cached = tenderListCache.find(t => t.id === id);
-    if (cached) cached.participation_status = value;
+    if (cached) {
+      cached.participation_status = value;
+      if (data.filed_date) cached.filed_date = data.filed_date;
+    }
     updateStatCounts();
   } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
