@@ -349,7 +349,7 @@ main { padding: 24px 28px 60px; }
   outline:none; color:var(--slate-700); background:#fff;
 }
 .filter-search-box input:focus { border-color:var(--blue-500); }
-.filter-options-scroll { max-height:240px; overflow-y:auto; }
+.filter-options-scroll { max-height:240px; overflow-y:auto; overscroll-behavior:contain; }
 .filter-check-option {
   display:flex; align-items:center; gap:7px;
   padding:5px 12px; font-size:12px; cursor:pointer;
@@ -1188,7 +1188,10 @@ function setBidSort(mode, el) {
   renderTenderTable(tenderListCache);
 }
 document.addEventListener('click', closeAllFilterMenus);
-window.addEventListener('scroll', closeAllFilterMenus, true);
+window.addEventListener('scroll', function(e) {
+  // Don't close when scrolling inside a dropdown list
+  if (!e.target.closest('.th-filter-menu')) closeAllFilterMenus();
+}, true);
 window.addEventListener('resize', closeAllFilterMenus);
 function refreshTenderList() {
   renderTenderTable(tenderListCache);
