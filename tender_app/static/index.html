@@ -631,6 +631,44 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
   font-size: 13px; padding: 2px; line-height: 1;
 }
 .portals-pw-eye:hover { color: var(--slate-700); }
+
+/* ── Document Preview Modal ──────────────────────────────────────────────── */
+.doc-preview-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 8000;
+  align-items: center; justify-content: center;
+}
+.doc-preview-overlay.open { display: flex; }
+.doc-preview-panel {
+  background: #fff; border-radius: 14px;
+  width: 92vw; max-width: 1020px; height: 88vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+.doc-preview-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--slate-200);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.doc-preview-title {
+  flex: 1; font-size: 13px; font-weight: 600; color: var(--slate-800);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.doc-preview-body {
+  flex: 1; overflow: hidden; background: var(--slate-50);
+  display: flex; align-items: center; justify-content: center;
+}
+.doc-preview-body iframe { width: 100%; height: 100%; border: none; }
+.doc-preview-body img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain; padding: 16px; box-sizing: border-box;
+}
+.doc-preview-unavailable {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; color: var(--slate-500); padding: 40px; text-align: center;
+}
+.doc-preview-unavailable p { margin: 0; }
+.doc-preview-unavailable .big { font-weight: 600; font-size: 15px; color: var(--slate-700); }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -1075,6 +1113,22 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       </div>
       <p>No documents in library yet</p>
     </div>
+  </div>
+</div>
+
+<!-- ── Document Preview Modal ──────────────────────────────────────────── -->
+<div class="doc-preview-overlay" id="docPreviewOverlay" onclick="if(event.target===this)closeDocPreview()">
+  <div class="doc-preview-panel">
+    <div class="doc-preview-header">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+      <span class="doc-preview-title" id="docPreviewTitle"></span>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <a id="docPreviewDownload" href="#" class="btn btn-outline btn-sm">&#11015; Download</a>
+        <a id="docPreviewNewTab" href="#" target="_blank" rel="noopener" class="btn btn-outline btn-sm">&#8599; New Tab</a>
+        <button class="btn btn-outline btn-sm" onclick="closeDocPreview()">&#x2715; Close</button>
+      </div>
+    </div>
+    <div class="doc-preview-body" id="docPreviewBody"></div>
   </div>
 </div>
 
@@ -2146,7 +2200,7 @@ async function loadLibrary() {
         <td><span class="badge badge-info">${esc(d.category)||'—'}</span></td>
         <td style="color:var(--slate-400);font-size:12px">${d.uploaded_at?d.uploaded_at.slice(0,10):'—'}</td>
         <td style="display:flex;gap:4px">
-          <a href="/api/company/documents/${d.id}/file" target="_blank" class="btn btn-outline btn-xs">View</a>
+          <button class="btn btn-outline btn-xs" onclick="previewLibraryDoc(${d.id},${JSON.stringify(d.document_name||'')},${JSON.stringify(d.content_type||'')})">View</button>
           <button class="btn btn-danger btn-xs" onclick="deleteLibraryDoc(${d.id})">Delete</button>
         </td>
       </tr>`).join('');
@@ -2187,6 +2241,38 @@ async function deleteLibraryDoc(id) {
     if (!res.ok) throw new Error('Delete failed');
     toast('Document deleted', 'success'); loadLibrary();
   } catch (err) { toast('Error: '+err.message, 'error'); }
+}
+
+function previewLibraryDoc(id, name, contentType) {
+  const inlineUrl   = `/api/company/documents/${id}/file`;
+  const downloadUrl = `/api/company/documents/${id}/file?download=true`;
+  document.getElementById('docPreviewTitle').textContent = name || 'Document';
+  const dlBtn = document.getElementById('docPreviewDownload');
+  dlBtn.href = downloadUrl;
+  dlBtn.setAttribute('download', name || 'document');
+  document.getElementById('docPreviewNewTab').href = inlineUrl;
+  const body = document.getElementById('docPreviewBody');
+  const ct   = (contentType || '').toLowerCase();
+  const ext  = (name || '').split('.').pop().toLowerCase();
+  if (ct === 'application/pdf' || ext === 'pdf') {
+    body.innerHTML = `<iframe src="${inlineUrl}" title="${esc(name)}"></iframe>`;
+  } else if (ct.startsWith('image/') || ['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) {
+    body.innerHTML = `<img src="${inlineUrl}" alt="${esc(name)}">`;
+  } else {
+    body.innerHTML = `
+      <div class="doc-preview-unavailable">
+        <svg width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        <p class="big">Preview not available for this file type</p>
+        <p>Please download to view.</p>
+        <a href="${downloadUrl}" class="btn btn-success btn-sm" download="${esc(name)}">&#11015; Download File</a>
+      </div>`;
+  }
+  document.getElementById('docPreviewOverlay').classList.add('open');
+}
+
+function closeDocPreview() {
+  document.getElementById('docPreviewOverlay').classList.remove('open');
+  document.getElementById('docPreviewBody').innerHTML = '';
 }
 
 // ── Company Profile ────────────────────────────────────────────────────────

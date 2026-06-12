@@ -615,16 +615,18 @@ async def delete_company_doc(doc_id: int):
 
 
 @app.get("/api/company/documents/{doc_id}/file")
-async def get_company_doc_file(doc_id: int):
+async def get_company_doc_file(doc_id: int, download: bool = False):
     row = database.get_company_document_file(doc_id)
     if not row:
         raise HTTPException(404, "Document not found")
     if row.get("missing"):
         raise HTTPException(410, "File missing — please re-upload this document")
+    filename = (row["original_name"] or "document").replace('"', '')
+    disposition = "attachment" if download else "inline"
     return Response(
         content=row["file_data"],
         media_type=row["content_type"] or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{row["original_name"]}"'},
+        headers={"Content-Disposition": f'{disposition}; filename="{filename}"'},
     )
 
 
