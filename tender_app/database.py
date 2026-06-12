@@ -122,6 +122,7 @@ def init_db():
         cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS file_data BYTEA")
         cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS content_type TEXT")
         cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS original_name TEXT")
+        cur.execute("ALTER TABLE company_documents ADD COLUMN IF NOT EXISTS file_size INTEGER")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
@@ -447,7 +448,18 @@ def _insert_docs(cur, tender_id, documents):
 def get_company_profile():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM company_profile LIMIT 1")
+        # Exclude binary columns (stamp_data, signature_data) — served via separate endpoints
+        cur.execute("""
+            SELECT id, company_name, address, gst_number, pan_number, msme_number,
+                   bank_name, account_number, ifsc_code,
+                   authorized_signatory_name, authorized_signatory_designation,
+                   email, phone, stamp_file_path, signature_file_path,
+                   stamp_original_name, stamp_content_type,
+                   signature_original_name, signature_content_type,
+                   (stamp_data IS NOT NULL) AS has_stamp,
+                   (signature_data IS NOT NULL) AS has_signature
+            FROM company_profile LIMIT 1
+        """)
         row = cur.fetchone()
     conn.close()
     return dict(row) if row else {}
@@ -498,7 +510,13 @@ def clear_profile_image_path(field):
 def list_company_documents():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM company_documents ORDER BY uploaded_at DESC")
+        # Exclude file_data (binary) — it's served via the /file endpoint
+        cur.execute("""
+            SELECT id, document_name, category, financial_year, brand_oem,
+                   file_path, tags, uploaded_at, content_type, original_name, file_size,
+                   (file_data IS NOT NULL) AS has_file
+            FROM company_documents ORDER BY uploaded_at DESC
+        """)
         rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -509,15 +527,16 @@ def save_company_document(data, file_bytes=None):
     with conn.cursor() as cur:
         now = datetime.now().isoformat()
         fd = psycopg2.Binary(file_bytes) if file_bytes else None
+        file_size = len(file_bytes) if file_bytes else None
         cur.execute(
             """INSERT INTO company_documents
                (document_name, category, financial_year, brand_oem, file_path, tags, uploaded_at,
-                file_data, content_type, original_name)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                file_data, content_type, original_name, file_size)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                RETURNING id""",
             (data.get("document_name"), data.get("category"), data.get("financial_year"),
              data.get("brand_oem"), data.get("file_path"), data.get("tags"), now,
-             fd, data.get("content_type"), data.get("original_name")),
+             fd, data.get("content_type"), data.get("original_name"), file_size),
         )
         doc_id = cur.fetchone()[0]
     conn.commit()
@@ -720,13 +739,43 @@ def clear_signature():
 
 def get_company_document_file(doc_id):
     conn = get_db()
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            "SELECT file_data, content_type, original_name FROM company_documents WHERE id=%s",
-            (doc_id,),
-        )
-        row = cur.fetchone()
-    conn.close()
-    if not row or not row["file_data"]:
-        return None
-    return dict(row)
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT file_data, content_type, original_name, file_path FROM company_documents WHERE id=%s",
+                (doc_id,),
+            )
+            row = cur.fetchone()
+
+        if not row:
+            return None
+
+        if row["file_data"]:
+            return {
+                "file_data": bytes(row["file_data"]),
+                "content_type": row["content_type"] or "application/octet-stream",
+                "original_name": row["original_name"] or "document",
+            }
+
+        # Migration: try to read bytes from old on-disk file_path
+        file_path = row.get("file_path") or ""
+        if file_path and os.path.exists(file_path):
+            with open(file_path, "rb") as fh:
+                file_bytes = fh.read()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE company_documents SET file_data=%s, file_size=%s WHERE id=%s",
+                    (psycopg2.Binary(file_bytes), len(file_bytes), doc_id),
+                )
+            conn.commit()
+            print(f"[DB] Migrated company document {doc_id} bytes from disk into PostgreSQL")
+            return {
+                "file_data": file_bytes,
+                "content_type": row["content_type"] or "application/octet-stream",
+                "original_name": row["original_name"] or os.path.basename(file_path),
+            }
+
+        # Neither file_data nor a readable file_path — record exists but file is gone
+        return {"missing": True}
+    finally:
+        conn.close()

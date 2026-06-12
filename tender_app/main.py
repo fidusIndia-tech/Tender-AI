@@ -503,7 +503,11 @@ async def update_participation_status(tender_id: int, body: dict):
 
 @app.get("/api/company/profile")
 async def get_profile():
-    return database.get_company_profile()
+    try:
+        return database.get_company_profile()
+    except Exception as e:
+        print(f"[ERROR] get_profile: {type(e).__name__}: {e}")
+        raise HTTPException(500, "Failed to load company profile")
 
 
 @app.put("/api/company/profile")
@@ -608,9 +612,11 @@ async def delete_company_doc(doc_id: int):
 async def get_company_doc_file(doc_id: int):
     row = database.get_company_document_file(doc_id)
     if not row:
-        raise HTTPException(404, "File not found")
+        raise HTTPException(404, "Document not found")
+    if row.get("missing"):
+        raise HTTPException(410, "File missing — please re-upload this document")
     return Response(
-        content=bytes(row["file_data"]),
+        content=row["file_data"],
         media_type=row["content_type"] or "application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{row["original_name"]}"'},
     )
