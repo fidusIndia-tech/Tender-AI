@@ -2479,24 +2479,30 @@ async function togglePortalPw(id) {
   const disp = document.getElementById(`pw-disp-${id}`);
   const eye  = document.getElementById(`pw-eye-${id}`);
   if (_revealedPw[id] !== undefined) {
-    if (disp.style.letterSpacing === '2px' || disp.textContent === '••••••••') {
-      disp.textContent = _revealedPw[id] || '(no password)';
-      disp.style.letterSpacing = 'normal';
-      if (eye) eye.innerHTML = '&#128584; Hide';
-    } else {
-      disp.textContent = '••••••••';
-      disp.style.letterSpacing = '2px';
-      if (eye) eye.innerHTML = '&#128065; Show';
-    }
+    // Cached — toggle visibility
+    const hidden = disp.textContent === '••••••••';
+    disp.textContent = hidden ? (_revealedPw[id] || '(no password)') : '••••••••';
+    disp.style.letterSpacing = hidden ? 'normal' : '2px';
+    if (eye) eye.innerHTML = hidden ? '&#128584; Hide' : '&#128065; Show';
     return;
   }
   try {
     const res = await fetch(`/api/portals/${id}/reveal`, { method: 'POST' });
-    if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
     const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 422) {
+        disp.textContent = '⚠ Password must be re-entered (click Edit to update)';
+        disp.style.letterSpacing = 'normal';
+        disp.style.color = '#DC2626';
+      } else {
+        toast(data.detail || 'Failed to reveal password', 'error');
+      }
+      return;
+    }
     _revealedPw[id] = data.password || '';
     disp.textContent = _revealedPw[id] || '(no password)';
     disp.style.letterSpacing = 'normal';
+    disp.style.color = '';
     if (eye) eye.innerHTML = '&#128584; Hide';
   } catch (err) {
     toast('Failed to reveal password: ' + err.message, 'error');
@@ -2507,8 +2513,13 @@ async function portalCopyPw(id) {
   if (_revealedPw[id] !== undefined) { portalCopy(_revealedPw[id], 'Password copied'); return; }
   try {
     const res = await fetch(`/api/portals/${id}/reveal`, { method: 'POST' });
-    if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
     const data = await res.json();
+    if (!res.ok) {
+      toast(res.status === 422
+        ? 'Password must be re-entered — click Edit on this portal to update it'
+        : (data.detail || 'Failed to copy password'), 'error');
+      return;
+    }
     _revealedPw[id] = data.password || '';
     portalCopy(_revealedPw[id], 'Password copied');
   } catch (err) {

@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,14 +39,18 @@ database.init_db()
 # ── Portal Encryption (Fernet symmetric) ──────────────────────────────────────
 
 def _init_fernet() -> Fernet:
-    key_str = os.environ.get("PORTAL_ENCRYPTION_KEY", "")
+    key_str = os.environ.get("PORTAL_ENCRYPTION_KEY", "").strip()
     if key_str:
         try:
-            return Fernet(key_str.encode())
-        except Exception:
-            pass
+            f = Fernet(key_str.encode())
+            print("[INFO] PORTAL_ENCRYPTION_KEY loaded — portal passwords are persistent.")
+            return f
+        except Exception as e:
+            print(f"[ERROR] PORTAL_ENCRYPTION_KEY is invalid ({type(e).__name__}) — falling back to ephemeral key.")
     generated = Fernet.generate_key()
-    print("[WARN] PORTAL_ENCRYPTION_KEY not set or invalid — using ephemeral key. Portal passwords will be unreadable after restart.")
+    print("[WARN] PORTAL_ENCRYPTION_KEY not set — using ephemeral key. Portal passwords will be unreadable after restart.")
+    print(f"[WARN] Fix: add the following to Railway environment variables:")
+    print(f"[WARN]   PORTAL_ENCRYPTION_KEY={generated.decode()}")
     return Fernet(generated)
 
 _fernet = _init_fernet()
@@ -942,8 +946,12 @@ async def reveal_portal_password(portal_id: int, request: Request):
         return {"password": ""}
     try:
         return {"password": _decrypt_password(enc)}
-    except Exception:
-        raise HTTPException(500, "Failed to decrypt password — encryption key may have changed")
+    except InvalidToken:
+        print(f"[WARN] Portal {portal_id}: InvalidToken — password was encrypted with a different key")
+        raise HTTPException(422, "Password must be re-entered — encryption key has changed")
+    except Exception as e:
+        print(f"[ERROR] Portal {portal_id}: decrypt failed — {type(e).__name__}")
+        raise HTTPException(500, "Failed to decrypt password")
 
 
 # ── Static SPA (must be last) ─────────────────────────────────────────────────
