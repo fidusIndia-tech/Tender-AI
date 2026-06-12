@@ -15,7 +15,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -504,16 +504,22 @@ async def update_participation_status(tender_id: int, body: dict):
 @app.get("/api/company/profile")
 async def get_profile():
     try:
-        return database.get_company_profile()
+        data = database.get_company_profile()
+        # Use JSONResponse so encoding errors are caught here, not by Starlette
+        return JSONResponse(content=data)
     except Exception as e:
         print(f"[ERROR] get_profile: {type(e).__name__}: {e}")
-        raise HTTPException(500, "Failed to load company profile")
+        return JSONResponse(content={"error": "Failed to load company profile"}, status_code=500)
 
 
 @app.put("/api/company/profile")
 async def save_profile(payload: CompanyProfilePayload):
-    database.upsert_company_profile(payload.model_dump())
-    return {"message": "saved"}
+    try:
+        database.upsert_company_profile(payload.model_dump())
+        return JSONResponse(content={"message": "saved"})
+    except Exception as e:
+        print(f"[ERROR] save_profile: {type(e).__name__}: {e}")
+        return JSONResponse(content={"error": "Failed to save company profile"}, status_code=500)
 
 
 @app.post("/api/company/profile/stamp")

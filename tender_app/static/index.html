@@ -2197,10 +2197,18 @@ const PROFILE_FIELDS = ['company_name','address','gst_number','pan_number','msme
 async function loadProfile() {
   try {
     const res = await fetch('/api/company/profile');
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      toast('Failed to load profile (server error ' + res.status + ')', 'error');
+      console.error('Profile load error:', txt);
+      return;
+    }
     const data = await res.json();
     PROFILE_FIELDS.forEach(f => { const el=document.getElementById('p_'+f); if(el) el.value=data[f]||''; });
-    refreshStampPreview(!!data.stamp_file_path);
-    refreshSignaturePreview(!!data.signature_file_path);
+    // has_stamp / has_signature are returned since the BYTEA migration; fall back to
+    // stamp_file_path for any legacy record that still uses file paths
+    refreshStampPreview(!!(data.has_stamp || data.stamp_file_path));
+    refreshSignaturePreview(!!(data.has_signature || data.signature_file_path));
   } catch (err) { toast('Failed to load profile: '+err.message, 'error'); }
 }
 async function saveProfile() {
