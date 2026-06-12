@@ -2545,6 +2545,7 @@ function renderPortalList(list) {
         <span style="flex:1"></span>
         ${p.url ? `<a href="${_esc(p.url)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">Open</a>` : ''}
         <button class="btn btn-outline btn-xs" onclick="editPortal(${p.id})">Edit</button>
+        <button class="btn btn-outline btn-xs" style="color:var(--blue-600);border-color:var(--blue-200)" onclick="copyAllPortalCredentials(${p.id})">&#128203; Copy All</button>
         <button class="btn btn-danger btn-xs" onclick="deletePortal(${p.id})">Delete</button>
       </div>
       ${p.url ? `<div class="portal-card-row"><span class="portal-label">URL</span><a href="${_esc(p.url)}" target="_blank" rel="noopener" style="color:var(--blue-600);font-size:12px;word-break:break-all">${_esc(p.url)}</a></div>` : ''}
@@ -2624,6 +2625,43 @@ async function portalCopyPw(id) {
 function portalCopy(text, msg) {
   navigator.clipboard.writeText(text)
     .then(() => toast(msg || 'Copied', 'success'))
+    .catch(() => toast('Copy failed — please copy manually', 'error'));
+}
+
+async function copyAllPortalCredentials(id) {
+  const p = _portalsCache.find(x => x.id === id);
+  if (!p) return;
+
+  let password;
+  if (_revealedPw[id] !== undefined) {
+    password = _revealedPw[id];
+  } else {
+    try {
+      const res = await fetch(`/api/portals/${id}/reveal`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(res.status === 422
+          ? 'Please re-enter password — encryption key has changed'
+          : (data.detail || 'Failed to retrieve password'), 'error');
+        return;
+      }
+      password = data.password || '';
+      _revealedPw[id] = password;
+    } catch (err) {
+      toast('Failed to retrieve password: ' + err.message, 'error');
+      return;
+    }
+  }
+
+  const lines = [
+    `Portal: ${p.name || ''}`,
+    p.url ? `URL: ${p.url}` : null,
+    `Username: ${p.username || '—'}`,
+    `Password: ${password || '—'}`,
+  ].filter(Boolean).join('\n');
+
+  navigator.clipboard.writeText(lines)
+    .then(() => toast('Portal credentials copied', 'success'))
     .catch(() => toast('Copy failed — please copy manually', 'error'));
 }
 
