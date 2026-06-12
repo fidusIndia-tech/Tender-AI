@@ -2200,7 +2200,7 @@ async function loadLibrary() {
         <td><span class="badge badge-info">${esc(d.category)||'—'}</span></td>
         <td style="color:var(--slate-400);font-size:12px">${d.uploaded_at?d.uploaded_at.slice(0,10):'—'}</td>
         <td style="display:flex;gap:4px">
-          <button class="btn btn-outline btn-xs" onclick="previewLibraryDoc(${d.id},${JSON.stringify(d.document_name||'')},${JSON.stringify(d.content_type||'')})">View</button>
+          <button class="btn btn-outline btn-xs" data-n="${esc(d.document_name||'')}" data-ct="${esc(d.content_type||'')}" onclick="previewLibraryDoc(${d.id},this.dataset.n,this.dataset.ct)">View</button>
           <button class="btn btn-danger btn-xs" onclick="deleteLibraryDoc(${d.id})">Delete</button>
         </td>
       </tr>`).join('');
