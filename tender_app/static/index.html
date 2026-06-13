@@ -551,6 +551,13 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .cal-day.cal-other { color:var(--slate-300);pointer-events:none; }
 .cal-clear { margin-top:8px;text-align:center;font-size:11px;color:var(--slate-400);cursor:pointer;padding:3px 0; }
 .cal-clear:hover { color:var(--red-600); }
+.cal-day.cal-range-start { background:var(--blue-600);color:#fff;font-weight:700;border-radius:6px; }
+.cal-day.cal-range-end   { background:var(--blue-600);color:#fff;font-weight:700;border-radius:6px; }
+.cal-day.cal-range-mid   { background:var(--blue-100);color:var(--blue-700);border-radius:3px; }
+.cal-pick-row  { display:flex;align-items:center;gap:5px;margin-bottom:9px; }
+.cal-pick-btn  { flex:1;padding:5px 3px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:10px;background:#fff;cursor:pointer;color:var(--slate-500);text-align:center;line-height:1.5; }
+.cal-pick-btn.picking { border-color:var(--blue-500);background:var(--blue-50);color:var(--blue-700);font-weight:600; }
+.cal-pick-arr  { color:var(--slate-300);font-size:14px;flex-shrink:0; }
 
 /* ── Government Portals Modal ────────────────────────────────────────────── */
 .portals-overlay {
@@ -996,10 +1003,10 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div class="th-filter-option" onclick="setBidSort('asc',this)">Ascending</div>
                 </div>
               </span><span style="display:inline-block">
-                <span class="th-filter-btn" id="bidDateBtn" onclick="toggleBidCalendar(event)" title="Filter by exact date">
+                <span class="th-filter-btn" id="bidDateBtn" onclick="toggleBidCalendar(event)" title="Filter by date range">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 </span>
-                <div class="th-filter-menu" id="bidDateFilterMenu" style="min-width:226px;padding:0;" onclick="event.stopPropagation()">
+                <div class="th-filter-menu" id="bidDateFilterMenu" style="min-width:244px;padding:0;" onclick="event.stopPropagation()">
                   <div id="calendarWidget" style="padding:11px 12px 10px;"></div>
                 </div>
               </span><span id="bidDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearBidDateFilter()" title="Clear date filter">✕</span>
@@ -1306,7 +1313,9 @@ let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
 let statusFilterValue = 'all';      // 'all' or a specific status
 let bidSortMode = 'desc';           // 'desc' | 'asc'
-let bidDateFilter = null;           // null or 'YYYY-MM-DD'
+let bidDateFrom  = null;   // null or 'YYYY-MM-DD' — range start
+let bidDateTo    = null;   // null or 'YYYY-MM-DD' — range end
+let _calPickFrom = true;   // true = next click sets From, false = sets To
 let _calYear  = new Date().getFullYear();
 let _calMonth = new Date().getMonth();
 
@@ -1318,8 +1327,9 @@ function toggleBidCalendar(e) {
   const isOpen = menu.classList.contains('open');
   closeAllFilterMenus();
   if (!isOpen) {
-    if (bidDateFilter) {
-      const d = new Date(bidDateFilter + 'T00:00:00');
+    _calPickFrom = true;
+    if (bidDateFrom) {
+      const d = new Date(bidDateFrom + 'T00:00:00');
       _calYear = d.getFullYear(); _calMonth = d.getMonth();
     } else {
       const now = new Date();
@@ -1327,7 +1337,7 @@ function toggleBidCalendar(e) {
     }
     _renderCalendar();
     const rect = e.currentTarget.getBoundingClientRect();
-    const menuW = 226;
+    const menuW = 244;
     let left = rect.left;
     if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
     if (left < 8) left = 8;
@@ -1340,20 +1350,37 @@ function toggleBidCalendar(e) {
 function _renderCalendar() {
   const el = document.getElementById('calendarWidget');
   if (!el) return;
-  const today = new Date();
+  const today    = new Date();
   const todayStr = _dateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
-  const firstDow = new Date(_calYear, _calMonth, 1).getDay();
+  const firstDow   = new Date(_calYear, _calMonth, 1).getDay();
   const daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
+  const fmtD = ds => ds ? ds.slice(5).replace('-', '/') : '—';
   let cells = '';
   for (let i = 0; i < firstDow; i++) cells += '<div class="cal-day cal-other"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = _dateStr(_calYear, _calMonth + 1, d);
     let cls = 'cal-day';
-    if (ds === bidDateFilter) cls += ' cal-selected';
-    if (ds === todayStr) cls += ' cal-today';
+    const isFrom = ds === bidDateFrom;
+    const isTo   = ds === bidDateTo;
+    const inRange = bidDateFrom && bidDateTo && ds > bidDateFrom && ds < bidDateTo;
+    if (isFrom && isTo)  cls += ' cal-range-start cal-range-end';
+    else if (isFrom)     cls += ' cal-range-start';
+    else if (isTo)       cls += ' cal-range-end';
+    else if (inRange)    cls += ' cal-range-mid';
+    else if (ds === todayStr) cls += ' cal-today';
     cells += `<div class="${cls}" onclick="_selectCalDate('${ds}')">${d}</div>`;
   }
+  const hasFilter = !!(bidDateFrom || bidDateTo);
   el.innerHTML = `
+    <div class="cal-pick-row">
+      <button class="cal-pick-btn${_calPickFrom ? ' picking' : ''}" onclick="_calPickFrom=true;_renderCalendar()">
+        From<br><b>${fmtD(bidDateFrom)}</b>
+      </button>
+      <span class="cal-pick-arr">&#8594;</span>
+      <button class="cal-pick-btn${!_calPickFrom ? ' picking' : ''}" onclick="_calPickFrom=false;_renderCalendar()">
+        To<br><b>${fmtD(bidDateTo)}</b>
+      </button>
+    </div>
     <div class="cal-header">
       <button class="cal-nav" onclick="_calNav(-1)">&#8249;</button>
       <span class="cal-month-label">${_CAL_MONTHS[_calMonth]} ${_calYear}</span>
@@ -1361,7 +1388,7 @@ function _renderCalendar() {
     </div>
     <div class="cal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
     <div class="cal-grid">${cells}</div>
-    ${bidDateFilter ? `<div class="cal-clear" onclick="clearBidDateFilter();closeAllFilterMenus()">✕ Clear date filter</div>` : ''}
+    ${hasFilter ? `<div class="cal-clear" onclick="clearBidDateFilter();closeAllFilterMenus()">&#x2715; Clear date filter</div>` : ''}
   `;
 }
 
@@ -1377,29 +1404,43 @@ function _calNav(dir) {
 }
 
 function _selectCalDate(ds) {
-  setBidDateFilter(ds);
+  if (_calPickFrom) {
+    bidDateFrom  = ds;
+    bidDateTo    = null;
+    _calPickFrom = false;
+    _renderCalendar();
+    _applyBidDateFilter();
+  } else {
+    if (ds < bidDateFrom) { bidDateTo = bidDateFrom; bidDateFrom = ds; }
+    else                  { bidDateTo = ds; }
+    _applyBidDateFilter();
+    closeAllFilterMenus();
+  }
 }
 
-function setBidDateFilter(val) {
-  bidDateFilter = val || null;
-  document.getElementById('bidDateBtn').classList.toggle('active', !!bidDateFilter);
-  document.getElementById('bidDateClearBtn').style.display = bidDateFilter ? 'inline-block' : 'none';
-  if (bidDateFilter) closeAllFilterMenus();
+function _applyBidDateFilter() {
+  const hasFilter = !!(bidDateFrom || bidDateTo);
+  document.getElementById('bidDateBtn').classList.toggle('active', hasFilter);
+  document.getElementById('bidDateClearBtn').style.display = hasFilter ? 'inline-block' : 'none';
   renderTenderTable(tenderListCache);
 }
 function clearBidDateFilter() {
-  bidDateFilter = null;
+  bidDateFrom  = null;
+  bidDateTo    = null;
+  _calPickFrom = true;
   document.getElementById('bidDateBtn').classList.remove('active');
   document.getElementById('bidDateClearBtn').style.display = 'none';
   renderTenderTable(tenderListCache);
 }
 function _bidDateMatches(bidEndDatetime) {
-  if (!bidDateFilter) return true;
+  if (!bidDateFrom && !bidDateTo) return true;
   const ts = parseBidEndDate(bidEndDatetime);
   if (!ts) return false;
   const d = new Date(ts);
   const tDate = _dateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  return tDate === bidDateFilter;
+  if (bidDateFrom && bidDateTo) return tDate >= bidDateFrom && tDate <= bidDateTo;
+  if (bidDateFrom) return tDate === bidDateFrom;
+  return tDate === bidDateTo;
 }
 
 function toggleFilterMenu(which, e) {
