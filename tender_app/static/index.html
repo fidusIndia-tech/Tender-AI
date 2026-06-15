@@ -328,6 +328,12 @@ main { padding: 20px 24px 60px; }
   margin-bottom: 16px;
 }
 .table-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 8px; }
+.pagination-bar { display:flex; align-items:center; gap:5px; padding:9px 16px; border-top:1px solid var(--slate-100); flex-wrap:wrap; }
+.pg-btn { padding:3px 9px; border:1px solid var(--slate-200); border-radius:6px; background:#fff; cursor:pointer; font-size:12px; color:var(--slate-600); min-width:30px; text-align:center; line-height:1.6; }
+.pg-btn:hover:not(:disabled) { background:var(--slate-50); border-color:var(--blue-300); color:var(--blue-600); }
+.pg-btn.pg-active { background:var(--blue-600); color:#fff; border-color:var(--blue-600); font-weight:600; }
+.pg-btn:disabled { opacity:0.38; cursor:default; }
+.tender-count-info { font-size:11px; color:var(--slate-400); white-space:nowrap; }
 .th-filter-btn {
   display:inline-flex; align-items:center; justify-content:center;
   margin-left:3px; padding:2px 3px; border-radius:4px;
@@ -955,6 +961,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
       <span style="font-size:13px;font-weight:600;color:var(--slate-600);flex-shrink:0">Tender Records</span>
       <div style="flex:1"></div>
+      <span id="tenderCountInfo" class="tender-count-info"></span>
       <div style="position:relative;display:flex;align-items:center">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:8px;color:var(--slate-400);pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
         <input type="text" id="gemSearch" placeholder="Search GeM Bidding Number..." oninput="refreshTenderList()" style="padding:6px 10px 6px 28px;border:1px solid var(--slate-200);border-radius:8px;font-size:12px;width:230px;color:var(--slate-700);outline:none" onfocus="this.style.borderColor='var(--blue-400)'" onblur="this.style.borderColor='var(--slate-200)'">
@@ -977,6 +984,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
         <thead>
           <tr>
             <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
+            <th style="width:38px;text-align:center;color:var(--slate-400);font-weight:500">#</th>
             <th>GeM Bidding No.</th>
             <th>Tender Number</th>
             <th style="white-space:nowrap">
@@ -1051,6 +1059,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
         <tbody id="tendersTableBody"></tbody>
       </table>
     </div>
+    <div id="tenderPagination" class="pagination-bar" style="display:none"></div>
     <div id="listEmpty" class="empty-state" style="display:none">
       <div class="empty-icon">
         <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--slate-400)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
@@ -1315,6 +1324,9 @@ let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
 let statusSelectedValues = new Set(); // empty = show all
 let bidSortMode = 'desc';           // 'desc' | 'asc'
+let _currentPage = 1;
+const _PAGE_SIZE = 100;
+let _filteredRows = [];
 let bidDateFrom  = null;   // null or 'YYYY-MM-DD' — range start
 let bidDateTo    = null;   // null or 'YYYY-MM-DD' — range end
 let _calPickFrom = true;   // true = next click sets From, false = sets To
@@ -1621,21 +1633,7 @@ function clearAllFilters() {
 }
 function exportToExcel() {
   if (!window.XLSX) { toast('Excel library not loaded yet, please try again.', 'error'); return; }
-  // Apply same filters as renderTenderTable
-  const searchQ = getSearchQuery();
-  const rows = tenderListCache.slice().filter(t => {
-    if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
-    if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
-    if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
-    if (!_bidDateMatches(t.bid_end_datetime)) return false;
-    const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
-    if (statusSelectedValues.size > 0 && !statusSelectedValues.has(tSt)) return false;
-    return true;
-  }).sort((a, b) => {
-    const aDate = parseBidEndDate(a.bid_end_datetime);
-    const bDate = parseBidEndDate(b.bid_end_datetime);
-    return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
-  });
+  const rows = _filteredRows; // already filtered and sorted by renderTenderTable
 
   const data = rows.map(t => {
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
@@ -1681,9 +1679,8 @@ function parseBidEndDate(value) {
   return Number.isNaN(ts) ? 0 : ts;
 }
 function renderTenderTable(tenders) {
-  const tbody = document.getElementById('tendersTableBody');
   const searchQ = getSearchQuery();
-  const rows = tenders.slice().filter(t => {
+  _filteredRows = tenders.slice().filter(t => {
     if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
     if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
@@ -1696,13 +1693,40 @@ function renderTenderTable(tenders) {
     const bDate = parseBidEndDate(b.bid_end_datetime);
     return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
   });
-  tbody.innerHTML = rows.map(t => {
+  _currentPage = 1;
+  _renderCurrentPage();
+}
+function _goToPage(n) {
+  _currentPage = n;
+  _renderCurrentPage();
+}
+function _renderCurrentPage() {
+  const tbody = document.getElementById('tendersTableBody');
+  const total = _filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / _PAGE_SIZE));
+  if (_currentPage < 1) _currentPage = 1;
+  if (_currentPage > totalPages) _currentPage = totalPages;
+  const start = (_currentPage - 1) * _PAGE_SIZE;
+  const end = Math.min(start + _PAGE_SIZE, total);
+  const pageRows = _filteredRows.slice(start, end);
+
+  // Update count info
+  const countEl = document.getElementById('tenderCountInfo');
+  if (countEl) {
+    if (total === 0) countEl.textContent = '';
+    else if (total <= _PAGE_SIZE) countEl.textContent = `Total: ${total}`;
+    else countEl.textContent = `Showing ${start + 1}–${end} of ${total}`;
+  }
+
+  tbody.innerHTML = pageRows.map((t, idx) => {
+    const rowNum = start + idx + 1;
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="check-col" onclick="event.stopPropagation()">
           <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
         </td>
+        <td style="text-align:center;font-size:11px;color:var(--slate-400);width:38px">${rowNum}</td>
         <td class="col-gem">${esc(t.gem_bidding_number)||'—'}</td>
         <td class="col-tn">${esc(t.tender_number)||'—'}</td>
         <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
@@ -1730,6 +1754,31 @@ function renderTenderTable(tenders) {
       </tr>`;
   }).join('');
   document.querySelectorAll('.status-select').forEach(sel => applyStatusColor(sel, sel.value));
+
+  // Pagination bar
+  const pgBar = document.getElementById('tenderPagination');
+  if (!pgBar) return;
+  if (totalPages <= 1) { pgBar.style.display = 'none'; return; }
+  pgBar.style.display = 'flex';
+  const maxBtns = 7;
+  let pages = [];
+  if (totalPages <= maxBtns) {
+    pages = Array.from({length: totalPages}, (_, i) => i + 1);
+  } else {
+    pages = [1];
+    let lo = Math.max(2, _currentPage - 2), hi = Math.min(totalPages - 1, _currentPage + 2);
+    if (lo > 2) pages.push('…');
+    for (let p = lo; p <= hi; p++) pages.push(p);
+    if (hi < totalPages - 1) pages.push('…');
+    pages.push(totalPages);
+  }
+  pgBar.innerHTML =
+    `<button class="pg-btn" onclick="_goToPage(${_currentPage - 1})" ${_currentPage === 1 ? 'disabled' : ''}>&#8249; Prev</button>` +
+    pages.map(p => p === '…'
+      ? `<span style="padding:0 4px;color:var(--slate-400)">…</span>`
+      : `<button class="pg-btn${p === _currentPage ? ' pg-active' : ''}" onclick="_goToPage(${p})">${p}</button>`
+    ).join('') +
+    `<button class="pg-btn" onclick="_goToPage(${_currentPage + 1})" ${_currentPage === totalPages ? 'disabled' : ''}>Next &#8250;</button>`;
 }
 
 function showView(name) {
@@ -2007,7 +2056,7 @@ async function loadTenderList() {
   const tbody  = document.getElementById('tendersTableBody');
   const empty  = document.getElementById('listEmpty');
   const statRow = document.getElementById('statRow');
-  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
   try {
     const res = await fetch('/api/tenders');
     const tenders = await res.json();
