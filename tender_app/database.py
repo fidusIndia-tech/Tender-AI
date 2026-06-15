@@ -128,6 +128,7 @@ def init_db():
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS government_portals (
                 id SERIAL PRIMARY KEY,
@@ -343,7 +344,7 @@ def list_tenders():
         cur.execute(
             """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
                       make, total_quantity, tender_approx_value, participation_status, uploaded_at,
-                      won_text, lost_text, participant_text, pdf_path, filed_date
+                      won_text, lost_text, participant_text, pdf_path, filed_date, remark
                FROM tenders ORDER BY uploaded_at DESC"""
         )
         rows = cur.fetchall()
@@ -351,12 +352,12 @@ def list_tenders():
     return [dict(r) for r in rows]
 
 
-def update_tender_record_fields(tender_id, won_text, lost_text, participant_text):
+def update_tender_record_fields(tender_id, won_text, lost_text, participant_text, remark=None):
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE tenders SET won_text=%s, lost_text=%s, participant_text=%s WHERE id=%s",
-            (won_text, lost_text, participant_text, tender_id),
+            "UPDATE tenders SET won_text=%s, lost_text=%s, participant_text=%s, remark=%s WHERE id=%s",
+            (won_text, lost_text, participant_text, remark, tender_id),
         )
     conn.commit()
     conn.close()

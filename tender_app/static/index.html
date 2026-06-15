@@ -467,21 +467,25 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
   width:15px;height:15px;cursor:pointer;accent-color:var(--blue-600);
   border-radius:3px;
 }
-.list-table th { padding:8px 10px; }
-.list-table td { padding:6px 10px;vertical-align:middle; }
-.list-table .col-gem { font-weight:700;color:var(--blue-700);font-size:12px;white-space:nowrap; }
-.list-table .col-tn  { color:var(--slate-700);font-size:12px;white-space:nowrap; }
-.list-table .col-org { color:var(--slate-700);font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-date{ color:var(--slate-500);font-size:12px;white-space:nowrap; }
-.list-table .col-make{ color:var(--slate-600);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-qty { text-align:center;font-weight:700;color:var(--slate-800); }
+.list-table th { padding:7px 8px;font-size:11px;letter-spacing:.3px; }
+.list-table td { padding:5px 8px;vertical-align:middle;font-size:12px; }
+.list-table tbody tr:nth-child(even) { background:var(--slate-50); }
+.list-table tbody tr:hover { background:#eef6ff !important; }
+.list-table .col-gem  { font-weight:700;color:var(--blue-700);font-size:11.5px;white-space:nowrap; }
+.list-table .col-tn   { color:var(--slate-600);font-size:11px;white-space:nowrap; }
+.list-table .col-org  { color:var(--slate-700);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.list-table .col-date { color:var(--slate-500);font-size:11px;white-space:nowrap; }
+.list-table .col-make { color:var(--slate-600);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.list-table .col-vot  { color:var(--slate-700);font-size:11px;white-space:nowrap;text-align:right;min-width:80px;max-width:110px; }
+.list-table .col-qty  { text-align:center;font-weight:600;color:var(--slate-700);font-size:11px; }
+.list-table .col-rmk  { min-width:110px;max-width:160px; }
 .record-input {
-  width:100%;height:30px;padding:2px 6px;border:1.5px solid var(--slate-200);
-  border-radius:5px;font-size:12px;background:#fff;color:var(--slate-800);
+  width:100%;height:26px;padding:2px 5px;border:1.5px solid var(--slate-200);
+  border-radius:5px;font-size:11px;background:#fff;color:var(--slate-800);
   transition:border-color .15s,box-shadow .15s;
 }
 .record-input:focus { outline:none;border-color:var(--blue-500);box-shadow:0 0 0 2px rgba(16,185,129,.12); }
-.record-input.participant-input { font-size:12px;max-width:120px; }
+.record-input.participant-input { max-width:110px; }
 
 /* ── Status dropdown (list table) ────────────────────────────────────────── */
 .status-select {
@@ -1036,9 +1040,9 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th title="VoT = Valuation of Tender">VoT</th>
-            <th style="width:56px;text-align:center">Qty</th>
-            <th style="width:104px">Actions</th>
+            <th style="text-align:right" title="VoT = Valuation of Tender">VoT (₹)</th>
+            <th style="width:48px;text-align:center">Qty</th>
+            <th style="width:90px">Actions</th>
             <th style="width:115px;white-space:nowrap;text-align:center">
               Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
                 <span class="th-filter-btn" id="statusFilterBtn" onclick="toggleFilterMenu('status',event)" title="Filter by status">
@@ -1056,7 +1060,8 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="width:130px">Participant</th>
+            <th style="width:120px">Participant</th>
+            <th style="width:140px">Remark</th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
@@ -1678,6 +1683,7 @@ function exportToExcel() {
       'Qty'              : t.total_quantity != null ? t.total_quantity : '',
       'Status'           : st,
       'Participant'      : t.participant_text       || '',
+      'Remark'           : t.remark                 || '',
     };
   });
 
@@ -1763,7 +1769,7 @@ function _renderCurrentPage() {
         <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
         <td class="col-date">${t.bid_end_datetime||'—'}</td>
         <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
-        <td class="col-date" title="VoT = Valuation of Tender">${esc(t.tender_approx_value)||'—'}</td>
+        <td class="col-vot" title="${esc(t.tender_approx_value)||''}">${esc(t.tender_approx_value)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
           ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.4;cursor:default" title="No PDF">PDF</span>`}
@@ -1780,7 +1786,10 @@ function _renderCurrentPage() {
           <div class="filed-date-display" style="font-size:10px;color:#15803D;margin-top:3px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
         </td>
         <td onclick="event.stopPropagation()">
-          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Enter participants…">
+          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Participants…">
+        </td>
+        <td class="col-rmk" onclick="event.stopPropagation()">
+          <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" placeholder="Add remark…">
         </td>
       </tr>`;
   }).join('');
@@ -2087,7 +2096,7 @@ async function loadTenderList() {
   const tbody  = document.getElementById('tendersTableBody');
   const empty  = document.getElementById('listEmpty');
   const statRow = document.getElementById('statRow');
-  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
   try {
     const res = await fetch('/api/tenders');
     const tenders = await res.json();

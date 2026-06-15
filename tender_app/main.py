@@ -486,6 +486,7 @@ async def update_record_fields(tender_id: int, body: dict):
         None,
         None,
         body.get("participant_text"),
+        body.get("remark"),
     )
     return {"id": tender_id}
 
