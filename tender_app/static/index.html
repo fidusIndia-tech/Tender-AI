@@ -462,35 +462,42 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .prep-actions { display:flex;gap:4px;flex-wrap:wrap;align-items:center; }
 
 /* ── Tender list table ───────────────────────────────────────────────────── */
-.check-col { width:38px;text-align:center;padding:10px 0 10px 12px; }
+.check-col { width:30px;text-align:center;padding:0 0 0 8px; }
 .check-col input[type=checkbox] {
-  width:15px;height:15px;cursor:pointer;accent-color:var(--blue-600);
-  border-radius:3px;
+  width:14px;height:14px;cursor:pointer;accent-color:var(--blue-600);border-radius:3px;
 }
-.list-table th { padding:7px 8px;font-size:11px;letter-spacing:.3px; }
-.list-table td { padding:5px 8px;vertical-align:middle;font-size:12px; }
-.list-table tbody tr:nth-child(even) { background:var(--slate-50); }
-.list-table tbody tr:hover { background:#eef6ff !important; }
-.list-table .col-gem  { font-weight:700;color:var(--blue-700);font-size:11.5px;white-space:nowrap; }
-.list-table .col-tn   { color:var(--slate-600);font-size:11px;white-space:nowrap; }
-.list-table .col-org  { color:var(--slate-700);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-date { color:var(--slate-500);font-size:11px;white-space:nowrap; }
-.list-table .col-make { color:var(--slate-600);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-vot  { color:var(--slate-700);font-size:11px;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis; }
-.list-table .col-qty  { text-align:center;font-weight:600;color:var(--slate-700);font-size:11px; }
-.list-table .col-rmk  { min-width:110px;max-width:160px; }
+.list-table thead tr { position:sticky;top:0;z-index:2; }
+.list-table th {
+  padding:6px 7px;font-size:10.5px;letter-spacing:.45px;font-weight:700;
+  text-transform:uppercase;color:#475569;
+  background:#f1f5f9;border-bottom:2px solid #e2e8f0;white-space:nowrap;
+}
+.list-table td { padding:4px 7px;vertical-align:middle;font-size:11.5px;border-bottom:1px solid #f1f5f9; }
+.list-table tbody tr:nth-child(even) { background:#f8fafc; }
+.list-table tbody tr:hover { background:#eff6ff !important; }
+.list-table tbody tr:hover td { border-bottom-color:#dbeafe; }
+.list-table .col-gem  { font-weight:700;color:var(--blue-700);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.list-table .col-tn   { color:var(--slate-500);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.list-table .col-org  { color:var(--slate-700);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.list-table .col-date { color:var(--slate-500);font-size:10.5px;white-space:nowrap; }
+.list-table .col-make { color:var(--slate-600);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.list-table .col-vot  { color:var(--slate-800);font-size:11px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis; }
+.list-table .col-qty  { text-align:center;font-weight:700;color:var(--slate-700);font-size:11px;font-variant-numeric:tabular-nums; }
+.list-table .col-rmk  { overflow:hidden; }
+.list-table .col-num  { text-align:center;font-size:10.5px;color:#94a3b8; }
 .record-input {
-  width:100%;height:26px;padding:2px 5px;border:1.5px solid var(--slate-200);
-  border-radius:5px;font-size:11px;background:#fff;color:var(--slate-800);
-  transition:border-color .15s,box-shadow .15s;
+  width:100%;height:22px;padding:1px 4px;
+  border:1.5px solid transparent;border-radius:4px;
+  font-size:11px;background:transparent;color:var(--slate-800);
+  transition:border-color .12s,background .12s;
 }
-.record-input:focus { outline:none;border-color:var(--blue-500);box-shadow:0 0 0 2px rgba(16,185,129,.12); }
-.record-input.participant-input { max-width:110px; }
+.record-input:hover { border-color:var(--slate-200);background:#fff; }
+.record-input:focus { outline:none;border-color:var(--blue-400);background:#fff;box-shadow:0 0 0 2px rgba(96,165,250,.15); }
 
 /* ── Status dropdown (list table) ────────────────────────────────────────── */
 .status-select {
-  width:100%;min-width:105px;max-width:110px;
-  height:30px;padding:2px 22px 2px 6px;
+  width:100%;min-width:90px;max-width:108px;
+  height:24px;padding:1px 20px 1px 5px;
   border:1.5px solid var(--slate-200);
   border-radius:5px;font-size:12px;font-weight:600;background:#fff;color:var(--slate-700);
   cursor:pointer;transition:border-color .15s,box-shadow .15s;
@@ -987,21 +994,21 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       </button>
     </div>
     <div class="table-wrap">
-      <table class="list-table" style="table-layout:fixed;width:1360px">
+      <table class="list-table" style="table-layout:fixed;width:1160px">
         <colgroup>
-          <col style="width:38px">
-          <col style="width:38px">
-          <col style="width:130px">
-          <col style="width:110px">
-          <col style="width:160px">
-          <col style="width:145px">
-          <col style="width:120px">
-          <col style="width:100px">
-          <col style="width:48px">
-          <col style="width:90px">
-          <col style="width:115px">
+          <col style="width:30px">
+          <col style="width:32px">
+          <col style="width:118px">
+          <col style="width:92px">
           <col style="width:140px">
-          <col style="width:120px">
+          <col style="width:118px">
+          <col style="width:105px">
+          <col style="width:88px">
+          <col style="width:38px">
+          <col style="width:72px">
+          <col style="width:108px">
+          <col style="width:112px">
+          <col style="width:107px">
         </colgroup>
         <thead>
           <tr>
@@ -1778,7 +1785,7 @@ function _renderCurrentPage() {
         <td class="check-col" onclick="event.stopPropagation()">
           <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
         </td>
-        <td style="text-align:center;font-size:11px;color:var(--slate-400);width:38px">${rowNum}</td>
+        <td class="col-num">${rowNum}</td>
         <td class="col-gem">${esc(t.gem_bidding_number)||'—'}</td>
         <td class="col-tn">${esc(t.tender_number)||'—'}</td>
         <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
@@ -1786,9 +1793,9 @@ function _renderCurrentPage() {
         <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
         <td class="col-vot" title="${esc(t.tender_approx_value)||''}">${esc(t.tender_approx_value)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.4;cursor:default" title="No PDF">PDF</span>`}
-          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete">Del</button>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap;padding:3px 5px">
+          ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
+          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete" style="padding:2px 5px;font-size:10px">✕</button>
         </td>
         <td onclick="event.stopPropagation()">
           <select class="status-select" value="${esc(st)}" onchange="updateTenderStatus(${t.id}, this)">
@@ -1798,7 +1805,7 @@ function _renderCurrentPage() {
             <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
             <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
           </select>
-          <div class="filed-date-display" style="font-size:10px;color:#15803D;margin-top:3px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
+          <div class="filed-date-display" style="font-size:9.5px;color:#15803D;margin-top:2px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
         </td>
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" placeholder="Add remark…">
