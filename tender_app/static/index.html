@@ -476,7 +476,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .list-table .col-org  { color:var(--slate-700);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .list-table .col-date { color:var(--slate-500);font-size:11px;white-space:nowrap; }
 .list-table .col-make { color:var(--slate-600);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-vot  { color:var(--slate-700);font-size:11px;white-space:nowrap;text-align:right;min-width:80px;max-width:110px; }
+.list-table .col-vot  { color:var(--slate-700);font-size:11px;white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis; }
 .list-table .col-qty  { text-align:center;font-weight:600;color:var(--slate-700);font-size:11px; }
 .list-table .col-rmk  { min-width:110px;max-width:160px; }
 .record-input {
@@ -987,7 +987,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       </button>
     </div>
     <div class="table-wrap">
-      <table class="list-table" style="table-layout:fixed">
+      <table class="list-table" style="table-layout:fixed;width:1360px">
         <thead>
           <tr>
             <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
