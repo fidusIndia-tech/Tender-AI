@@ -987,7 +987,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       </button>
     </div>
     <div class="table-wrap">
-      <table class="list-table">
+      <table class="list-table" style="table-layout:fixed">
         <thead>
           <tr>
             <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
@@ -1008,7 +1008,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="white-space:nowrap">
+            <th style="width:145px;white-space:nowrap">
               Bid End Date<span style="display:inline-block">
                 <span class="th-filter-btn active" id="bidFilterBtn" onclick="toggleFilterMenu('bid',event)" title="Sort by bid end date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
