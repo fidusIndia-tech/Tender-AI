@@ -1060,8 +1060,8 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="width:120px">Participant</th>
             <th style="width:140px">Remark</th>
+            <th style="width:120px">Participant</th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
@@ -1785,11 +1785,11 @@ function _renderCurrentPage() {
           </select>
           <div class="filed-date-display" style="font-size:10px;color:#15803D;margin-top:3px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
         </td>
-        <td onclick="event.stopPropagation()">
-          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Participants…">
-        </td>
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" placeholder="Add remark…">
+        </td>
+        <td onclick="event.stopPropagation()">
+          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" placeholder="Participants…">
         </td>
       </tr>`;
   }).join('');
