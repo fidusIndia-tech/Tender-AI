@@ -988,13 +988,28 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
     </div>
     <div class="table-wrap">
       <table class="list-table" style="table-layout:fixed;width:1360px">
+        <colgroup>
+          <col style="width:38px">
+          <col style="width:38px">
+          <col style="width:130px">
+          <col style="width:110px">
+          <col style="width:160px">
+          <col style="width:145px">
+          <col style="width:120px">
+          <col style="width:100px">
+          <col style="width:48px">
+          <col style="width:90px">
+          <col style="width:115px">
+          <col style="width:140px">
+          <col style="width:120px">
+        </colgroup>
         <thead>
           <tr>
             <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
-            <th style="width:38px;text-align:center;color:var(--slate-400);font-weight:500">#</th>
-            <th style="width:130px">GeM Bidding No.</th>
-            <th style="width:110px">Tender Number</th>
-            <th style="width:160px;white-space:nowrap">
+            <th style="text-align:center;color:var(--slate-400);font-weight:500">#</th>
+            <th>GeM Bidding No.</th>
+            <th>Tender Number</th>
+            <th style="white-space:nowrap">
               Organisation<span id="orgFilterCount"></span><span style="display:inline-block">
                 <span class="th-filter-btn" id="orgFilterBtn" onclick="toggleFilterMenu('org',event)" title="Filter by organisation">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1008,7 +1023,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="width:145px;white-space:nowrap">
+            <th style="white-space:nowrap">
               Bid End Date<span style="display:inline-block">
                 <span class="th-filter-btn active" id="bidFilterBtn" onclick="toggleFilterMenu('bid',event)" title="Sort by bid end date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
@@ -1026,7 +1041,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span><span id="bidDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearBidDateFilter()" title="Clear date filter">✕</span>
             </th>
-            <th style="width:120px;white-space:nowrap">
+            <th style="white-space:nowrap">
               Make<span id="makeFilterCount"></span><span style="display:inline-block">
                 <span class="th-filter-btn" id="makeFilterBtn" onclick="toggleFilterMenu('make',event)" title="Filter by make">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1040,10 +1055,10 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="width:100px;text-align:right" title="VoT = Valuation of Tender">VoT (₹)</th>
-            <th style="width:48px;text-align:center">Qty</th>
-            <th style="width:90px">Actions</th>
-            <th style="width:115px;white-space:nowrap;text-align:center">
+            <th style="text-align:right" title="VoT = Valuation of Tender">VoT (₹)</th>
+            <th style="text-align:center">Qty</th>
+            <th>Actions</th>
+            <th style="white-space:nowrap;text-align:center">
               Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
                 <span class="th-filter-btn" id="statusFilterBtn" onclick="toggleFilterMenu('status',event)" title="Filter by status">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1060,8 +1075,8 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                 </div>
               </span>
             </th>
-            <th style="width:140px">Remark</th>
-            <th style="width:120px">Participant</th>
+            <th>Remark</th>
+            <th>Participant</th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
