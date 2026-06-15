@@ -1029,17 +1029,19 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
             <th style="width:56px;text-align:center">Qty</th>
             <th style="width:104px">Actions</th>
             <th style="width:115px;white-space:nowrap;text-align:center">
-              Status<span style="display:inline-block;margin-left:4px">
+              Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
                 <span class="th-filter-btn" id="statusFilterBtn" onclick="toggleFilterMenu('status',event)" title="Filter by status">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
                 </span>
-                <div class="th-filter-menu" id="statusFilterMenu">
-                  <div class="th-filter-option selected" onclick="setStatusFilter('all',this)">All Status</div>
-                  <div class="th-filter-option" onclick="setStatusFilter('IN PROGRESS',this)">In Progress</div>
-                  <div class="th-filter-option" onclick="setStatusFilter('FILED',this)">Filed</div>
-                  <div class="th-filter-option" onclick="setStatusFilter('WON',this)">Won</div>
-                  <div class="th-filter-option" onclick="setStatusFilter('LOST',this)">Lost</div>
-                  <div class="th-filter-option" onclick="setStatusFilter('FAILED',this)">Failed</div>
+                <div class="th-filter-menu filter-dropdown" id="statusFilterMenu" style="min-width:170px">
+                  <div class="filter-options-scroll" id="statusFilterList">
+                    <label class="filter-check-option"><input type="checkbox" value="IN PROGRESS" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> In Progress</label>
+                    <label class="filter-check-option"><input type="checkbox" value="FILED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Filed</label>
+                    <label class="filter-check-option"><input type="checkbox" value="WON" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Won</label>
+                    <label class="filter-check-option"><input type="checkbox" value="LOST" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Lost</label>
+                    <label class="filter-check-option"><input type="checkbox" value="FAILED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Failed</label>
+                  </div>
+                  <div class="filter-clear-btn" onclick="clearStatusSelection()">Clear Selection</div>
                 </div>
               </span>
             </th>
@@ -1311,7 +1313,7 @@ function getSearchQuery() {
 }
 let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
-let statusFilterValue = 'all';      // 'all' or a specific status
+let statusSelectedValues = new Set(); // empty = show all
 let bidSortMode = 'desc';           // 'desc' | 'asc'
 let bidDateFrom  = null;   // null or 'YYYY-MM-DD' — range start
 let bidDateTo    = null;   // null or 'YYYY-MM-DD' — range end
@@ -1546,14 +1548,24 @@ function updateMakeFilterCount() {
   const btn = document.getElementById('makeFilterBtn');
   if (btn) btn.classList.toggle('active', n > 0);
 }
-function setStatusFilter(value, el) {
-  statusFilterValue = value;
-  document.querySelectorAll('#statusFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  if (el) el.classList.add('selected');
-  const btn = document.getElementById('statusFilterBtn');
-  if (btn) btn.classList.toggle('active', value !== 'all');
+function toggleStatusValue(val, checked) {
+  if (checked) statusSelectedValues.add(val); else statusSelectedValues.delete(val);
+  updateStatusFilterCount();
+  renderTenderTable(tenderListCache);
+}
+function clearStatusSelection() {
+  statusSelectedValues.clear();
+  updateStatusFilterCount();
+  document.querySelectorAll('#statusFilterList input[type=checkbox]').forEach(cb => cb.checked = false);
   closeAllFilterMenus();
   renderTenderTable(tenderListCache);
+}
+function updateStatusFilterCount() {
+  const n = statusSelectedValues.size;
+  const el = document.getElementById('statusFilterCount');
+  if (el) el.innerHTML = n > 0 ? `<span class="filter-count-badge">${n}</span>` : '';
+  const btn = document.getElementById('statusFilterBtn');
+  if (btn) btn.classList.toggle('active', n > 0);
 }
 function setBidSort(mode, el) {
   bidSortMode = mode;
@@ -1601,12 +1613,9 @@ function clearAllFilters() {
   clearBidDateFilter();
 
   // Reset status filter
-  statusFilterValue = 'all';
-  document.querySelectorAll('#statusFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
-  const firstStatus = document.querySelector('#statusFilterMenu .th-filter-option');
-  if (firstStatus) firstStatus.classList.add('selected');
-  const statusBtn = document.getElementById('statusFilterBtn');
-  if (statusBtn) statusBtn.classList.remove('active');
+  statusSelectedValues.clear();
+  updateStatusFilterCount();
+  document.querySelectorAll('#statusFilterList input[type=checkbox]').forEach(cb => cb.checked = false);
 
   renderTenderTable(tenderListCache);
 }
@@ -1620,7 +1629,7 @@ function exportToExcel() {
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
-    if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
+    if (statusSelectedValues.size > 0 && !statusSelectedValues.has(tSt)) return false;
     return true;
   }).sort((a, b) => {
     const aDate = parseBidEndDate(a.bid_end_datetime);
@@ -1680,7 +1689,7 @@ function renderTenderTable(tenders) {
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
-    if (statusFilterValue !== 'all' && tSt !== statusFilterValue) return false;
+    if (statusSelectedValues.size > 0 && !statusSelectedValues.has(tSt)) return false;
     return true;
   }).sort((a, b) => {
     const aDate = parseBidEndDate(a.bid_end_datetime);
