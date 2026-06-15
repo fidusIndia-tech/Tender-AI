@@ -87,7 +87,7 @@ _SELF_URL   = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "https://tender-ai-product
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[_PORTAL_URL, "http://localhost:3000", "http://localhost:8000"],
+    allow_origins=[_PORTAL_URL, "http://localhost:3000", "http://localhost:8000", "http://localhost:8001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -786,6 +786,28 @@ async def sso_login(token: str):
     session = _make_session(username, role)
     resp = RedirectResponse(url="/", status_code=302)
     resp.set_cookie("tender_session", session, httponly=True, samesite="none", secure=True, max_age=86400)
+    return resp
+
+
+@app.get("/dev-login")
+async def dev_login():
+    """Local development only — auto-login as admin when SSO_SECRET is not set."""
+    if _SSO_SECRET:
+        raise HTTPException(403, "Dev login is disabled in production")
+    session = _make_session("dev-admin", "admin")
+    resp = RedirectResponse(url="/", status_code=302)
+    resp.set_cookie("tender_session", session, httponly=True, samesite="lax", secure=False, max_age=86400)
+    return resp
+
+
+@app.get("/dev-login")
+async def dev_login():
+    """Local development only — auto-login as admin when SSO_SECRET is not set."""
+    if _SSO_SECRET:
+        raise HTTPException(403, "Dev login is disabled in production")
+    session = _make_session("dev-admin", "admin")
+    resp = RedirectResponse(url="/", status_code=302)
+    resp.set_cookie("tender_session", session, httponly=True, samesite="lax", secure=False, max_age=86400)
     return resp
 
 
