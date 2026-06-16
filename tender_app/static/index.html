@@ -523,6 +523,40 @@ body.col-resizing { cursor:col-resize !important; }
 .status-select[value="WON"]         { background-color:#D1FAE5;color:#065F46;border-color:#6EE7B7; }
 .status-select[value="LOST"]        { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
 .status-select[value="FAILED"]      { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
+.status-attach-row { display:flex;align-items:center;justify-content:center;gap:4px;margin-top:3px; }
+.attachment-btn {
+  display:inline-flex;align-items:center;justify-content:center;gap:3px;
+  height:18px;min-width:20px;padding:0 4px;border:1px solid var(--slate-200);
+  border-radius:4px;background:#fff;color:var(--slate-500);cursor:pointer;
+  font-size:10px;line-height:1;
+}
+.attachment-btn:hover { border-color:var(--blue-300);color:var(--blue-600);background:var(--blue-50); }
+.attachment-count { font-size:9.5px;font-weight:700;color:var(--slate-500);line-height:1; }
+.attachments-overlay {
+  display:none;position:fixed;inset:0;background:rgba(15,23,42,.44);z-index:8500;
+  align-items:center;justify-content:center;padding:18px;
+}
+.attachments-overlay.open { display:flex; }
+.attachments-modal {
+  width:560px;max-width:96vw;max-height:86vh;background:#fff;border-radius:8px;
+  box-shadow:0 18px 48px rgba(15,23,42,.22);display:flex;flex-direction:column;overflow:hidden;
+}
+.attachments-header {
+  display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--slate-100);
+}
+.attachments-header h3 { margin:0;font-size:14px;color:var(--slate-700);font-weight:700;flex:1; }
+.attachments-body { padding:14px;overflow:auto; }
+.attachment-drop {
+  border:1.5px dashed var(--slate-200);border-radius:8px;background:var(--slate-50);
+  padding:14px;text-align:center;margin-bottom:12px;
+}
+.attachment-selected-list,.attachment-existing-list { display:flex;flex-direction:column;gap:6px;margin-top:8px; }
+.attachment-row {
+  display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--slate-100);
+  border-radius:6px;background:#fff;font-size:12px;color:var(--slate-700);
+}
+.attachment-row-name { flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.attachment-row-meta { color:var(--slate-400);font-size:11px;white-space:nowrap; }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
@@ -1268,6 +1302,32 @@ body.col-resizing { cursor:col-resize !important; }
 
 <div id="toast"></div>
 
+<div class="attachments-overlay" id="attachmentsOverlay" onclick="if(event.target===this)closeAttachmentModal()">
+  <div class="attachments-modal">
+    <div class="attachments-header">
+      <svg width="17" height="17" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94a3 3 0 114.243 4.243L8.552 18.32a1.5 1.5 0 11-2.121-2.121l9.886-9.886"/>
+      </svg>
+      <h3 id="attachmentsTitle">Tender Attachments</h3>
+      <button onclick="closeAttachmentModal()" style="background:none;border:none;cursor:pointer;color:var(--slate-400);font-size:20px;line-height:1;padding:2px 6px;" title="Close">&times;</button>
+    </div>
+    <div class="attachments-body">
+      <div class="attachment-drop">
+        <input type="file" id="attachmentFileInput" multiple style="display:none" onchange="handleAttachmentSelection(this.files)">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('attachmentFileInput').click()">Choose Files</button>
+        <button class="btn btn-success btn-sm" id="attachmentUploadBtn" onclick="uploadTenderAttachments()" disabled>Upload</button>
+        <div id="attachmentSelectedList" class="attachment-selected-list"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--slate-600);text-transform:uppercase;letter-spacing:.4px">Uploaded Attachments</div>
+        <div style="flex:1"></div>
+        <button class="btn btn-outline btn-xs" onclick="loadTenderAttachments()">Refresh</button>
+      </div>
+      <div id="attachmentExistingList" class="attachment-existing-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Government Portals Modal ──────────────────────────────────────────── -->
 <div class="portals-overlay" id="portalsOverlay" onclick="if(event.target===this)closePortalsModal()">
   <div class="portals-modal">
@@ -1802,6 +1862,12 @@ function _renderCurrentPage() {
             <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
           </select>
           <div class="filed-date-display" style="font-size:9.5px;color:#15803D;margin-top:2px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
+          <div class="status-attach-row">
+            <button class="attachment-btn" onclick="openTenderAttachments(${t.id}, event)" title="Attachments">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94a3 3 0 114.243 4.243L8.552 18.32a1.5 1.5 0 11-2.121-2.121l9.886-9.886"/></svg>
+              <span class="attachment-count" id="attachCount-${t.id}">${Number(t.attachment_count || 0)}</span>
+            </button>
+          </div>
         </td>
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Add remark…">
@@ -1883,6 +1949,114 @@ function fmtSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+let _attachmentTenderId = null;
+let _attachmentSelectedFiles = [];
+
+function openTenderAttachments(tenderId, event) {
+  if (event) event.stopPropagation();
+  _attachmentTenderId = tenderId;
+  _attachmentSelectedFiles = [];
+  const input = document.getElementById('attachmentFileInput');
+  if (input) input.value = '';
+  document.getElementById('attachmentsTitle').textContent = `Tender #${tenderId} Attachments`;
+  document.getElementById('attachmentsOverlay').classList.add('open');
+  renderSelectedAttachments();
+  loadTenderAttachments();
+}
+
+function closeAttachmentModal() {
+  document.getElementById('attachmentsOverlay').classList.remove('open');
+  _attachmentTenderId = null;
+  _attachmentSelectedFiles = [];
+  renderSelectedAttachments();
+}
+
+function handleAttachmentSelection(files) {
+  _attachmentSelectedFiles = Array.from(files || []);
+  renderSelectedAttachments();
+}
+
+function renderSelectedAttachments() {
+  const list = document.getElementById('attachmentSelectedList');
+  const btn = document.getElementById('attachmentUploadBtn');
+  if (!list || !btn) return;
+  btn.disabled = !_attachmentTenderId || _attachmentSelectedFiles.length === 0;
+  if (!_attachmentSelectedFiles.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--slate-400);margin-top:8px">No files selected</div>';
+    return;
+  }
+  list.innerHTML = _attachmentSelectedFiles.map(f => `
+    <div class="attachment-row">
+      <div class="attachment-row-name" title="${esc(f.name)}">${esc(f.name)}</div>
+      <div class="attachment-row-meta">${fmtSize(f.size)}</div>
+    </div>
+  `).join('');
+}
+
+function _fmtAttachmentDate(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString([], { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+function _updateAttachmentCount(tenderId, count) {
+  const el = document.getElementById(`attachCount-${tenderId}`);
+  if (el) el.textContent = count;
+  const cached = tenderListCache.find(t => t.id === tenderId);
+  if (cached) cached.attachment_count = count;
+}
+
+async function loadTenderAttachments() {
+  if (!_attachmentTenderId) return;
+  const list = document.getElementById('attachmentExistingList');
+  list.innerHTML = '<div style="font-size:12px;color:var(--slate-400);padding:10px">Loading attachments...</div>';
+  try {
+    const res = await fetch(`/api/tenders/${_attachmentTenderId}/attachments`);
+    if (!res.ok) throw new Error((await res.json()).detail || 'Failed to load attachments');
+    const attachments = await res.json();
+    _updateAttachmentCount(_attachmentTenderId, attachments.length);
+    if (!attachments.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--slate-400);padding:10px">No attachments uploaded yet</div>';
+      return;
+    }
+    list.innerHTML = attachments.map(a => `
+      <div class="attachment-row">
+        <div class="attachment-row-name" title="${esc(a.original_file_name)}">${esc(a.original_file_name)}</div>
+        <div class="attachment-row-meta">${fmtSize(Number(a.file_size || 0))}</div>
+        <div class="attachment-row-meta">${esc(_fmtAttachmentDate(a.uploaded_at))}</div>
+        <a class="btn btn-outline btn-xs" href="/api/attachments/${a.id}/download" target="_blank" download="${esc(a.original_file_name)}">Download / View</a>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--red-600);padding:10px">Failed: ${esc(err.message)}</div>`;
+  }
+}
+
+async function uploadTenderAttachments() {
+  if (!_attachmentTenderId || !_attachmentSelectedFiles.length) return;
+  const btn = document.getElementById('attachmentUploadBtn');
+  const fd = new FormData();
+  _attachmentSelectedFiles.forEach(f => fd.append('files', f));
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+  try {
+    const res = await fetch(`/api/tenders/${_attachmentTenderId}/attachments`, { method:'POST', body:fd });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Upload failed');
+    _attachmentSelectedFiles = [];
+    const input = document.getElementById('attachmentFileInput');
+    if (input) input.value = '';
+    renderSelectedAttachments();
+    await loadTenderAttachments();
+    toast('Attachments uploaded', 'success');
+  } catch (err) {
+    toast('Attachment upload failed: ' + err.message, 'error');
+  } finally {
+    btn.textContent = 'Upload';
+    btn.disabled = !_attachmentTenderId || _attachmentSelectedFiles.length === 0;
+  }
 }
 
 function addToUploadQueue(files) {

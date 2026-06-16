@@ -114,6 +114,17 @@ def init_db():
                 created_at TEXT
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_attachments (
+                id SERIAL PRIMARY KEY,
+                tender_id INTEGER REFERENCES tenders(id) ON DELETE CASCADE,
+                original_file_name TEXT,
+                content_type TEXT,
+                file_size INTEGER,
+                file_data BYTEA,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Persistent binary storage migrations
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_data BYTEA")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_content_type TEXT")
@@ -342,14 +353,76 @@ def list_tenders():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """SELECT id, gem_bidding_number, tender_number, organization_name, bid_end_datetime,
-                      make, total_quantity, tender_approx_value, participation_status, uploaded_at,
-                      won_text, lost_text, participant_text, pdf_path, filed_date, remark
-               FROM tenders ORDER BY uploaded_at DESC"""
+            """SELECT t.id, t.gem_bidding_number, t.tender_number, t.organization_name, t.bid_end_datetime,
+                      t.make, t.total_quantity, t.tender_approx_value, t.participation_status, t.uploaded_at,
+                      t.won_text, t.lost_text, t.participant_text, t.pdf_path, t.filed_date, t.remark,
+                      COALESCE(a.attachment_count, 0) AS attachment_count
+               FROM tenders t
+               LEFT JOIN (
+                   SELECT tender_id, COUNT(*) AS attachment_count
+                   FROM tender_attachments
+                   GROUP BY tender_id
+               ) a ON a.tender_id = t.id
+               ORDER BY t.uploaded_at DESC"""
         )
         rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+# â”€â”€ Tender Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def save_tender_attachments(tender_id, files):
+    conn = get_db()
+    saved = []
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        for f in files:
+            cur.execute(
+                """INSERT INTO tender_attachments
+                   (tender_id, original_file_name, content_type, file_size, file_data)
+                   VALUES (%s, %s, %s, %s, %s)
+                   RETURNING id, tender_id, original_file_name, content_type, file_size, uploaded_at""",
+                (
+                    tender_id,
+                    f["original_file_name"],
+                    f.get("content_type"),
+                    f["file_size"],
+                    psycopg2.Binary(f["file_data"]),
+                ),
+            )
+            saved.append(dict(cur.fetchone()))
+    conn.commit()
+    conn.close()
+    return saved
+
+
+def list_tender_attachments(tender_id):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, tender_id, original_file_name, content_type, file_size, uploaded_at
+               FROM tender_attachments
+               WHERE tender_id=%s
+               ORDER BY uploaded_at DESC, id DESC""",
+            (tender_id,),
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_tender_attachment(attachment_id):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, tender_id, original_file_name, content_type, file_size, file_data, uploaded_at
+               FROM tender_attachments
+               WHERE id=%s""",
+            (attachment_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 def update_tender_record_fields(tender_id, won_text, lost_text, participant_text, remark=None):
@@ -409,6 +482,7 @@ def find_tender_by_pdf_path(pdf_path):
 def delete_tender(tender_id):
     conn = get_db()
     with conn.cursor() as cur:
+        cur.execute("DELETE FROM tender_attachments WHERE tender_id=%s", (tender_id,))
         cur.execute("DELETE FROM tender_prepared_documents WHERE tender_id=%s", (tender_id,))
         cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
         cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
@@ -420,6 +494,7 @@ def delete_tender(tender_id):
 def clear_tenders():
     conn = get_db()
     with conn.cursor() as cur:
+        cur.execute("DELETE FROM tender_attachments")
         cur.execute("DELETE FROM tender_prepared_documents")
         cur.execute("DELETE FROM tender_required_documents")
         cur.execute("DELETE FROM tender_items")

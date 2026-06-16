@@ -10,6 +10,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import quote
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -435,6 +436,49 @@ async def get_tender_pdf(tender_id: int):
     if not p.exists():
         raise HTTPException(404, "PDF file not found")
     return FileResponse(str(p), media_type="application/pdf", filename=p.name)
+
+
+@app.post("/api/tenders/{tender_id}/attachments")
+async def upload_tender_attachments(tender_id: int, files: List[UploadFile] = File(...)):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    if not files:
+        raise HTTPException(400, "No files uploaded")
+
+    attachment_rows = []
+    for file in files:
+        file_bytes = await file.read()
+        attachment_rows.append({
+            "original_file_name": file.filename or "attachment",
+            "content_type": file.content_type or "application/octet-stream",
+            "file_size": len(file_bytes),
+            "file_data": file_bytes,
+        })
+    return database.save_tender_attachments(tender_id, attachment_rows)
+
+
+@app.get("/api/tenders/{tender_id}/attachments")
+async def list_tender_attachments(tender_id: int):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    return database.list_tender_attachments(tender_id)
+
+
+@app.get("/api/attachments/{attachment_id}/download")
+async def download_tender_attachment(attachment_id: int):
+    row = database.get_tender_attachment(attachment_id)
+    if not row:
+        raise HTTPException(404, "Attachment not found")
+    filename = row.get("original_file_name") or "attachment"
+    safe_name = filename.replace('"', "")
+    encoded_name = quote(filename)
+    return Response(
+        content=bytes(row["file_data"]),
+        media_type=row.get("content_type") or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_name}"; filename*=UTF-8\'\'{encoded_name}'
+        },
+    )
 
 
 @app.post("/api/admin/clear-tender-data", status_code=200)
