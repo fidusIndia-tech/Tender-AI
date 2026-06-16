@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import pdfplumber
 from openai import OpenAI
 
@@ -189,14 +190,74 @@ def merge_results(results: list) -> dict:
 
 # ── Public entry point ──────────────────────────────────────────────────────
 
+def _first_match(text: str, patterns: list) -> str | None:
+    for pattern in patterns:
+        m = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        if m:
+            return " ".join((m.group(1) or "").split()) or None
+    return None
+
+
+def _local_extract_from_text(text: str) -> dict:
+    compact = re.sub(r"[ \t]+", " ", text)
+    tender_number = _first_match(compact, [
+        r"Bid\s*Number\s*[:|\-]?\s*([A-Z0-9/.-]+)",
+        r"(GEM/\d{4}/B/\d+)",
+    ])
+    bid_end = _first_match(compact, [
+        r"Bid\s*(?:Submission\s*)?End\s*Date/?Time\s*[:|\-]?\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}\s+[0-9:.]{4,8})",
+        r"Bid\s*End\s*Date/?Time\s*[:|\-]?\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}\s+[0-9:.]{4,8})",
+    ])
+    bid_open = _first_match(compact, [
+        r"Bid\s*Opening\s*Date/?Time\s*[:|\-]?\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4}\s+[0-9:.]{4,8})",
+    ])
+    date = _first_match(compact, [r"Dated\s*[:|\-]?\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})"])
+    department = _first_match(compact, [r"Department\s*Name\s*[:|\-]?\s*([^\n\r|]+)"])
+    organisation = _first_match(compact, [r"Organi[sz]ation\s*Name\s*[:|\-]?\s*([^\n\r|]+)"])
+    office = _first_match(compact, [
+        r"Office\s*Name\s*(?:and|&)?\s*Location\s*[:|\-]?\s*([^\n\r|]+)",
+        r"Office\s*Name\s*[:|\-]?\s*([^\n\r|]+)",
+    ])
+    qty = _first_match(compact, [r"Total\s*Quantity\s*[:|\-]?\s*([0-9,]+)", r"Quantity\s*[:|\-]?\s*([0-9,]+)"])
+    value = _first_match(compact, [
+        r"(?:Estimated|Tender|Approximate|Contract|Bid)\s*(?:Value|Cost)?\s*[:|\-]?\s*(?:Rs\.?|INR)?\s*([0-9,]+(?:\.[0-9]+)?)",
+    ])
+    item_category = _first_match(compact, [r"Item\s*Category\s*[:|\-]?\s*([^\n\r|]+)"])
+    docs = []
+    for label in ("GST", "PAN", "MSME", "ITR", "Bank", "OEM Authorization", "Authorization", "Experience"):
+        if re.search(r"\b" + re.escape(label) + r"\b", compact, re.IGNORECASE):
+            docs.append(label)
+
+    return {
+        "tender_information": {
+            "tender_number": tender_number,
+            "date": date,
+            "bid_end_datetime": bid_end,
+            "bid_opening_datetime": bid_open,
+            "department_name": department,
+            "organization_name": organisation,
+            "office_name_location": office,
+            "total_quantity": qty,
+            "make": item_category,
+            "tender_approx_value": value,
+        },
+        "items": [{"part_number": None, "item_description": item_category, "quantity": qty}] if item_category or qty else [],
+        "required_documents": docs,
+        "extraction_mode": "local_fallback",
+    }
+
+
 def process_pdf(pdf_path: str) -> dict:
     pages = extract_pages(pdf_path)
     relevant = filter_relevant_pages(pages)
     chunks = build_chunks(relevant)
 
     api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set")
+    if not api_key or api_key.strip() in {"", "YOUR_OPENAI_KEY_HERE"}:
+        return _local_extract_from_text("\n\n".join(p["content"] for p in pages))
     client = OpenAI(api_key=api_key)
-    results = [extract_chunk(client, chunk) for chunk in chunks]
-    return merge_results(results)
+    try:
+        results = [extract_chunk(client, chunk) for chunk in chunks]
+        return merge_results(results)
+    except Exception:
+        return _local_extract_from_text("\n\n".join(p["content"] for p in pages))

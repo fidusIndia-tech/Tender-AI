@@ -207,6 +207,32 @@ main { padding: 20px 24px 60px; }
 }
 
 /* ── Upload Zone (unified) ───────────────────────────────────────────────── */
+.cap-section-title {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--slate-100);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--slate-700);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.cap-section-title:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.cap-readonly { background: var(--slate-50) !important; color: var(--slate-500) !important; }
+.eval-result-card { border:1px solid var(--slate-200);border-radius:var(--radius);background:#fff;padding:16px; }
+.eval-head { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px; }
+.eval-decision { font-size:20px;font-weight:800;letter-spacing:.3px; }
+.eval-score { font-size:12px;font-weight:700;color:var(--slate-500);background:var(--slate-100);border-radius:999px;padding:4px 9px; }
+.eval-decision.bid { color:var(--green-700); }
+.eval-decision.review { color:var(--amber-600); }
+.eval-decision.skip { color:var(--red-600); }
+.eval-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px; }
+.eval-list { margin:0;padding-left:18px;font-size:12px;color:var(--slate-600);line-height:1.6; }
+.eval-checks { display:flex;flex-direction:column;gap:7px;margin-top:12px; }
+.eval-check { display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--slate-600);padding:8px;border:1px solid var(--slate-100);border-radius:6px;background:var(--slate-50); }
+.eval-check strong { color:var(--slate-700); }
+
 #uploadZone {
   border: 2px dashed var(--slate-200);
   border-radius: var(--radius-lg);
@@ -916,6 +942,10 @@ body.col-resizing { cursor:col-resize !important; }
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
       Prepared Docs
     </button>
+    <button class="tab-btn" id="evaluationTabBtn" onclick="switchTab('evaluation',this)">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      Evaluation
+    </button>
   </div>
 
   <!-- ── Tab: Basic Info ────────────────────────────────────────────────── -->
@@ -1018,6 +1048,25 @@ body.col-resizing { cursor:col-resize !important; }
           <tbody id="preparedBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-evaluation">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--slate-800)">Tender Evaluation</div>
+        <div style="font-size:12px;color:var(--slate-500);margin-top:2px">Uses extracted tender data and the Company Capability Profile.</div>
+      </div>
+      <button class="btn btn-primary" id="evaluateBtn" onclick="evaluateCurrentTender()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3h16.5M3.75 3v18m16.5-18v18M9 13.5l2.25-2.25L13.5 13.5 18 9"/></svg>
+        Evaluate Tender
+      </button>
+    </div>
+    <div id="evaluationStatus" style="text-align:center;padding:34px;color:var(--slate-400);background:#fff;border-radius:var(--radius);border:1px solid var(--slate-200)">Click Evaluate Tender to see Bid / Review / Skip recommendation.</div>
+    <div id="evaluationResult" style="display:none"></div>
+    <div id="evaluationGateActions" style="display:none;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-outline" onclick="skipExtractedTender()">Skip Tender</button>
+      <button class="btn btn-success" onclick="proceedExtractedTender()">Proceed Further</button>
     </div>
   </div>
 </div>
@@ -1279,6 +1328,52 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="form-grid">
       <div class="form-group"><label>Signatory Name</label><input type="text" id="p_authorized_signatory_name"></div>
       <div class="form-group"><label>Designation</label><input type="text" id="p_authorized_signatory_designation"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      Company Capability Profile
+    </div>
+    <div class="form-grid">
+      <div class="cap-section-title">Company Experience</div>
+      <div class="form-group"><label>Year Established</label><input type="number" id="cap_year_established" min="1800" max="2100" oninput="updateCapabilityExperience()"></div>
+      <div class="form-group"><label>Years of Experience</label><input type="text" id="cap_years_experience" class="cap-readonly" readonly></div>
+
+      <div class="cap-section-title">Business Capability</div>
+      <div class="form-group full"><label>Core Business</label><textarea id="cap_core_business" rows="2"></textarea></div>
+      <div class="form-group full"><label>Product Categories</label><textarea id="cap_product_categories" rows="2"></textarea></div>
+      <div class="form-group full"><label>Brands Handled</label><textarea id="cap_brands_handled" rows="2"></textarea></div>
+      <div class="form-group full"><label>Industries Served</label><textarea id="cap_industries_served" rows="2"></textarea></div>
+
+      <div class="cap-section-title">Commercial Capability</div>
+      <div class="form-group"><label>Turnover Range</label><input type="text" id="cap_turnover_range"></div>
+      <div class="form-group"><label>Typical Tender Value Range</label><input type="text" id="cap_typical_tender_value_range"></div>
+      <div class="form-group"><label>Import Capability</label><select id="cap_import_capability"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Export Capability</label><select id="cap_export_capability"><option value="false">No</option><option value="true">Yes</option></select></div>
+
+      <div class="cap-section-title">Technical Capability</div>
+      <div class="form-group"><label>OEM Support Available</label><select id="cap_oem_support_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group full"><label>OEM Authorizations</label><textarea id="cap_oem_authorizations" rows="2"></textarea></div>
+      <div class="form-group"><label>Engineering Support</label><select id="cap_engineering_support"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Installation Support</label><select id="cap_installation_support"><option value="false">No</option><option value="true">Yes</option></select></div>
+
+      <div class="cap-section-title">Documents Available</div>
+      <div class="form-group"><label>GST</label><select id="cap_gst_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>PAN</label><select id="cap_pan_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>MSME</label><select id="cap_msme_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>ITR</label><select id="cap_itr_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Bank Documents</label><select id="cap_bank_documents_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Letterhead</label><select id="cap_letterhead_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Stamp</label><select id="cap_stamp_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Signature</label><select id="cap_signature_available"><option value="false">No</option><option value="true">Yes</option></select></div>
+
+      <div class="cap-section-title">Past Experience</div>
+      <div class="form-group"><label>PSU Experience</label><select id="cap_psu_experience"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Government Experience</label><select id="cap_government_experience"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group full"><label>Major Customers</label><textarea id="cap_major_customers" rows="2"></textarea></div>
+      <div class="form-group full"><label>Past Orders / Projects</label><textarea id="cap_past_orders_projects" rows="3"></textarea></div>
     </div>
   </div>
 
@@ -2054,6 +2149,7 @@ function _renderCurrentPage() {
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap;padding:3px 5px">
           ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
+          <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
           <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete" style="padding:2px 5px;font-size:10px">✕</button>
         </td>
         <td onclick="event.stopPropagation()">
@@ -2127,6 +2223,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'prepared') loadPreparedDocs();
+  if (name === 'evaluation') resetEvaluationPanel();
 }
 
 // ── Unified Upload ─────────────────────────────────────────────────────────
@@ -2314,7 +2411,13 @@ async function startUnifiedUpload() {
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       setQueueItemStatus(0, 'completed', null);
       pendingExtraction = data; currentTenderId = null;
-      setTimeout(() => { clearUploadQueue(); openReviewWithData(data, null); }, 600);
+      setTimeout(async () => {
+        clearUploadQueue();
+        openReviewWithData(data, null);
+        const tab = document.getElementById('evaluationTabBtn');
+        if (tab) switchTab('evaluation', tab);
+        await evaluateCurrentTender();
+      }, 600);
     } catch (err) {
       setQueueItemStatus(0, 'failed', err.message);
       btn.disabled = false; btn.textContent = 'Retry';
@@ -2394,6 +2497,7 @@ function openReviewWithData(data, id) {
 
   document.getElementById('preparedTableCard').style.display = 'none';
   document.getElementById('preparedStatus').style.display = 'none';
+  resetEvaluationPanel();
 }
 function setField(id, val) { const el=document.getElementById(id); if(el) el.value=val==null?'':val; }
 
@@ -2426,10 +2530,8 @@ function collectDocs() {
   });
 }
 
-async function saveTender() {
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) { saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner"></span>&nbsp;Saving…'; }
-  const payload = {
+function buildTenderPayload() {
+  return {
     gem_bidding_number: val('f_gem_bidding_number'),
     tender_number: val('f_tender_number'), date: val('f_date'),
     bid_end_datetime: val('f_bid_end_datetime'), bid_opening_datetime: val('f_bid_opening_datetime'),
@@ -2440,6 +2542,12 @@ async function saveTender() {
     extraction_json_path: pendingExtraction?.extraction_json_path || null,
     boq_items: collectBOQ(), required_documents: collectDocs(),
   };
+}
+
+async function saveTender() {
+  const saveBtn = document.getElementById('saveBtn');
+  if (saveBtn) { saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner"></span>&nbsp;Saving…'; }
+  const payload = buildTenderPayload();
   try {
     let res;
     if (currentTenderId) {
@@ -2553,6 +2661,115 @@ async function openTender(id) {
     pendingExtraction = null;
     openReviewWithData(data, id);
   } catch (err) { toast('Failed to load tender: ' + err.message, 'error'); }
+}
+
+function resetEvaluationPanel() {
+  const status = document.getElementById('evaluationStatus');
+  const result = document.getElementById('evaluationResult');
+  const gate = document.getElementById('evaluationGateActions');
+  if (!status || !result) return;
+  result.style.display = 'none';
+  result.innerHTML = '';
+  if (gate) gate.style.display = 'none';
+  status.style.display = 'block';
+  status.textContent = currentTenderId
+    ? 'Click Evaluate Tender to see Bid / Review / Skip recommendation.'
+    : 'Extracted tender is ready to evaluate before saving.';
+}
+
+function renderEvaluationResult(data) {
+  const status = document.getElementById('evaluationStatus');
+  const result = document.getElementById('evaluationResult');
+  if (!status || !result) return;
+  const decisionClass = (data.decision || '').toLowerCase();
+  const strengths = (data.strengths || []).length
+    ? data.strengths.map(x => `<li>${esc(x)}</li>`).join('')
+    : '<li>No strong matches found yet.</li>';
+  const risks = (data.risks || []).length
+    ? data.risks.map(x => `<li>${esc(x)}</li>`).join('')
+    : '<li>No major risks found from saved profile.</li>';
+  const checks = (data.checks || []).map(c => `
+    <div class="eval-check">
+      <strong>${esc(c.name)}:</strong>
+      <span>${esc(c.detail)} ${c.impact ? `<span style="color:var(--slate-400)">(${c.impact > 0 ? '+' : ''}${c.impact})</span>` : ''}</span>
+    </div>
+  `).join('');
+  result.innerHTML = `
+    <div class="eval-result-card">
+      <div class="eval-head">
+        <div class="eval-decision ${decisionClass}">${esc(data.decision || 'REVIEW')}</div>
+        <div class="eval-score">Score ${data.score ?? '-'}/100</div>
+      </div>
+      <div style="font-size:13px;color:var(--slate-600)">${esc(data.summary || '')}</div>
+      <div class="eval-grid">
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--green-700);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Strengths</div>
+          <ul class="eval-list">${strengths}</ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--red-600);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Risks</div>
+          <ul class="eval-list">${risks}</ul>
+        </div>
+      </div>
+      <div class="eval-checks">${checks}</div>
+    </div>`;
+  status.style.display = 'none';
+  result.style.display = 'block';
+  const gate = document.getElementById('evaluationGateActions');
+  if (gate) gate.style.display = currentTenderId ? 'none' : 'flex';
+}
+
+async function evaluateCurrentTender() {
+  const btn = document.getElementById('evaluateBtn');
+  const status = document.getElementById('evaluationStatus');
+  const result = document.getElementById('evaluationResult');
+  const gate = document.getElementById('evaluationGateActions');
+  if (btn) { btn.disabled = true; btn.textContent = 'Evaluating...'; }
+  if (result) { result.style.display = 'none'; result.innerHTML = ''; }
+  if (gate) gate.style.display = 'none';
+  if (status) { status.style.display = 'block'; status.innerHTML = '<span class="spinner"></span>&nbsp; Evaluating tender against company capability profile...'; }
+  try {
+    const res = currentTenderId
+      ? await fetch(`/api/tenders/${currentTenderId}/evaluate`, { method:'POST' })
+      : await fetch('/api/tenders/evaluate-extracted', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(buildTenderPayload()),
+        });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Evaluation failed');
+    renderEvaluationResult(data);
+    toast('Tender evaluation complete', 'success');
+  } catch (err) {
+    if (status) status.textContent = 'Evaluation failed: ' + err.message;
+    toast('Evaluation failed: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Evaluate Tender'; }
+  }
+}
+
+function skipExtractedTender() {
+  if (!confirm('Skip this tender and discard the extracted review data?')) return;
+  pendingExtraction = null;
+  currentTenderId = null;
+  resetEvaluationPanel();
+  clearUploadQueue();
+  showView('upload');
+  toast('Tender skipped', 'success');
+}
+
+function proceedExtractedTender() {
+  const firstTab = document.querySelector('.tab-btn');
+  switchTab('basic', firstTab);
+  toast('Proceeding with extracted tender review', 'success');
+}
+
+async function evaluateTenderFromRow(id, event) {
+  if (event) event.stopPropagation();
+  await openTender(id);
+  const tab = document.getElementById('evaluationTabBtn');
+  if (tab) switchTab('evaluation', tab);
+  await evaluateCurrentTender();
 }
 
 async function deleteTender(id) {
@@ -2834,6 +3051,53 @@ function closeDocPreview() {
 const PROFILE_FIELDS = ['company_name','address','gst_number','pan_number','msme_number',
   'bank_name','account_number','ifsc_code','authorized_signatory_name',
   'authorized_signatory_designation','email','phone'];
+const CAPABILITY_TEXT_FIELDS = ['year_established','core_business','product_categories','brands_handled',
+  'industries_served','turnover_range','typical_tender_value_range','oem_authorizations',
+  'major_customers','past_orders_projects'];
+const CAPABILITY_BOOL_FIELDS = ['import_capability','export_capability','oem_support_available',
+  'engineering_support','installation_support','gst_available','pan_available','msme_available',
+  'itr_available','bank_documents_available','letterhead_available','stamp_available',
+  'signature_available','psu_experience','government_experience'];
+
+function updateCapabilityExperience() {
+  const year = parseInt(document.getElementById('cap_year_established')?.value || '', 10);
+  const out = document.getElementById('cap_years_experience');
+  if (!out) return;
+  const currentYear = new Date().getFullYear();
+  out.value = Number.isInteger(year) && year >= 1800 && year <= currentYear ? String(currentYear - year) : '';
+}
+
+async function loadCapabilityProfile() {
+  const res = await fetch('/api/company/capability-profile');
+  if (!res.ok) throw new Error('Capability profile load failed');
+  const data = await res.json();
+  CAPABILITY_TEXT_FIELDS.forEach(f => {
+    const el = document.getElementById('cap_' + f);
+    if (el) el.value = data[f] ?? '';
+  });
+  CAPABILITY_BOOL_FIELDS.forEach(f => {
+    const el = document.getElementById('cap_' + f);
+    if (el) el.value = data[f] ? 'true' : 'false';
+  });
+  updateCapabilityExperience();
+}
+
+async function saveCapabilityProfile() {
+  const payload = {};
+  CAPABILITY_TEXT_FIELDS.forEach(f => {
+    const value = document.getElementById('cap_' + f)?.value.trim() || null;
+    payload[f] = f === 'year_established' && value ? parseInt(value, 10) : value;
+  });
+  CAPABILITY_BOOL_FIELDS.forEach(f => {
+    payload[f] = document.getElementById('cap_' + f)?.value === 'true';
+  });
+  const res = await fetch('/api/company/capability-profile', {
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Capability profile save failed');
+}
 
 async function loadProfile() {
   try {
@@ -2850,6 +3114,7 @@ async function loadProfile() {
     // stamp_file_path for any legacy record that still uses file paths
     refreshStampPreview(!!(data.has_stamp || data.stamp_file_path));
     refreshSignaturePreview(!!(data.has_signature || data.signature_file_path));
+    await loadCapabilityProfile();
   } catch (err) { toast('Failed to load profile: '+err.message, 'error'); }
 }
 async function saveProfile() {
@@ -2858,6 +3123,7 @@ async function saveProfile() {
   try {
     const res = await fetch('/api/company/profile', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     if (!res.ok) throw new Error('Save failed');
+    await saveCapabilityProfile();
     toast('Company profile saved', 'success');
   } catch (err) { toast('Error: '+err.message, 'error'); }
 }

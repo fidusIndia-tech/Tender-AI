@@ -151,6 +151,37 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS company_capability_profile (
+                id SERIAL PRIMARY KEY,
+                year_established INTEGER,
+                core_business TEXT,
+                product_categories TEXT,
+                brands_handled TEXT,
+                industries_served TEXT,
+                turnover_range TEXT,
+                typical_tender_value_range TEXT,
+                import_capability BOOLEAN DEFAULT FALSE,
+                export_capability BOOLEAN DEFAULT FALSE,
+                oem_support_available BOOLEAN DEFAULT FALSE,
+                oem_authorizations TEXT,
+                engineering_support BOOLEAN DEFAULT FALSE,
+                installation_support BOOLEAN DEFAULT FALSE,
+                gst_available BOOLEAN DEFAULT FALSE,
+                pan_available BOOLEAN DEFAULT FALSE,
+                msme_available BOOLEAN DEFAULT FALSE,
+                itr_available BOOLEAN DEFAULT FALSE,
+                bank_documents_available BOOLEAN DEFAULT FALSE,
+                letterhead_available BOOLEAN DEFAULT FALSE,
+                stamp_available BOOLEAN DEFAULT FALSE,
+                signature_available BOOLEAN DEFAULT FALSE,
+                psu_experience BOOLEAN DEFAULT FALSE,
+                government_experience BOOLEAN DEFAULT FALSE,
+                major_customers TEXT,
+                past_orders_projects TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     conn.commit()
     conn.close()
     print("[DB] All PostgreSQL tables initialized")
@@ -601,6 +632,87 @@ def clear_profile_image_path(field):
 
 
 # ── Company Documents ─────────────────────────────────────────────────────────
+
+def _capability_years_experience(year_established):
+    try:
+        year = int(year_established)
+        current_year = datetime.now().year
+        return max(0, current_year - year) if 1800 <= year <= current_year else None
+    except (TypeError, ValueError):
+        return None
+
+
+CAPABILITY_FIELDS = [
+    "year_established",
+    "core_business",
+    "product_categories",
+    "brands_handled",
+    "industries_served",
+    "turnover_range",
+    "typical_tender_value_range",
+    "import_capability",
+    "export_capability",
+    "oem_support_available",
+    "oem_authorizations",
+    "engineering_support",
+    "installation_support",
+    "gst_available",
+    "pan_available",
+    "msme_available",
+    "itr_available",
+    "bank_documents_available",
+    "letterhead_available",
+    "stamp_available",
+    "signature_available",
+    "psu_experience",
+    "government_experience",
+    "major_customers",
+    "past_orders_projects",
+]
+
+
+def get_company_capability_profile():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"SELECT id, {', '.join(CAPABILITY_FIELDS)}, updated_at FROM company_capability_profile LIMIT 1"
+        )
+        row = cur.fetchone()
+    conn.close()
+    data = dict(row) if row else {}
+    if data.get("updated_at"):
+        data["updated_at"] = data["updated_at"].isoformat()
+    data["years_experience"] = _capability_years_experience(data.get("year_established"))
+    return data
+
+
+def upsert_company_capability_profile(data):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM company_capability_profile LIMIT 1")
+        existing = cur.fetchone()
+        values = [data.get(f) for f in CAPABILITY_FIELDS]
+        if existing:
+            set_parts = [f"{f}=%s" for f in CAPABILITY_FIELDS]
+            cur.execute(
+                f"UPDATE company_capability_profile SET {', '.join(set_parts)}, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                values + [existing[0]],
+            )
+        else:
+            placeholders = ", ".join("%s" for _ in CAPABILITY_FIELDS)
+            cur.execute(
+                f"INSERT INTO company_capability_profile ({', '.join(CAPABILITY_FIELDS)}) VALUES ({placeholders})",
+                values,
+            )
+    conn.commit()
+    conn.close()
+
+
+def get_company_profile_for_tender_evaluation():
+    profile = get_company_profile()
+    profile["capability_profile"] = get_company_capability_profile()
+    return profile
+
 
 def list_company_documents():
     conn = get_db()
