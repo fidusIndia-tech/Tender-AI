@@ -353,16 +353,33 @@ def list_tenders():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """SELECT t.id, t.gem_bidding_number, t.tender_number, t.organization_name, t.bid_end_datetime,
-                      t.make, t.total_quantity, t.tender_approx_value, t.participation_status, t.uploaded_at,
-                      t.won_text, t.lost_text, t.participant_text, t.pdf_path, t.filed_date, t.remark,
-                      COALESCE(a.attachment_count, 0) AS attachment_count
+            """SELECT t.id, t.gem_bidding_number, t.tender_number, t.date, t.bid_end_datetime,
+                      t.bid_opening_datetime, t.department_name, t.organization_name,
+                      t.office_name_location, t.make, t.total_quantity, t.tender_approx_value,
+                      t.participation_status, t.uploaded_at, t.won_text, t.lost_text,
+                      t.participant_text, t.pdf_path, t.extraction_json_path, t.status,
+                      t.filed_date, t.remark,
+                      COALESCE(a.attachment_count, 0) AS attachment_count,
+                      COALESCE(i.item_search_text, '') AS item_search_text,
+                      COALESCE(d.required_document_search_text, '') AS required_document_search_text
                FROM tenders t
                LEFT JOIN (
                    SELECT tender_id, COUNT(*) AS attachment_count
                    FROM tender_attachments
                    GROUP BY tender_id
                ) a ON a.tender_id = t.id
+               LEFT JOIN (
+                   SELECT tender_id,
+                          string_agg(COALESCE(part_number, '') || ' ' || COALESCE(item_description, '') || ' ' || COALESCE(quantity, ''), ' ') AS item_search_text
+                   FROM tender_items
+                   GROUP BY tender_id
+               ) i ON i.tender_id = t.id
+               LEFT JOIN (
+                   SELECT tender_id,
+                          string_agg(COALESCE(label, ''), ' ') AS required_document_search_text
+                   FROM tender_required_documents
+                   GROUP BY tender_id
+               ) d ON d.tender_id = t.id
                ORDER BY t.uploaded_at DESC"""
         )
         rows = cur.fetchall()

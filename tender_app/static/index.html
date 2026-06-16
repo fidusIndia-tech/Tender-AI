@@ -1004,7 +1004,7 @@ body.col-resizing { cursor:col-resize !important; }
       <span id="tenderCountInfo" class="tender-count-info"></span>
       <div style="position:relative;display:flex;align-items:center">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:8px;color:var(--slate-400);pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-        <input type="text" id="gemSearch" placeholder="Search GeM Bidding Number..." oninput="refreshTenderList()" style="padding:6px 10px 6px 28px;border:1px solid var(--slate-200);border-radius:8px;font-size:12px;width:230px;color:var(--slate-700);outline:none" onfocus="this.style.borderColor='var(--blue-400)'" onblur="this.style.borderColor='var(--slate-200)'">
+        <input type="text" id="gemSearch" placeholder="Search tenders..." oninput="refreshTenderList()" style="padding:6px 10px 6px 28px;border:1px solid var(--slate-200);border-radius:8px;font-size:12px;width:230px;color:var(--slate-700);outline:none" onfocus="this.style.borderColor='var(--blue-400)'" onblur="this.style.borderColor='var(--slate-200)'">
       </div>
       <button class="btn btn-outline btn-sm" onclick="loadTenderList()" title="Reload tenders from server" style="display:flex;align-items:center;gap:5px">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
@@ -1406,6 +1406,43 @@ function getSearchQuery() {
   const el = document.getElementById('gemSearch');
   return el ? el.value.trim().toLowerCase() : '';
 }
+const SEARCH_STATUS_LABELS = {
+  new: 'IN PROGRESS',
+  'IN PROGRESS': 'IN PROGRESS',
+  FILED: 'FILED',
+  WON: 'WON',
+  LOST: 'LOST',
+  FAILED: 'FAILED',
+};
+function getTenderSearchText(t) {
+  const statusText = SEARCH_STATUS_LABELS[t.participation_status] || t.participation_status || 'IN PROGRESS';
+  return [
+    t.id,
+    t.gem_bidding_number,
+    t.tender_number,
+    t.date,
+    t.bid_end_datetime,
+    t.bid_opening_datetime,
+    t.department_name,
+    t.organization_name,
+    t.office_name_location,
+    t.total_quantity,
+    t.make,
+    t.tender_approx_value,
+    t.won_text,
+    t.lost_text,
+    t.participant_text,
+    t.uploaded_at,
+    t.filed_date,
+    t.remark,
+    t.status,
+    statusText,
+    t.pdf_path,
+    t.extraction_json_path,
+    t.item_search_text,
+    t.required_document_search_text,
+  ].filter(v => v != null && v !== '').join(' ').toLowerCase();
+}
 let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
 let statusSelectedValues = new Set(); // empty = show all
@@ -1796,7 +1833,7 @@ function parseBidEndDate(value) {
 function renderTenderTable(tenders) {
   const searchQ = getSearchQuery();
   _filteredRows = tenders.slice().filter(t => {
-    if (searchQ && !(t.gem_bidding_number || '').toLowerCase().includes(searchQ)) return false;
+    if (searchQ && !getTenderSearchText(t).includes(searchQ)) return false;
     if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
