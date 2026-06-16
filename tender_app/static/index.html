@@ -462,7 +462,7 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .prep-actions { display:flex;gap:4px;flex-wrap:wrap;align-items:center; }
 
 /* ── Tender list table ───────────────────────────────────────────────────── */
-.check-col { width:30px;text-align:center;padding:0 0 0 8px; }
+.check-col { text-align:center;padding:0 0 0 8px; }
 .check-col input[type=checkbox] {
   width:14px;height:14px;cursor:pointer;accent-color:var(--blue-600);border-radius:3px;
 }
@@ -471,17 +471,29 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
   text-transform:uppercase;color:#475569;
   background:#f1f5f9;border-bottom:2px solid var(--slate-200);white-space:nowrap;
   position:sticky;top:0;z-index:2;
+  overflow:hidden;text-overflow:ellipsis;
 }
-.list-table td { padding:4px 7px;vertical-align:middle;font-size:11.5px;border-bottom:1px solid var(--slate-100); }
+.list-table th.has-resize { padding-right:12px; }
+/* ── Column resize handle ─────────────────────────────────────────────────── */
+.col-resize-handle {
+  position:absolute; right:-1px; top:0; width:6px; height:100%;
+  cursor:col-resize; z-index:20; user-select:none;
+  background:transparent; border-right:2px solid transparent;
+  transition:border-color .15s; touch-action:none;
+}
+.col-resize-handle:hover { border-right-color:rgba(15,118,110,.5); }
+body.col-resizing * { user-select:none !important; }
+body.col-resizing { cursor:col-resize !important; }
+.list-table td { padding:4px 7px;vertical-align:middle;font-size:11.5px;border-bottom:1px solid var(--slate-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .list-table tbody tr:nth-child(even) { background:#fafbfd; }
 .list-table tbody tr:hover { background:#eff6ff !important; }
 .list-table .col-gem  { font-weight:700;color:var(--blue-700);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .list-table .col-tn   { color:var(--slate-500);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .list-table .col-org  { color:var(--slate-700);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.list-table .col-date { color:var(--slate-500);font-size:10.5px;white-space:nowrap; }
+.list-table .col-date { color:var(--slate-500);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .list-table .col-make { color:var(--slate-600);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .list-table .col-vot  { color:var(--slate-800);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis; }
-.list-table .col-qty  { text-align:center;font-weight:700;color:var(--slate-700);font-size:11px;font-variant-numeric:tabular-nums; }
+.list-table .col-qty  { text-align:center;font-weight:700;color:var(--slate-700);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .list-table .col-rmk  { overflow:hidden; }
 .list-table .col-num  { text-align:center;font-size:10.5px;color:#94a3b8; }
 .record-input {
@@ -974,29 +986,29 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
       </button>
     </div>
     <div class="table-wrap">
-      <table class="list-table" style="table-layout:fixed;width:100%;min-width:1100px">
+      <table class="list-table" id="listTable" style="table-layout:fixed;width:100%">
         <colgroup>
-          <col style="width:30px">
-          <col style="width:32px">
-          <col style="width:118px">
-          <col style="width:92px">
-          <col style="width:140px">
-          <col style="width:118px">
-          <col style="width:105px">
-          <col style="width:88px">
-          <col style="width:38px">
-          <col style="width:72px">
-          <col style="width:108px">
-          <col style="width:112px">
-          <col style="width:107px">
+          <col id="col-sel"     style="width:30px">
+          <col id="col-num"     style="width:32px">
+          <col id="col-gem"     style="width:140px">
+          <col id="col-tn"      style="width:140px">
+          <col id="col-org"     style="width:180px">
+          <col id="col-date"    style="width:150px">
+          <col id="col-make"    style="width:120px">
+          <col id="col-vot"     style="width:100px">
+          <col id="col-qty"     style="width:80px">
+          <col id="col-actions" style="width:120px">
+          <col id="col-status"  style="width:120px">
+          <col id="col-remark"  style="width:140px">
+          <col id="col-part"    style="width:130px">
         </colgroup>
         <thead>
           <tr>
-            <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"></th>
-            <th style="text-align:center;color:var(--slate-400);font-weight:500">#</th>
-            <th>GeM Bidding No.</th>
-            <th>Tender Number</th>
-            <th style="white-space:nowrap">
+            <th class="check-col has-resize" style="position:relative"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"><div class="col-resize-handle" onpointerdown="startColResize('sel',event)" ondblclick="resetColWidth('sel')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="position:relative">GeM Bidding No.<div class="col-resize-handle" onpointerdown="startColResize('gem',event)" ondblclick="resetColWidth('gem')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="position:relative">Tender Number<div class="col-resize-handle" onpointerdown="startColResize('tn',event)" ondblclick="resetColWidth('tn')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="white-space:nowrap;position:relative">
               Organisation<span id="orgFilterCount"></span><span style="display:inline-block">
                 <span class="th-filter-btn" id="orgFilterBtn" onclick="toggleFilterMenu('org',event)" title="Filter by organisation">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1009,8 +1021,9 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div class="filter-clear-btn" onclick="clearOrgSelection()">Clear Selection</div>
                 </div>
               </span>
+              <div class="col-resize-handle" onpointerdown="startColResize('org',event)" ondblclick="resetColWidth('org')" title="Drag to resize - Double-click to reset"></div>
             </th>
-            <th style="white-space:nowrap">
+            <th class="has-resize" style="white-space:nowrap;position:relative">
               Bid End Date<span style="display:inline-block">
                 <span class="th-filter-btn active" id="bidFilterBtn" onclick="toggleFilterMenu('bid',event)" title="Sort by bid end date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
@@ -1027,8 +1040,9 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div id="calendarWidget" style="padding:11px 12px 10px;"></div>
                 </div>
               </span><span id="bidDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearBidDateFilter()" title="Clear date filter">✕</span>
+              <div class="col-resize-handle" onpointerdown="startColResize('date',event)" ondblclick="resetColWidth('date')" title="Drag to resize - Double-click to reset"></div>
             </th>
-            <th style="white-space:nowrap">
+            <th class="has-resize" style="white-space:nowrap;position:relative">
               Make<span id="makeFilterCount"></span><span style="display:inline-block">
                 <span class="th-filter-btn" id="makeFilterBtn" onclick="toggleFilterMenu('make',event)" title="Filter by make">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1041,11 +1055,12 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div class="filter-clear-btn" onclick="clearMakeSelection()">Clear Selection</div>
                 </div>
               </span>
+              <div class="col-resize-handle" onpointerdown="startColResize('make',event)" ondblclick="resetColWidth('make')" title="Drag to resize - Double-click to reset"></div>
             </th>
-            <th title="VoT = Valuation of Tender">VoT (₹)</th>
-            <th style="text-align:center">Qty</th>
-            <th>Actions</th>
-            <th style="white-space:nowrap;text-align:center">
+            <th class="has-resize" title="VoT = Valuation of Tender" style="position:relative">VoT (₹)<div class="col-resize-handle" onpointerdown="startColResize('vot',event)" ondblclick="resetColWidth('vot')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="text-align:center;position:relative">Qty<div class="col-resize-handle" onpointerdown="startColResize('qty',event)" ondblclick="resetColWidth('qty')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="position:relative">Actions<div class="col-resize-handle" onpointerdown="startColResize('actions',event)" ondblclick="resetColWidth('actions')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="white-space:nowrap;text-align:center;position:relative">
               Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
                 <span class="th-filter-btn" id="statusFilterBtn" onclick="toggleFilterMenu('status',event)" title="Filter by status">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
@@ -1061,9 +1076,10 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
                   <div class="filter-clear-btn" onclick="clearStatusSelection()">Clear Selection</div>
                 </div>
               </span>
+              <div class="col-resize-handle" onpointerdown="startColResize('status',event)" ondblclick="resetColWidth('status')" title="Drag to resize - Double-click to reset"></div>
             </th>
-            <th>Remark</th>
-            <th>Participant</th>
+            <th class="has-resize" style="position:relative">Remark<div class="col-resize-handle" onpointerdown="startColResize('remark',event)" ondblclick="resetColWidth('remark')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="position:relative">Participant<div class="col-resize-handle" onpointerdown="startColResize('part',event)" ondblclick="resetColWidth('part')" title="Drag to resize - Double-click to reset"></div></th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
@@ -2892,6 +2908,91 @@ async function savePortalForm() {
     toast('Error: ' + err.message, 'error');
   }
 }
+
+// ── Column Resize ──────────────────────────────────────────────────────────
+const _COL_RESIZE_KEY = 'tenderColWidths_v1';
+const _COL_DEFS = {
+  sel:     { def: 30,  min: 30  },
+  num:     { def: 32,  min: 32  },
+  gem:     { def: 140, min: 80  },
+  tn:      { def: 140, min: 80  },
+  org:     { def: 180, min: 80  },
+  date:    { def: 150, min: 80  },
+  make:    { def: 120, min: 80  },
+  vot:     { def: 100, min: 80  },
+  qty:     { def: 80,  min: 80  },
+  actions: { def: 120, min: 80  },
+  status:  { def: 120, min: 80  },
+  remark:  { def: 140, min: 80  },
+  part:    { def: 130, min: 80  },
+};
+let _colW = {};
+
+function _initColWidths() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(_COL_RESIZE_KEY) || '{}'); } catch(e) {}
+  for (const k in _COL_DEFS) {
+    const d = _COL_DEFS[k];
+    const s = saved[k];
+    _colW[k] = (typeof s === 'number' && s >= d.min) ? s : d.def;
+  }
+  _applyColWidths();
+}
+
+function _applyColWidths() {
+  for (const k in _colW) {
+    const col = document.getElementById('col-' + k);
+    if (col) col.style.width = _colW[k] + 'px';
+  }
+  const total = Object.values(_colW).reduce((a, b) => a + b, 0);
+  const tbl = document.getElementById('listTable');
+  if (tbl) tbl.style.minWidth = total + 'px';
+}
+
+function _saveColWidths() {
+  try { localStorage.setItem(_COL_RESIZE_KEY, JSON.stringify(_colW)); } catch(e) {}
+}
+
+let _resizeState = null;
+
+function startColResize(k, e) {
+  if (!_COL_DEFS[k]) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId != null) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  _resizeState = { k, startX: e.clientX, startW: _colW[k] };
+  document.body.classList.add('col-resizing');
+
+  function onMove(ev) {
+    if (!_resizeState) return;
+    const dx = ev.clientX - _resizeState.startX;
+    _colW[_resizeState.k] = Math.max(_COL_DEFS[_resizeState.k].min, _resizeState.startW + dx);
+    _applyColWidths();
+  }
+
+  function onUp() {
+    document.body.classList.remove('col-resizing');
+    _resizeState = null;
+    _saveColWidths();
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+  }
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+
+function resetColWidth(k) {
+  _colW[k] = _COL_DEFS[k].def;
+  _applyColWidths();
+  _saveColWidths();
+}
+
+_initColWidths();
 
 async function deletePortal(id) {
   const p = _portalsCache.find(x => x.id === id);
