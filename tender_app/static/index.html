@@ -557,6 +557,37 @@ body.col-resizing { cursor:col-resize !important; }
 }
 .attachment-row-name { flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .attachment-row-meta { color:var(--slate-400);font-size:11px;white-space:nowrap; }
+.deadline-overlay {
+  display:none;position:fixed;inset:0;z-index:8600;pointer-events:none;
+}
+.deadline-overlay.open { display:block; }
+.deadline-modal {
+  position:absolute;right:24px;bottom:24px;transform:translateY(36px);
+  width:min(300px,calc(100vw - 24px));background:#fff;border-radius:8px;
+  border:1px solid var(--slate-200);box-shadow:0 14px 34px rgba(15,23,42,.22);
+  display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;
+  opacity:0;animation:deadlineSlideUp .28s ease-out forwards;
+}
+@keyframes deadlineSlideUp { to { opacity:1;transform:translateY(0); } }
+.deadline-header {
+  display:flex;align-items:center;gap:7px;padding:8px 10px;border-bottom:1px solid var(--slate-100);
+}
+.deadline-header h3 { margin:0;font-size:13px;color:var(--slate-700);font-weight:700;flex:1; }
+.deadline-body { padding:8px 10px 10px;overflow:auto; }
+.deadline-summary { display:flex;flex-direction:column;gap:6px; }
+.deadline-box {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--slate-200);border-radius:8px;background:var(--slate-50);
+  padding:7px 10px;text-align:left;cursor:pointer;min-height:42px;min-width:0;
+  transition:border-color .15s,background .15s,transform .15s;
+}
+.deadline-box.today { background:#fff1f2;border-color:#fecdd3; }
+.deadline-box.tomorrow { background:#fff7ed;border-color:#fed7aa; }
+.deadline-box.two_days { background:#f0fdf4;border-color:#bbf7d0; }
+.deadline-box:hover { transform:translateY(-1px);filter:saturate(1.05); }
+.deadline-box strong { display:block;font-size:19px;line-height:1;color:var(--slate-800);flex-shrink:0; }
+.deadline-box span { display:block;font-size:11px;font-weight:800;color:var(--slate-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1; }
+.deadline-box small { display:block;font-size:9px;color:var(--slate-400);white-space:nowrap;flex-shrink:0; }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
@@ -1302,6 +1333,21 @@ body.col-resizing { cursor:col-resize !important; }
 
 <div id="toast"></div>
 
+<div class="deadline-overlay" id="deadlineOverlay">
+  <div class="deadline-modal">
+    <div class="deadline-header">
+      <svg width="17" height="17" fill="none" stroke="var(--red-600)" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h3>Reminders</h3>
+      <button onclick="closeDeadlineReminder()" style="background:none;border:none;cursor:pointer;color:var(--slate-400);font-size:20px;line-height:1;padding:2px 6px;" title="Close">&times;</button>
+    </div>
+    <div class="deadline-body">
+      <div class="deadline-summary" id="deadlineSummary"></div>
+    </div>
+  </div>
+</div>
+
 <div class="attachments-overlay" id="attachmentsOverlay" onclick="if(event.target===this)closeAttachmentModal()">
   <div class="attachments-modal">
     <div class="attachments-header">
@@ -1747,6 +1793,7 @@ function refreshTenderList() {
   renderTenderTable(tenderListCache);
 }
 function clearAllFilters() {
+  _deadlineFilter = null;
   // Clear search
   const searchEl = document.getElementById('gemSearch');
   if (searchEl) searchEl.value = '';
@@ -1817,6 +1864,17 @@ function parseBidEndDate(value) {
   // Normalise separators: replace "." with "-" for date part only
   // Match DD.MM.YYYY or DD/MM/YYYY and convert to DD-MM-YYYY
   s = s.replace(/^(\d{2})[./](\d{2})[./](\d{4})/, '$1-$2-$3');
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?)?/i);
+  if (iso) {
+    const [, yyyy, mm, dd, hRaw, min = '00', sec = '00', ampm] = iso;
+    let h = hRaw ? parseInt(hRaw, 10) : 0;
+    if (ampm) {
+      if (/pm/i.test(ampm) && h !== 12) h += 12;
+      if (/am/i.test(ampm) && h === 12) h = 0;
+    }
+    const ts = new Date(`${yyyy}-${mm}-${dd}T${String(h).padStart(2,'0')}:${min}:${sec}`).getTime();
+    return Number.isNaN(ts) ? 0 : ts;
+  }
   // Now s is DD-MM-YYYY [HH:mm[:ss] [AM/PM]]
   const m = s.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?)?/i);
   if (!m) return 0;
@@ -1830,10 +1888,126 @@ function parseBidEndDate(value) {
   const ts = new Date(isoStr).getTime();
   return Number.isNaN(ts) ? 0 : ts;
 }
+let _deadlineReminderShown = false;
+let _deadlineReminderTenders = [];
+let _deadlineTickTimer = null;
+let _deadlineFetchTimer = null;
+let _deadlineAutoCloseTimer = null;
+let _deadlineFilter = null;
+function closeDeadlineReminder() {
+  document.getElementById('deadlineOverlay').classList.remove('open');
+  if (_deadlineAutoCloseTimer) {
+    clearTimeout(_deadlineAutoCloseTimer);
+    _deadlineAutoCloseTimer = null;
+  }
+}
+function _deadlineStatus(t) {
+  return (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
+}
+function _dateKeyFromTs(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function _deadlineGroupForTender(t, now = new Date()) {
+  if (['FILED','WON','LOST','FAILED'].includes(_deadlineStatus(t))) return null;
+  const ts = parseBidEndDate(t.bid_end_datetime);
+  if (!ts || ts <= now.getTime()) return null;
+  const today = _dateKeyFromTs(now.getTime());
+  const tomorrow = _dateKeyFromTs(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime());
+  const twoDays = _dateKeyFromTs(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2).getTime());
+  const endKey = _dateKeyFromTs(ts);
+  if (endKey === today) return 'today';
+  if (endKey === tomorrow) return 'tomorrow';
+  if (endKey === twoDays) return 'two_days';
+  return null;
+}
+function _deadlineCounts(tenders) {
+  const now = new Date();
+  const counts = { today: 0, tomorrow: 0, two_days: 0 };
+  (tenders || []).forEach(t => {
+    const group = _deadlineGroupForTender(t, now);
+    if (group) counts[group] += 1;
+  });
+  return counts;
+}
+function _deadlineGroups(tenders) {
+  const now = new Date();
+  const groups = { today: [], tomorrow: [], two_days: [] };
+  (tenders || []).forEach(t => {
+    const group = _deadlineGroupForTender(t, now);
+    if (group) groups[group].push(t);
+  });
+  Object.values(groups).forEach(list => list.sort((a, b) => parseBidEndDate(a.bid_end_datetime) - parseBidEndDate(b.bid_end_datetime)));
+  return groups;
+}
+function openDeadlineGroup(group) {
+  _deadlineFilter = group;
+  closeDeadlineReminder();
+
+  const searchEl = document.getElementById('gemSearch');
+  if (searchEl) searchEl.value = '';
+  orgSelectedValues.clear();
+  makeSelectedValues.clear();
+  statusSelectedValues.clear();
+  bidDateFrom = null;
+  bidDateTo = null;
+  updateOrgFilterCount();
+  updateMakeFilterCount();
+  updateStatusFilterCount();
+  document.querySelectorAll('#statusFilterList input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  showView('list');
+  renderTenderTable(tenderListCache);
+}
+function renderDeadlineReminder(tenders) {
+  const groups = _deadlineGroups(tenders);
+  const summary = [
+    ['today', 'Closing Today', groups.today],
+    ['tomorrow', 'Closing Tomorrow', groups.tomorrow],
+    ['two_days', '2 Days Left', groups.two_days],
+  ];
+
+  document.getElementById('deadlineSummary').innerHTML = summary.map(([group, label, rows]) => {
+    return `
+    <button class="deadline-box ${group}" onclick="openDeadlineGroup('${group}')" title="Show ${label} tenders">
+      <strong>${rows.length}</strong><span>${label}</span><small>Click to view</small>
+    </button>`;
+  }).join('');
+
+  return groups.today.length + groups.tomorrow.length + groups.two_days.length;
+}
+function startDeadlineReminderTimers() {
+  if (!_deadlineTickTimer) {
+    _deadlineTickTimer = setInterval(() => renderDeadlineReminder(_deadlineReminderTenders), 30000);
+  }
+  if (!_deadlineFetchTimer) {
+    _deadlineFetchTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/tenders');
+        if (!res.ok) return;
+        _deadlineReminderTenders = await res.json();
+        renderDeadlineReminder(_deadlineReminderTenders);
+      } catch (err) {
+        console.warn('Deadline reminder refresh failed:', err);
+      }
+    }, 60000);
+  }
+}
+function showDeadlineReminder(tenders, force=false) {
+  _deadlineReminderTenders = tenders || [];
+  renderDeadlineReminder(_deadlineReminderTenders);
+  startDeadlineReminderTimers();
+  if (_deadlineReminderShown && !force) return;
+  _deadlineReminderShown = true;
+  document.getElementById('deadlineOverlay').classList.add('open');
+  if (_deadlineAutoCloseTimer) clearTimeout(_deadlineAutoCloseTimer);
+  _deadlineAutoCloseTimer = setTimeout(closeDeadlineReminder, 20000);
+}
 function renderTenderTable(tenders) {
   const searchQ = getSearchQuery();
   _filteredRows = tenders.slice().filter(t => {
     if (searchQ && !getTenderSearchText(t).includes(searchQ)) return false;
+    if (_deadlineFilter && _deadlineGroupForTender(t) !== _deadlineFilter) return false;
     if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
@@ -2354,8 +2528,19 @@ async function loadTenderList() {
 
     updateStatCounts();
     renderTenderTable(tenders);
+    showDeadlineReminder(tenders);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
+  }
+}
+async function loadStartupDeadlineReminder() {
+  try {
+    const res = await fetch('/api/tenders');
+    if (!res.ok) return;
+    const tenders = await res.json();
+    showDeadlineReminder(tenders);
+  } catch (err) {
+    console.warn('Deadline reminder failed:', err);
   }
 }
 function toggleSelectAll(cb) {
@@ -2829,6 +3014,7 @@ function toast(msg, type='success') {
 }
 
 showView('upload');
+loadStartupDeadlineReminder();
 
 // ── SSO / Auth ────────────────────────────────────────────────────────────────
 const _PORTAL = (window.__PORTAL_URL__ || 'https://practical-amazement-production-3539.up.railway.app').replace(/\/$/, '');
