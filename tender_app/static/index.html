@@ -523,13 +523,14 @@ body.col-resizing { cursor:col-resize !important; }
 .status-select[value="WON"]         { background-color:#D1FAE5;color:#065F46;border-color:#6EE7B7; }
 .status-select[value="LOST"]        { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
 .status-select[value="FAILED"]      { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
-.status-control-row { display:flex;align-items:center;gap:4px;justify-content:center; }
+.status-control-row { display:grid;grid-template-columns:minmax(90px,108px) 22px;align-items:center;justify-content:center;gap:4px; }
 .attachment-btn {
   display:inline-flex;align-items:center;justify-content:center;gap:3px;
   width:22px;height:22px;padding:0;border:1px solid var(--slate-200);
   border-radius:4px;background:#fff;color:var(--slate-500);cursor:pointer;
   font-size:10px;line-height:1;
 }
+.attachment-btn.is-hidden { visibility:hidden;pointer-events:none; }
 .attachment-btn:hover { border-color:var(--blue-300);color:var(--blue-600);background:var(--blue-50); }
 .attachments-overlay {
   display:none;position:fixed;inset:0;background:rgba(15,23,42,.44);z-index:8500;
@@ -1861,7 +1862,7 @@ function _renderCurrentPage() {
               <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
               <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
             </select>
-            <button class="attachment-btn" data-attachment-btn="${t.id}" onclick="openTenderAttachments(${t.id}, event)" title="Attachments" style="${st==='FILED'?'':'display:none'}">
+            <button class="attachment-btn${st==='FILED'?'':' is-hidden'}" data-attachment-btn="${t.id}" onclick="openTenderAttachments(${t.id}, event)" title="Attachments">
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94a3 3 0 114.243 4.243L8.552 18.32a1.5 1.5 0 11-2.121-2.121l9.886-9.886"/></svg>
             </button>
           </div>
@@ -2760,7 +2761,7 @@ async function updateTenderStatus(id, selectEl) {
         }
       }
       const attachBtn = row.querySelector(`[data-attachment-btn="${id}"]`);
-      if (attachBtn) attachBtn.style.display = value === 'FILED' ? 'inline-flex' : 'none';
+      if (attachBtn) attachBtn.classList.toggle('is-hidden', value !== 'FILED');
     }
     const cached = tenderListCache.find(t => t.id === id);
     if (cached) {
