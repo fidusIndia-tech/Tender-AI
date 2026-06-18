@@ -58,7 +58,8 @@ def init_db():
                 tender_id INTEGER REFERENCES tenders(id),
                 part_number TEXT,
                 item_description TEXT,
-                quantity TEXT
+                quantity TEXT,
+                source_type TEXT DEFAULT 'extracted'
             )
         """)
         cur.execute("""
@@ -140,6 +141,7 @@ def init_db():
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
+        cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'extracted'")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS government_portals (
                 id SERIAL PRIMARY KEY,
@@ -323,7 +325,7 @@ def save_tender(data, items, documents):
             ),
         )
         tender_id = cur.fetchone()[0]
-        _insert_items(cur, tender_id, items)
+        _insert_items(cur, tender_id, items, source_type="extracted")
         _insert_docs(cur, tender_id, documents)
     conn.commit()
     conn.close()
@@ -357,7 +359,7 @@ def update_tender(tender_id, data, items, documents):
         )
         cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
         cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
-        _insert_items(cur, tender_id, items)
+        _insert_items(cur, tender_id, items, source_type="extracted")
         _insert_docs(cur, tender_id, documents)
     conn.commit()
     conn.close()
@@ -551,13 +553,22 @@ def clear_tenders():
     conn.close()
 
 
-def _insert_items(cur, tender_id, items):
+def _insert_items(cur, tender_id, items, source_type="extracted"):
     for item in items:
         cur.execute(
-            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity)
-               VALUES (%s,%s,%s,%s)""",
-            (tender_id, item.get("part_number"), item.get("item_description"), item.get("quantity")),
+            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity, source_type)
+               VALUES (%s,%s,%s,%s,%s)""",
+            (tender_id, item.get("part_number"), item.get("item_description"), item.get("quantity"), source_type),
         )
+
+
+def update_tender_boq_items(tender_id, items):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
+        _insert_items(cur, tender_id, items, source_type="manual")
+    conn.commit()
+    conn.close()
 
 
 def _insert_docs(cur, tender_id, documents):

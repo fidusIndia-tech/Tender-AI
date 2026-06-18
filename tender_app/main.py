@@ -583,6 +583,14 @@ async def get_tender(tender_id: int):
     return tender
 
 
+@app.patch("/api/tenders/{tender_id}/boq-items")
+async def update_boq_items(tender_id: int, payload: List[BOQItem]):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    database.update_tender_boq_items(tender_id, [i.model_dump() for i in payload])
+    return {"id": tender_id}
+
+
 @app.post("/api/tenders/{tender_id}/evaluate")
 async def evaluate_tender(tender_id: int):
     tender = database.get_tender(tender_id)

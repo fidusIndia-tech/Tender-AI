@@ -583,6 +583,46 @@ body.col-resizing { cursor:col-resize !important; }
 }
 .attachment-row-name { flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .attachment-row-meta { color:var(--slate-400);font-size:11px;white-space:nowrap; }
+
+/* ── Inline Editable Grid (Participants / BOQ tables in row expand) ────────── */
+.participant-toolbar { display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
+.participant-hint { font-size:11px;color:var(--slate-400); }
+.participant-table-wrap { overflow:auto;border:1px solid var(--slate-200);border-radius:6px;background:#fff; }
+.participant-table { border-collapse:collapse;width:100%;font-size:12px; }
+.participant-table th {
+  background:#ecfdf5;color:var(--slate-700);font-weight:700;text-align:left;
+  border:1px solid #a7f3d0;padding:6px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;
+}
+.participant-table td {
+  border:1px solid var(--slate-200);padding:6px 8px;min-width:120px;
+  outline:none;color:var(--slate-700);white-space:pre-wrap;word-break:break-word;
+}
+.participant-table [contenteditable="true"]:focus { background:var(--blue-50);box-shadow:inset 0 0 0 1.5px var(--blue-500); }
+.participant-table thead [contenteditable="true"] { cursor:text; }
+
+/* ── Row Expand (Participants / BOQ etc.) ────────────────────────────────── */
+.expand-col { text-align:center;padding:0;overflow:visible;text-overflow:clip; }
+.expand-toggle-btn {
+  width:20px;height:20px;border-radius:5px;border:1px solid var(--slate-300);background:#fff;
+  color:var(--slate-600);font-size:13px;font-weight:700;line-height:1;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;
+}
+.expand-toggle-btn:hover { background:var(--blue-50);border-color:var(--blue-400);color:var(--blue-700); }
+.expand-row > td { background:var(--slate-50);border-top:1px solid var(--slate-200);border-bottom:1px solid var(--slate-200); }
+.expand-panel { padding:0; }
+.expand-tabs { display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--slate-200); }
+.expand-tab-btn {
+  background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;font-size:12px;
+  font-weight:600;color:var(--slate-500);cursor:pointer;
+}
+.expand-tab-btn:hover { color:var(--slate-700); }
+.expand-tab-btn.active { color:var(--blue-700);border-bottom-color:var(--blue-600); }
+.expand-tab-add-btn { margin-left:auto;color:var(--green-700); }
+.expand-tab-content { padding:0; }
+.expand-empty-state {
+  padding:18px 16px;margin:10px 12px 12px;border:1px dashed var(--slate-200);border-radius:8px;
+  background:#fff;color:var(--slate-500);font-size:12px;line-height:1.5;
+}
 .deadline-overlay {
   display:none;position:fixed;inset:0;z-index:8600;pointer-events:none;
 }
@@ -1102,6 +1142,7 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="table-wrap">
       <table class="list-table" id="listTable" style="table-layout:fixed;width:100%">
         <colgroup>
+          <col id="col-expand"  style="width:30px">
           <col id="col-sel"     style="width:30px">
           <col id="col-num"     style="width:32px">
           <col id="col-gem"     style="width:140px">
@@ -1114,10 +1155,10 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-actions" style="width:120px">
           <col id="col-status"  style="width:120px">
           <col id="col-remark"  style="width:140px">
-          <col id="col-part"    style="width:130px">
         </colgroup>
         <thead>
           <tr>
+            <th style="text-align:center;padding:0"></th>
             <th class="check-col has-resize" style="position:relative"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"><div class="col-resize-handle" onpointerdown="startColResize('sel',event)" ondblclick="resetColWidth('sel')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="position:relative">GeM Bidding No.<div class="col-resize-handle" onpointerdown="startColResize('gem',event)" ondblclick="resetColWidth('gem')" title="Drag to resize - Double-click to reset"></div></th>
@@ -1193,7 +1234,6 @@ body.col-resizing { cursor:col-resize !important; }
               <div class="col-resize-handle" onpointerdown="startColResize('status',event)" ondblclick="resetColWidth('status')" title="Drag to resize - Double-click to reset"></div>
             </th>
             <th class="has-resize" style="position:relative">Remark<div class="col-resize-handle" onpointerdown="startColResize('remark',event)" ondblclick="resetColWidth('remark')" title="Drag to resize - Double-click to reset"></div></th>
-            <th class="has-resize" style="position:relative">Participant<div class="col-resize-handle" onpointerdown="startColResize('part',event)" ondblclick="resetColWidth('part')" title="Drag to resize - Double-click to reset"></div></th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
@@ -2136,6 +2176,9 @@ function _renderCurrentPage() {
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
+        <td class="expand-col" onclick="event.stopPropagation()">
+          <button class="expand-toggle-btn" id="expandBtn-${t.id}" onclick="toggleTenderExpand(${t.id})" title="Show participant / BOQ details">+</button>
+        </td>
         <td class="check-col" onclick="event.stopPropagation()">
           <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
         </td>
@@ -2170,8 +2213,15 @@ function _renderCurrentPage() {
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Add remark…">
         </td>
-        <td onclick="event.stopPropagation()">
-          <input type="text" class="record-input participant-input" data-record-field="participant_text" value="${esc(t.participant_text)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Participants…">
+      </tr>
+      <tr class="expand-row" id="expandRow-${t.id}" style="display:none">
+        <td colspan="13" style="padding:0">
+          <div class="expand-panel">
+            <div class="expand-tabs" id="expandTabs-${t.id}">
+              ${renderExpandTabs(t.id)}
+            </div>
+            <div class="expand-tab-content" id="expandContent-${t.id}"></div>
+          </div>
         </td>
       </tr>`;
   }).join('');
@@ -2248,6 +2298,677 @@ function fmtSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ── Inline Row Expand (Participants / BOQ etc.) ─────────────────────────────
+const EXPAND_TEXT = {
+  addRow: '+ Row',
+  addColumn: '+ Column',
+  removeRow: '- Row',
+  removeColumn: '- Column',
+  addHeading: '+ Heading',
+  clearAll: 'Clear All',
+  save: 'Save',
+  pasteHint: 'Tip: click a cell, then paste directly from Excel/Sheets',
+  participantSaveSuccess: 'Participants saved',
+  participantSaveError: 'Save failed',
+  boqLoading: 'Loading BOQ items…',
+  boqLoadError: 'Failed to load BOQ items',
+  boqSaveSuccess: 'BOQ items saved',
+  boqSaveError: 'Save failed',
+  customSaveSuccess: 'Section saved locally',
+  participantClearConfirm: 'Clear all participant data?',
+  boqClearConfirm: 'Clear all BOQ items?',
+  customClearConfirm: 'Clear all data in this section?',
+  addHeadingPrompt: 'Enter the new heading name',
+  addHeadingDefault: 'New Heading',
+  futureEmptyTitle: 'Future section ready',
+  futureEmptyBody: 'Add another tab config and renderer here later for table form, custom form, or any other layout.'
+};
+
+const PARTICIPANT_DEFAULT_HEADERS = ['Participant Name', 'Bid Value', 'Remarks'];
+const BOQ_COLUMN_HEADERS = ['Part Number', 'Item Description', 'Quantity'];
+const CUSTOM_GRID_HEADERS = ['Column 1', 'Column 2', 'Column 3'];
+const _EXPAND_LOCAL_KEY = 'tender_expand_ui_v2';
+
+const EXPAND_SECTION_DEFS = [
+  { key: 'participants', label: 'Participants', renderer: renderExpandParticipants },
+  { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
+];
+
+function parseParticipantTSV(text) {
+  if (!text) return [];
+  return String(text).split(/\r\n|\n|\r/).map(line => line.split('\t'));
+}
+
+function serializeParticipantGrid(grid) {
+  return grid.map(row => row.map(c => (c || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t')).join('\n');
+}
+
+let _expandParticipantGrids = {}; // tenderId -> 2D array
+let _expandBoqGrids = {}; // tenderId -> 2D array (part_number, item_description, quantity)
+let _expandCustomSections = {}; // tenderId -> [{ key, label, grid }]
+let _expandActiveTabByTender = {};
+
+function _readExpandLocalStore() {
+  try { return JSON.parse(localStorage.getItem(_EXPAND_LOCAL_KEY) || '{}'); } catch (_) { return {}; }
+}
+
+function _writeExpandLocalStore(store) {
+  try { localStorage.setItem(_EXPAND_LOCAL_KEY, JSON.stringify(store)); } catch (_) {}
+}
+
+function getTenderExpandLocalState(tenderId) {
+  const store = _readExpandLocalStore();
+  return store[String(tenderId)] || {};
+}
+
+function setTenderExpandLocalState(tenderId, patch) {
+  const key = String(tenderId);
+  const store = _readExpandLocalStore();
+  store[key] = { ...(store[key] || {}), ...patch };
+  _writeExpandLocalStore(store);
+}
+
+function getDefaultCustomGrid() {
+  return [CUSTOM_GRID_HEADERS.slice(), new Array(CUSTOM_GRID_HEADERS.length).fill('')];
+}
+
+function getDefaultParticipantGrid() {
+  return [PARTICIPANT_DEFAULT_HEADERS.slice(), new Array(PARTICIPANT_DEFAULT_HEADERS.length).fill('')];
+}
+
+function getDefaultBoqGrid() {
+  return [BOQ_COLUMN_HEADERS.slice()];
+}
+
+function ensureExpandCustomSectionsLoaded(tenderId) {
+  if (!_expandCustomSections[tenderId]) {
+    const saved = getTenderExpandLocalState(tenderId).customSections;
+    _expandCustomSections[tenderId] = Array.isArray(saved) ? saved : [];
+  }
+  return _expandCustomSections[tenderId];
+}
+
+function saveExpandCustomSections(tenderId) {
+  setTenderExpandLocalState(tenderId, { customSections: ensureExpandCustomSectionsLoaded(tenderId) });
+}
+
+function getExpandSections(tenderId) {
+  const customSections = ensureExpandCustomSectionsLoaded(tenderId).map(section => ({
+    key: section.key,
+    label: section.label,
+    renderer: renderExpandCustomSection,
+  }));
+  return [...EXPAND_SECTION_DEFS, ...customSections];
+}
+
+function getExpandSection(tenderId, sectionKey) {
+  return getExpandSections(tenderId).find(section => section.key === sectionKey) || null;
+}
+
+function getExpandCustomSection(tenderId, sectionKey) {
+  return ensureExpandCustomSectionsLoaded(tenderId).find(section => section.key === sectionKey) || null;
+}
+
+function renderExpandTabs(tenderId) {
+  return getExpandSections(tenderId).map((section, index) => `
+    <button
+      class="expand-tab-btn${index === 0 ? ' active' : ''}"
+      data-tab="${section.key}"
+      onclick="switchExpandTab(${tenderId},'${section.key}',this)"
+    >${esc(section.label)}</button>
+  `).join('') + `
+    <button class="expand-tab-btn expand-tab-add-btn" type="button" onclick="addExpandHeading(${tenderId})">${esc(EXPAND_TEXT.addHeading)}</button>
+  `;
+}
+
+function renderExpandToolbar(actions) {
+  return actions.map(action => {
+    const btnClass = action.tone === 'danger' ? 'btn btn-danger btn-xs' : 'btn btn-outline btn-xs';
+    return `<button class="${btnClass}" onclick="${action.onClick}">${esc(action.label)}</button>`;
+  }).join('');
+}
+
+function buildParticipantTableMarkup(tenderId) {
+  return `
+    <table class="participant-table" id="expandParticipantTable-${tenderId}">
+      <thead id="expandParticipantHead-${tenderId}"></thead>
+      <tbody id="expandParticipantBody-${tenderId}"></tbody>
+    </table>
+  `;
+}
+
+function toggleTenderExpand(tenderId) {
+  const row = document.getElementById('expandRow-' + tenderId);
+  const btn = document.getElementById('expandBtn-' + tenderId);
+  const defaultSectionKey = getExpandSections(tenderId)[0]?.key;
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  if (isOpen) {
+    row.style.display = 'none';
+    if (btn) btn.textContent = '+';
+  } else {
+    row.style.display = '';
+    if (btn) btn.textContent = '−';
+    if (!row.dataset.rendered && defaultSectionKey) {
+      row.dataset.rendered = '1';
+      switchExpandTab(tenderId, defaultSectionKey);
+    }
+  }
+}
+
+function switchExpandTab(tenderId, tab, btnEl) {
+  _expandActiveTabByTender[tenderId] = tab;
+  const tabsBar = document.getElementById('expandTabs-' + tenderId);
+  if (tabsBar) {
+    tabsBar.querySelectorAll('.expand-tab-btn').forEach(b => b.classList.remove('active'));
+    const active = btnEl || tabsBar.querySelector(`.expand-tab-btn[data-tab="${tab}"]`);
+    if (active) active.classList.add('active');
+  }
+  const content = document.getElementById('expandContent-' + tenderId);
+  if (!content) return;
+  const section = getExpandSection(tenderId, tab);
+  if (!section || typeof section.renderer !== 'function') {
+    renderExpandFutureSection(content);
+    return;
+  }
+  section.renderer(tenderId, content);
+}
+
+function addExpandHeading(tenderId) {
+  const rawLabel = prompt(EXPAND_TEXT.addHeadingPrompt, EXPAND_TEXT.addHeadingDefault);
+  const label = (rawLabel || '').trim();
+  if (!label) return;
+  const customSections = ensureExpandCustomSectionsLoaded(tenderId);
+  let baseKey = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'heading';
+  let key = baseKey;
+  let suffix = 2;
+  const usedKeys = new Set(getExpandSections(tenderId).map(section => section.key));
+  while (usedKeys.has(key)) key = `${baseKey}-${suffix++}`;
+  customSections.push({ key, label, grid: getDefaultCustomGrid() });
+  saveExpandCustomSections(tenderId);
+  const tabsBar = document.getElementById('expandTabs-' + tenderId);
+  if (tabsBar) tabsBar.innerHTML = renderExpandTabs(tenderId);
+  switchExpandTab(tenderId, key);
+}
+
+function renderExpandFutureSection(content) {
+  content.innerHTML = `
+    <div class="expand-empty-state">
+      <strong>${esc(EXPAND_TEXT.futureEmptyTitle)}</strong><br>
+      ${esc(EXPAND_TEXT.futureEmptyBody)}
+    </div>
+  `;
+}
+
+function renderExpandCustomSection(tenderId, content) {
+  const sectionKey = _expandActiveTabByTender[tenderId];
+  const section = getExpandCustomSection(tenderId, sectionKey);
+  if (!section) {
+    renderExpandFutureSection(content);
+    return;
+  }
+  if (!Array.isArray(section.grid) || !section.grid.length) section.grid = getDefaultCustomGrid();
+  content.innerHTML = `
+    <div class="participant-toolbar" style="padding:10px 12px 0">
+      ${renderExpandToolbar([
+        { label: EXPAND_TEXT.addRow, onClick: `expandCustomAddRow(${tenderId},'${section.key}')` },
+        { label: EXPAND_TEXT.addColumn, onClick: `expandCustomAddCol(${tenderId},'${section.key}')` },
+        { label: EXPAND_TEXT.removeRow, onClick: `expandCustomRemoveRow(${tenderId},'${section.key}')` },
+        { label: EXPAND_TEXT.removeColumn, onClick: `expandCustomRemoveCol(${tenderId},'${section.key}')` },
+        { label: EXPAND_TEXT.clearAll, onClick: `expandCustomClear(${tenderId},'${section.key}')`, tone: 'danger' },
+      ])}
+      <div style="flex:1"></div>
+      <span class="participant-hint">${esc(EXPAND_TEXT.pasteHint)}</span>
+    </div>
+    <div class="participant-table-wrap" style="margin:10px 12px">
+      <table class="participant-table" id="expandCustomTable-${tenderId}-${section.key}">
+        <thead id="expandCustomHead-${tenderId}-${section.key}"></thead>
+        <tbody id="expandCustomBody-${tenderId}-${section.key}"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px">
+      <button class="btn btn-success btn-sm" onclick="saveExpandCustomSection(${tenderId},'${section.key}')">${esc(EXPAND_TEXT.save)}</button>
+    </div>
+  `;
+  renderExpandCustomGrid(tenderId, section.key);
+}
+
+function renderExpandParticipants(tenderId, content) {
+  const cached = tenderListCache.find(t => t.id === tenderId);
+  if (!_expandParticipantGrids[tenderId]) {
+    let grid = parseParticipantTSV(cached ? cached.participant_text : '');
+    if (!grid.length) grid = getDefaultParticipantGrid();
+    _expandParticipantGrids[tenderId] = grid;
+  }
+  content.innerHTML = `
+    <div class="participant-toolbar" style="padding:10px 12px 0">
+      ${renderExpandToolbar([
+        { label: EXPAND_TEXT.addRow, onClick: `expandParticipantAddRow(${tenderId})` },
+        { label: EXPAND_TEXT.addColumn, onClick: `expandParticipantAddCol(${tenderId})` },
+        { label: EXPAND_TEXT.removeRow, onClick: `expandParticipantRemoveRow(${tenderId})` },
+        { label: EXPAND_TEXT.removeColumn, onClick: `expandParticipantRemoveCol(${tenderId})` },
+        { label: EXPAND_TEXT.clearAll, onClick: `expandParticipantClear(${tenderId})`, tone: 'danger' },
+      ])}
+      <div style="flex:1"></div>
+      <span class="participant-hint">${esc(EXPAND_TEXT.pasteHint)}</span>
+    </div>
+    <div class="participant-table-wrap" style="margin:10px 12px">
+      ${buildParticipantTableMarkup(tenderId)}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px">
+      <button class="btn btn-success btn-sm" onclick="saveExpandParticipantTable(${tenderId})">${esc(EXPAND_TEXT.save)}</button>
+    </div>
+  `;
+  renderExpandParticipantGrid(tenderId);
+}
+
+function renderExpandParticipantGrid(tenderId) {
+  const head = document.getElementById('expandParticipantHead-' + tenderId);
+  const body = document.getElementById('expandParticipantBody-' + tenderId);
+  if (!head || !body) return;
+  const grid = _expandParticipantGrids[tenderId] || getDefaultParticipantGrid();
+  const headerRow = grid[0] || PARTICIPANT_DEFAULT_HEADERS.slice();
+  const dataRows = grid.slice(1);
+  head.innerHTML = `
+    <tr>${headerRow.map((cell, c) => `<th contenteditable="true" data-grid-cell="1" data-r="0" data-c="${c}" onpaste="expandParticipantHandlePaste(event,${tenderId})" onkeydown="expandParticipantHandleKeydown(event,${tenderId})">${esc(cell)}</th>`).join('')}</tr>
+  `;
+  body.innerHTML = dataRows.map((row, index) => {
+    const r = index + 1;
+    return `<tr>${row.map((cell, c) => `<td contenteditable="true" data-grid-cell="1" data-r="${r}" data-c="${c}" onpaste="expandParticipantHandlePaste(event,${tenderId})" onkeydown="expandParticipantHandleKeydown(event,${tenderId})">${esc(cell)}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function expandParticipantSyncFromDOM(tenderId) {
+  const table = document.getElementById('expandParticipantTable-' + tenderId);
+  if (!table) return _expandParticipantGrids[tenderId] || [];
+  const grid = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const row = [];
+    tr.querySelectorAll('[data-grid-cell]').forEach(cell => row.push(cell.textContent));
+    grid.push(row);
+  });
+  _expandParticipantGrids[tenderId] = grid;
+  return grid;
+}
+
+function expandParticipantAddRow(tenderId) {
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  const cols = grid[0]?.length || 1;
+  grid.push(new Array(cols).fill(''));
+  renderExpandParticipantGrid(tenderId);
+}
+
+function expandParticipantAddCol(tenderId) {
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  if (!grid.length) grid.push(PARTICIPANT_DEFAULT_HEADERS.slice());
+  else grid.forEach(row => row.push(''));
+  renderExpandParticipantGrid(tenderId);
+}
+
+function expandParticipantRemoveRow(tenderId) {
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  if (grid.length > 1) grid.pop();
+  renderExpandParticipantGrid(tenderId);
+}
+
+function expandParticipantRemoveCol(tenderId) {
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  if ((grid[0]?.length || 0) > 1) grid.forEach(row => row.pop());
+  renderExpandParticipantGrid(tenderId);
+}
+
+function expandParticipantClear(tenderId) {
+  if (!confirm(EXPAND_TEXT.participantClearConfirm)) return;
+  _expandParticipantGrids[tenderId] = getDefaultParticipantGrid();
+  renderExpandParticipantGrid(tenderId);
+}
+
+function expandParticipantHandlePaste(event, tenderId) {
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  const cell = event.target.closest('[data-grid-cell]');
+  if (!cell) return;
+  const r0 = parseInt(cell.dataset.r, 10), c0 = parseInt(cell.dataset.c, 10);
+  const lines = text.replace(/\r/g, '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  const parsed = lines.map(line => line.split('\t'));
+  const neededRows = r0 + parsed.length;
+  const neededCols = Math.max(grid[0]?.length || 0, c0 + Math.max(...parsed.map(p => p.length)));
+  while (grid.length < neededRows) grid.push(new Array(neededCols).fill(''));
+  grid.forEach(row => { while (row.length < neededCols) row.push(''); });
+  parsed.forEach((prow, i) => {
+    prow.forEach((val, j) => { grid[r0 + i][c0 + j] = val; });
+  });
+  renderExpandParticipantGrid(tenderId);
+  const next = document.querySelector(`#expandParticipantTable-${tenderId} [data-grid-cell][data-r="${r0}"][data-c="${c0}"]`);
+  if (next) next.focus();
+}
+
+function expandParticipantHandleKeydown(event, tenderId) {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    const grid = expandParticipantSyncFromDOM(tenderId);
+    const cell = event.target.closest('[data-grid-cell]');
+    if (!cell) return;
+    let r = parseInt(cell.dataset.r, 10), c = parseInt(cell.dataset.c, 10);
+    c++;
+    if (c >= (grid[r]?.length || 0)) { c = 0; r++; }
+    if (r >= grid.length) grid.push(new Array(grid[0].length).fill(''));
+    renderExpandParticipantGrid(tenderId);
+    const next = document.querySelector(`#expandParticipantTable-${tenderId} [data-grid-cell][data-r="${r}"][data-c="${c}"]`);
+    if (next) next.focus();
+  } else if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    const grid = expandParticipantSyncFromDOM(tenderId);
+    const cell = event.target.closest('[data-grid-cell]');
+    if (!cell) return;
+    let r = parseInt(cell.dataset.r, 10) + 1, c = parseInt(cell.dataset.c, 10);
+    if (r >= grid.length) grid.push(new Array(grid[0].length).fill(''));
+    renderExpandParticipantGrid(tenderId);
+    const next = document.querySelector(`#expandParticipantTable-${tenderId} [data-grid-cell][data-r="${r}"][data-c="${c}"]`);
+    if (next) next.focus();
+  }
+}
+
+async function saveExpandParticipantTable(tenderId) {
+  const grid = expandParticipantSyncFromDOM(tenderId);
+  const text = serializeParticipantGrid(grid.filter(row => row.some(c => (c || '').trim() !== '')));
+  try {
+    const res = await fetch(`/api/tenders/${tenderId}/record-fields`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participant_text: text }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || EXPAND_TEXT.participantSaveError);
+    const cached = tenderListCache.find(t => t.id === tenderId);
+    if (cached) cached.participant_text = text;
+    toast(EXPAND_TEXT.participantSaveSuccess, 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+function renderExpandCustomGrid(tenderId, sectionKey) {
+  const section = getExpandCustomSection(tenderId, sectionKey);
+  const head = document.getElementById(`expandCustomHead-${tenderId}-${sectionKey}`);
+  const body = document.getElementById(`expandCustomBody-${tenderId}-${sectionKey}`);
+  if (!section || !head || !body) return;
+  const grid = Array.isArray(section.grid) && section.grid.length ? section.grid : getDefaultCustomGrid();
+  const headerRow = grid[0] || CUSTOM_GRID_HEADERS.slice();
+  const dataRows = grid.slice(1);
+  head.innerHTML = `<tr>${headerRow.map((cell, c) => `<th contenteditable="true" data-grid-cell="1" data-r="0" data-c="${c}" onpaste="expandCustomHandlePaste(event,${tenderId},'${sectionKey}')" onkeydown="expandCustomHandleKeydown(event,${tenderId},'${sectionKey}')">${esc(cell)}</th>`).join('')}</tr>`;
+  body.innerHTML = dataRows.map((row, index) => {
+    const r = index + 1;
+    return `<tr>${row.map((cell, c) => `<td contenteditable="true" data-grid-cell="1" data-r="${r}" data-c="${c}" onpaste="expandCustomHandlePaste(event,${tenderId},'${sectionKey}')" onkeydown="expandCustomHandleKeydown(event,${tenderId},'${sectionKey}')">${esc(cell)}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function expandCustomSyncFromDOM(tenderId, sectionKey) {
+  const section = getExpandCustomSection(tenderId, sectionKey);
+  const table = document.getElementById(`expandCustomTable-${tenderId}-${sectionKey}`);
+  if (!section) return [];
+  if (!table) return section.grid || [];
+  const grid = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const row = [];
+    tr.querySelectorAll('[data-grid-cell]').forEach(cell => row.push(cell.textContent));
+    grid.push(row);
+  });
+  section.grid = grid;
+  return grid;
+}
+
+function expandCustomAddRow(tenderId, sectionKey) {
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  const cols = grid[0]?.length || CUSTOM_GRID_HEADERS.length;
+  grid.push(new Array(cols).fill(''));
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomAddCol(tenderId, sectionKey) {
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  if (!grid.length) grid.push(CUSTOM_GRID_HEADERS.slice());
+  else grid.forEach((row, index) => row.push(index === 0 ? `Column ${row.length + 1}` : ''));
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomRemoveRow(tenderId, sectionKey) {
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  if (grid.length > 1) grid.pop();
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomRemoveCol(tenderId, sectionKey) {
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  if ((grid[0]?.length || 0) > 1) grid.forEach(row => row.pop());
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomClear(tenderId, sectionKey) {
+  if (!confirm(EXPAND_TEXT.customClearConfirm)) return;
+  const section = getExpandCustomSection(tenderId, sectionKey);
+  if (!section) return;
+  section.grid = getDefaultCustomGrid();
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomHandlePaste(event, tenderId, sectionKey) {
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  const cell = event.target.closest('[data-grid-cell]');
+  if (!cell) return;
+  const r0 = parseInt(cell.dataset.r, 10), c0 = parseInt(cell.dataset.c, 10);
+  const lines = text.replace(/\r/g, '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  const parsed = lines.map(line => line.split('\t'));
+  const neededRows = r0 + parsed.length;
+  const neededCols = Math.max(grid[0]?.length || 0, c0 + Math.max(...parsed.map(p => p.length)));
+  while (grid.length < neededRows) grid.push(new Array(neededCols).fill(''));
+  grid.forEach(row => { while (row.length < neededCols) row.push(''); });
+  parsed.forEach((prow, i) => {
+    prow.forEach((val, j) => { grid[r0 + i][c0 + j] = val; });
+  });
+  renderExpandCustomGrid(tenderId, sectionKey);
+}
+
+function expandCustomHandleKeydown(event, tenderId, sectionKey) {
+  if (event.key !== 'Tab' && !(event.key === 'Enter' && !event.shiftKey)) return;
+  event.preventDefault();
+  const grid = expandCustomSyncFromDOM(tenderId, sectionKey);
+  const cell = event.target.closest('[data-grid-cell]');
+  if (!cell) return;
+  let r = parseInt(cell.dataset.r, 10);
+  let c = parseInt(cell.dataset.c, 10);
+  if (event.key === 'Tab') {
+    c++;
+    if (c >= (grid[r]?.length || 0)) { c = 0; r++; }
+  } else {
+    r++;
+  }
+  if (r >= grid.length) grid.push(new Array(grid[0]?.length || CUSTOM_GRID_HEADERS.length).fill(''));
+  renderExpandCustomGrid(tenderId, sectionKey);
+  const next = document.querySelector(`#expandCustomTable-${tenderId}-${sectionKey} [data-grid-cell][data-r="${r}"][data-c="${c}"]`);
+  if (next) next.focus();
+}
+
+function saveExpandCustomSection(tenderId, sectionKey) {
+  expandCustomSyncFromDOM(tenderId, sectionKey);
+  saveExpandCustomSections(tenderId);
+  toast(EXPAND_TEXT.customSaveSuccess, 'success');
+}
+
+// ── Inline BOQ Table (row expand) ───────────────────────────────────────────
+async function renderExpandBoq(tenderId, content) {
+  if (!_expandBoqGrids[tenderId]) {
+    content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">${esc(EXPAND_TEXT.boqLoading)}</div>`;
+    try {
+      const res = await fetch(`/api/tenders/${tenderId}`);
+      if (!res.ok) throw new Error(EXPAND_TEXT.boqLoadError);
+      const tender = await res.json();
+      const items = (tender.boq_items || []).filter(i => i.source_type === 'manual');
+      _expandBoqGrids[tenderId] = items.length
+        ? [BOQ_COLUMN_HEADERS.slice(), ...items.map(i => [i.part_number || '', i.item_description || '', i.quantity || ''])]
+        : getDefaultBoqGrid();
+    } catch (err) {
+      content.innerHTML = `<div style="padding:18px;color:var(--red-600);font-size:12px;text-align:center">${esc(EXPAND_TEXT.boqLoadError)}: ${esc(err.message)}</div>`;
+      return;
+    }
+  }
+  content.innerHTML = `
+    <div class="participant-toolbar" style="padding:10px 12px 0">
+      ${renderExpandToolbar([
+        { label: EXPAND_TEXT.addRow, onClick: `expandBoqAddRow(${tenderId})` },
+        { label: EXPAND_TEXT.addColumn, onClick: `expandBoqAddCol(${tenderId})` },
+        { label: EXPAND_TEXT.removeRow, onClick: `expandBoqRemoveRow(${tenderId})` },
+        { label: EXPAND_TEXT.removeColumn, onClick: `expandBoqRemoveCol(${tenderId})` },
+        { label: EXPAND_TEXT.clearAll, onClick: `expandBoqClear(${tenderId})`, tone: 'danger' },
+      ])}
+      <div style="flex:1"></div>
+      <span class="participant-hint">${esc(EXPAND_TEXT.pasteHint)}</span>
+    </div>
+    <div class="participant-table-wrap" style="margin:10px 12px">
+      <table class="participant-table" id="expandBoqTable-${tenderId}">
+        <thead id="expandBoqHead-${tenderId}"></thead>
+        <tbody id="expandBoqBody-${tenderId}"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px">
+      <button class="btn btn-success btn-sm" onclick="saveExpandBoqTable(${tenderId})">${esc(EXPAND_TEXT.save)}</button>
+    </div>
+  `;
+  renderExpandBoqGrid(tenderId);
+}
+
+function renderExpandBoqGrid(tenderId) {
+  const head = document.getElementById('expandBoqHead-' + tenderId);
+  const tbody = document.getElementById('expandBoqBody-' + tenderId);
+  if (!head || !tbody) return;
+  const grid = _expandBoqGrids[tenderId] || getDefaultBoqGrid();
+  const headerRow = grid[0] || BOQ_COLUMN_HEADERS.slice();
+  const dataRows = grid.slice(1);
+  head.innerHTML = `<tr>${headerRow.map((cell, c) => `<th contenteditable="true" data-grid-cell="1" data-r="0" data-c="${c}" onpaste="expandBoqHandlePaste(event,${tenderId})" onkeydown="expandBoqHandleKeydown(event,${tenderId})"${c === 0 ? ' style="width:160px"' : c === 2 ? ' style="width:100px"' : ''}>${esc(cell)}</th>`).join('')}</tr>`;
+  tbody.innerHTML = dataRows.map((row, index) => {
+    const r = index + 1;
+    return `<tr>${row.map((cell, c) => `<td contenteditable="true" data-grid-cell="1" data-r="${r}" data-c="${c}" onpaste="expandBoqHandlePaste(event,${tenderId})" onkeydown="expandBoqHandleKeydown(event,${tenderId})">${esc(cell)}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function expandBoqSyncFromDOM(tenderId) {
+  const table = document.getElementById('expandBoqTable-' + tenderId);
+  if (!table) return _expandBoqGrids[tenderId] || [];
+  const grid = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const row = [];
+    tr.querySelectorAll('[data-grid-cell]').forEach(cell => row.push(cell.textContent));
+    grid.push(row);
+  });
+  _expandBoqGrids[tenderId] = grid;
+  return grid;
+}
+
+function expandBoqAddRow(tenderId) {
+  const grid = expandBoqSyncFromDOM(tenderId);
+  const cols = grid[0]?.length || BOQ_COLUMN_HEADERS.length;
+  grid.push(new Array(cols).fill(''));
+  renderExpandBoqGrid(tenderId);
+}
+
+function expandBoqAddCol(tenderId) {
+  const grid = expandBoqSyncFromDOM(tenderId);
+  if (!grid.length) grid.push(BOQ_COLUMN_HEADERS.slice());
+  else grid.forEach((row, index) => row.push(index === 0 ? `Column ${row.length + 1}` : ''));
+  renderExpandBoqGrid(tenderId);
+}
+
+function expandBoqRemoveRow(tenderId) {
+  const grid = expandBoqSyncFromDOM(tenderId);
+  if (grid.length > 1) grid.pop();
+  renderExpandBoqGrid(tenderId);
+}
+
+function expandBoqRemoveCol(tenderId) {
+  const grid = expandBoqSyncFromDOM(tenderId);
+  if ((grid[0]?.length || 0) > 1) grid.forEach(row => row.pop());
+  renderExpandBoqGrid(tenderId);
+}
+
+function expandBoqClear(tenderId) {
+  if (!confirm(EXPAND_TEXT.boqClearConfirm)) return;
+  _expandBoqGrids[tenderId] = getDefaultBoqGrid();
+  renderExpandBoqGrid(tenderId);
+}
+
+function expandBoqHandlePaste(event, tenderId) {
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  const grid = expandBoqSyncFromDOM(tenderId);
+  const cell = event.target.closest('[data-grid-cell]');
+  if (!cell) return;
+  const r0 = parseInt(cell.dataset.r, 10), c0 = parseInt(cell.dataset.c, 10);
+  const lines = text.replace(/\r/g, '').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  const parsed = lines.map(line => line.split('\t'));
+  const neededRows = r0 + parsed.length;
+  const neededCols = Math.max(grid[0]?.length || 0, c0 + Math.max(...parsed.map(p => p.length)));
+  while (grid.length < neededRows) grid.push(new Array(neededCols).fill(''));
+  grid.forEach(row => { while (row.length < neededCols) row.push(''); });
+  parsed.forEach((prow, i) => {
+    prow.forEach((val, j) => { grid[r0 + i][c0 + j] = val; });
+  });
+  renderExpandBoqGrid(tenderId);
+  const next = document.querySelector(`#expandBoqTable-${tenderId} [data-grid-cell][data-r="${r0}"][data-c="${c0}"]`);
+  if (next) next.focus();
+}
+
+function expandBoqHandleKeydown(event, tenderId) {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    const grid = expandBoqSyncFromDOM(tenderId);
+    const cell = event.target.closest('[data-grid-cell]');
+    if (!cell) return;
+    let r = parseInt(cell.dataset.r, 10), c = parseInt(cell.dataset.c, 10);
+    c++;
+    if (c >= (grid[r]?.length || 0)) { c = 0; r++; }
+    if (r >= grid.length) grid.push(new Array(grid[0]?.length || BOQ_COLUMN_HEADERS.length).fill(''));
+    renderExpandBoqGrid(tenderId);
+    const next = document.querySelector(`#expandBoqTable-${tenderId} [data-grid-cell][data-r="${r}"][data-c="${c}"]`);
+    if (next) next.focus();
+  } else if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    const grid = expandBoqSyncFromDOM(tenderId);
+    const cell = event.target.closest('[data-grid-cell]');
+    if (!cell) return;
+    let r = parseInt(cell.dataset.r, 10) + 1, c = parseInt(cell.dataset.c, 10);
+    if (r >= grid.length) grid.push(new Array(grid[0]?.length || BOQ_COLUMN_HEADERS.length).fill(''));
+    renderExpandBoqGrid(tenderId);
+    const next = document.querySelector(`#expandBoqTable-${tenderId} [data-grid-cell][data-r="${r}"][data-c="${c}"]`);
+    if (next) next.focus();
+  }
+}
+
+async function saveExpandBoqTable(tenderId) {
+  const grid = expandBoqSyncFromDOM(tenderId);
+  const items = grid.slice(1)
+    .filter(row => row.some(c => (c || '').trim() !== ''))
+    .map(row => ({ part_number: row[0] || null, item_description: row[1] || null, quantity: row[2] || null }));
+  try {
+    const res = await fetch(`/api/tenders/${tenderId}/boq-items`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(items),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || EXPAND_TEXT.boqSaveError);
+    toast(EXPAND_TEXT.boqSaveSuccess, 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
 }
 
 let _attachmentTenderId = null;
@@ -2792,6 +3513,10 @@ async function saveRecordField(id) {
   row.querySelectorAll('[data-record-field]').forEach(el => {
     body[el.dataset.recordField] = el.value.trim() || null;
   });
+  if (!('participant_text' in body)) {
+    const cached = tenderListCache.find(t => t.id === id);
+    body.participant_text = cached ? (cached.participant_text || null) : null;
+  }
   try {
     await fetch(`/api/tenders/${id}/record-fields`, {
       method: 'PATCH',
