@@ -838,6 +838,120 @@ body.col-resizing { cursor:col-resize !important; }
 }
 .doc-preview-unavailable p { margin: 0; }
 .doc-preview-unavailable .big { font-weight: 600; font-size: 15px; color: var(--slate-700); }
+.reports-shell { display:grid;grid-template-columns:minmax(380px,420px) minmax(0,1fr);gap:18px;align-items:start; }
+.reports-card { background:#fff;border:1px solid var(--slate-200);border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.04); }
+.reports-card-head { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--slate-100); }
+.reports-card-head h3 { margin:0;font-size:14px;color:var(--slate-800);font-weight:700; }
+.reports-card-body { padding:16px; }
+.reports-selectbox { position:relative; width:100%; }
+.reports-select-trigger {
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--blue-500);
+  border-radius:12px;
+  padding:0 42px 0 14px;
+  font-size:13px;
+  font-weight:500;
+  color:var(--slate-700);
+  background:#fff;
+  display:flex;
+  align-items:center;
+  text-align:left;
+  cursor:pointer;
+  outline:none;
+  box-shadow:0 0 0 3px rgba(20,184,166,.10);
+  transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.reports-select-trigger:hover { border-color:var(--blue-600); }
+.reports-select-trigger:focus { border-color:var(--blue-600);box-shadow:0 0 0 4px rgba(20,184,166,.12); }
+.reports-select-trigger::after {
+  content:'';
+  position:absolute;
+  right:14px;
+  top:50%;
+  width:16px;
+  height:16px;
+  transform:translateY(-50%);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364758B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/16px 16px no-repeat;
+  transition:transform .18s ease;
+  pointer-events:none;
+}
+.reports-selectbox.is-open .reports-select-trigger::after { transform:translateY(-50%) rotate(180deg); }
+.reports-select-label {
+  width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.reports-select-menu {
+  position:absolute;
+  top:calc(100% + 4px);
+  left:0;
+  right:0;
+  background:#fff;
+  border:1px solid var(--slate-300);
+  border-radius:12px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  display:none;
+  max-height:280px;
+  overflow:auto;
+  z-index:50;
+}
+.reports-select-search {
+  width:100%;
+  min-height:38px;
+  border:1px solid var(--slate-200);
+  border-radius:10px;
+  padding:0 12px;
+  font-size:13px;
+  color:var(--slate-700);
+  background:#fff;
+  outline:none;
+  margin-bottom:6px;
+}
+.reports-select-search:focus {
+  border-color:var(--blue-500);
+  box-shadow:0 0 0 3px rgba(20,184,166,.10);
+}
+.reports-select-empty {
+  padding:10px 12px;
+  font-size:12px;
+  color:var(--slate-500);
+}
+.reports-selectbox.is-open .reports-select-menu { display:block; }
+.reports-select-option {
+  width:100%;
+  border:none;
+  background:transparent;
+  border-radius:9px;
+  padding:10px 12px;
+  font-size:13px;
+  color:var(--slate-700);
+  text-align:left;
+  cursor:pointer;
+  transition:background-color .14s ease, color .14s ease;
+}
+.reports-select-option:hover,
+.reports-select-option:focus {
+  background:var(--blue-50);
+  color:var(--blue-700);
+  outline:none;
+}
+.reports-select-option.is-selected {
+  background:#eaf2fd;
+  color:var(--slate-800);
+  font-weight:600;
+}
+.reports-meta { font-size:12px;color:var(--slate-500);line-height:1.6; }
+.reports-empty { padding:34px 18px;text-align:center;color:var(--slate-400);font-size:13px; }
+.reports-tender-list { display:flex;flex-direction:column;gap:10px; }
+.reports-tender-item { border:1px solid var(--slate-200);border-radius:10px;padding:12px 14px;background:linear-gradient(180deg,#fff,#f8fafc); }
+.reports-tender-title { font-size:13px;font-weight:700;color:var(--slate-800); }
+.reports-tender-sub { margin-top:4px;font-size:12px;color:var(--slate-500);line-height:1.5; }
+@media (max-width: 960px) {
+  .reports-shell { grid-template-columns:1fr; }
+}
 
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -869,6 +983,10 @@ body.col-resizing { cursor:col-resize !important; }
   <div class="nav-item" id="nav-profile" onclick="showView('profile')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
     Profile
+  </div>
+  <div class="nav-item" id="nav-reports" onclick="showView('reports')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v17.25A.75.75 0 004.5 21h15.75M7.5 16.5v-3.75m4.5 3.75V9.75m4.5 6.75V6"/></svg>
+    Reports
   </div>
 
   <div style="flex:1"></div>
@@ -1463,6 +1581,38 @@ body.col-resizing { cursor:col-resize !important; }
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- REPORTS VIEW                                                            -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-reports">
+  <div class="reports-shell">
+    <div class="reports-card">
+      <div class="reports-card-head">
+        <h3>List of Participants</h3>
+      </div>
+      <div class="reports-card-body">
+        <div class="reports-selectbox" id="reportsParticipantPicker">
+          <button type="button" id="reportsParticipantTrigger" class="reports-select-trigger" onclick="toggleReportsParticipantMenu()">
+            <span class="reports-select-label" id="reportsParticipantLabel">Select participant</span>
+          </button>
+          <div id="reportsParticipantMenu" class="reports-select-menu"></div>
+        </div>
+        <div class="reports-meta" id="reportsParticipantMeta" style="margin-top:12px">
+          Choose a participant to see all tenders where they participated.
+        </div>
+      </div>
+    </div>
+    <div class="reports-card">
+      <div class="reports-card-head">
+        <h3 id="reportsResultTitle">Participant Tenders</h3>
+      </div>
+      <div class="reports-card-body" id="reportsResultBody">
+        <div class="reports-empty">Select a participant from the dropdown to view related tenders.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
   </main>
 </div><!-- end #app -->
 
@@ -1573,6 +1723,7 @@ const PAGE_TITLES = {
   review: 'Review Tender',
   library:'Document Library',
   profile:'Company Profile',
+  reports:'Reports',
 };
 const PAGE_ACTIONS = {
   upload:  '',
@@ -1580,9 +1731,238 @@ const PAGE_ACTIONS = {
   review:  '<button class="btn btn-outline btn-sm" onclick="showView(\'list\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg> Back to List</button>',
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
+  reports: '',
 };
 
 let tenderListCache = [];
+let participantReportIndex = [];
+let selectedParticipantReportName = '';
+let companyProfileNameCache = '';
+let participantReportSearchTerm = '';
+
+function normalizeParticipantName(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function canonicalizeCompanyName(value) {
+  return normalizeParticipantName(value)
+    .toLowerCase()
+    .replace(/\bprivate limited\b/g, 'pvt ltd')
+    .replace(/\bpvt\.?\s*ltd\.?\b/g, 'pvt ltd')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function shouldIncludeParticipantName(name) {
+  const candidate = canonicalizeCompanyName(name);
+  if (!candidate) return false;
+  const ownCompanyName = canonicalizeCompanyName(
+    companyProfileNameCache || document.getElementById('p_company_name')?.value || ''
+  );
+  if (ownCompanyName && candidate === ownCompanyName) return false;
+  if (candidate === 'fidus india automation pvt ltd') return false;
+  return true;
+}
+
+function getParticipantNameColumnIndex(headerRow) {
+  const normalizedHeaders = (headerRow || []).map(cell => normalizeParticipantName(cell).toLowerCase());
+  const preferredMatchers = [
+    /seller\s*name/,
+    /participant\s*name/,
+    /bidder\s*name/,
+    /^seller$/,
+    /^participant$/,
+    /^bidder$/,
+  ];
+  for (const matcher of preferredMatchers) {
+    const index = normalizedHeaders.findIndex(text => matcher.test(text));
+    if (index !== -1) return index;
+  }
+  return 0;
+}
+
+function extractParticipantNames(text) {
+  if (!text) return [];
+  const grid = parseParticipantTSV(text).map(row => row.map(cell => normalizeParticipantName(cell)));
+  const populated = grid.filter(row => row.some(cell => cell));
+  if (!populated.length) return [];
+  const headerRow = populated[0];
+  const nameColumnIndex = getParticipantNameColumnIndex(headerRow);
+  const hasHeader = headerRow.some(cell => /seller|participant|bidder|name|rank|price|item|s\.?no/i.test(cell));
+  const startIndex = hasHeader ? 1 : 0;
+  const names = populated
+    .slice(startIndex)
+    .map(row => normalizeParticipantName(row[nameColumnIndex]))
+    .filter(Boolean);
+  if (names.length) return [...new Set(names)];
+  return [...new Set(String(text).split(/\r\n|\n|\r|,/).map(normalizeParticipantName).filter(Boolean))];
+}
+
+function getParticipantReportTenderTitle(tender) {
+  return tender.tender_number || tender.gem_bidding_number || `Tender #${tender.id}`;
+}
+
+function buildParticipantReportIndex(tenders) {
+  const participantMap = new Map();
+  (tenders || []).forEach(tender => {
+    const seenInTender = new Set();
+    extractParticipantNames(tender.participant_text).forEach(name => {
+      if (!shouldIncludeParticipantName(name)) return;
+      const key = name.toLowerCase();
+      if (seenInTender.has(key)) return;
+      seenInTender.add(key);
+      if (!participantMap.has(key)) participantMap.set(key, { name, tenders: [] });
+      participantMap.get(key).tenders.push(tender);
+    });
+  });
+  participantReportIndex = Array.from(participantMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(entry => ({
+      name: entry.name,
+      tenders: entry.tenders
+        .slice()
+        .sort((a, b) => String(getParticipantReportTenderTitle(a)).localeCompare(String(getParticipantReportTenderTitle(b))))
+    }));
+}
+
+async function ensureTenderListCache(forceReload = false) {
+  if (!forceReload && tenderListCache.length) return tenderListCache;
+  const res = await fetch('/api/tenders');
+  if (!res.ok) throw new Error('Tender load failed');
+  tenderListCache = await res.json();
+  return tenderListCache;
+}
+
+function renderParticipantReportOptions() {
+  const picker = document.getElementById('reportsParticipantPicker');
+  const label = document.getElementById('reportsParticipantLabel');
+  const menu = document.getElementById('reportsParticipantMenu');
+  const meta = document.getElementById('reportsParticipantMeta');
+  if (!picker || !label || !menu || !meta) return;
+  const filteredParticipants = participantReportIndex.filter(entry =>
+    !participantReportSearchTerm || entry.name.toLowerCase().includes(participantReportSearchTerm)
+  );
+  label.textContent = selectedParticipantReportName || 'Select participant';
+  menu.innerHTML = `
+    <input
+      type="text"
+      id="reportsParticipantSearch"
+      class="reports-select-search"
+      placeholder="Search participant"
+      value="${esc(participantReportSearchTerm)}"
+      oninput="filterParticipantReportOptions(this.value)"
+      onclick="event.stopPropagation()"
+    >
+    <button type="button" class="reports-select-option${!selectedParticipantReportName ? ' is-selected' : ''}" data-index="-1">Select participant</button>
+  ` + (filteredParticipants.length
+    ? filteredParticipants.map(entry => (
+        `<button type="button" class="reports-select-option${selectedParticipantReportName === entry.name ? ' is-selected' : ''}" data-name="${esc(entry.name)}">${esc(entry.name)}</button>`
+      )).join('')
+    : `<div class="reports-select-empty">No participants found.</div>`);
+  menu.querySelectorAll('.reports-select-option').forEach(button => {
+    button.addEventListener('click', () => {
+      const name = button.dataset.index === '-1' ? '' : (button.dataset.name || '');
+      onParticipantReportChange(name);
+      closeReportsParticipantMenu();
+    });
+  });
+  meta.textContent = participantReportIndex.length
+    ? `${participantReportIndex.length} unique participant names found in All Tenders.`
+    : 'No participant names are available in All Tenders yet.';
+}
+
+function toggleReportsParticipantMenu() {
+  const picker = document.getElementById('reportsParticipantPicker');
+  if (!picker) return;
+  const willOpen = !picker.classList.contains('is-open');
+  picker.classList.toggle('is-open');
+  if (willOpen) {
+    setTimeout(() => {
+      document.getElementById('reportsParticipantSearch')?.focus();
+    }, 0);
+  }
+}
+
+function closeReportsParticipantMenu() {
+  const picker = document.getElementById('reportsParticipantPicker');
+  if (picker) picker.classList.remove('is-open');
+  participantReportSearchTerm = '';
+}
+
+function filterParticipantReportOptions(value) {
+  participantReportSearchTerm = String(value || '').trim().toLowerCase();
+  renderParticipantReportOptions();
+  const search = document.getElementById('reportsParticipantSearch');
+  if (search) {
+    search.focus();
+    const end = search.value.length;
+    search.setSelectionRange(end, end);
+  }
+}
+
+function renderParticipantReportResults(name) {
+  const title = document.getElementById('reportsResultTitle');
+  const body = document.getElementById('reportsResultBody');
+  if (!title || !body) return;
+  if (!name) {
+    title.textContent = 'Participant Tenders';
+    body.innerHTML = `<div class="reports-empty">Select a participant from the dropdown to view related tenders.</div>`;
+    return;
+  }
+  const entry = participantReportIndex.find(item => item.name === name);
+  if (!entry) {
+    title.textContent = 'Participant Tenders';
+    body.innerHTML = `<div class="reports-empty">No tenders found for this participant.</div>`;
+    return;
+  }
+  title.textContent = `${entry.name} (${entry.tenders.length})`;
+  body.innerHTML = `<div class="reports-tender-list">` + entry.tenders.map(tender => `
+    <div class="reports-tender-item">
+      <div class="reports-tender-title">${esc(getParticipantReportTenderTitle(tender))}</div>
+      <div class="reports-tender-sub">
+        ${esc(tender.organization_name || 'Organisation not available')}<br>
+        GeM: ${esc(tender.gem_bidding_number || '—')} | Bid End: ${esc(tender.bid_end_datetime || '—')}
+      </div>
+    </div>
+  `).join('') + `</div>`;
+}
+
+async function loadReports() {
+  const body = document.getElementById('reportsResultBody');
+  if (body) body.innerHTML = `<div class="reports-empty"><span class="spinner"></span>&nbsp; Loading participants…</div>`;
+  try {
+    const [tenders, profileRes] = await Promise.all([
+      ensureTenderListCache(true),
+      fetch('/api/company/profile').catch(() => null),
+    ]);
+    if (profileRes && profileRes.ok) {
+      const profileData = await profileRes.json().catch(() => ({}));
+      companyProfileNameCache = profileData.company_name || companyProfileNameCache;
+    }
+    buildParticipantReportIndex(tenders);
+    selectedParticipantReportName = '';
+    participantReportSearchTerm = '';
+    renderParticipantReportOptions();
+    renderParticipantReportResults('');
+  } catch (err) {
+    if (body) body.innerHTML = `<div class="reports-empty" style="color:var(--red-600)">Failed to load reports: ${esc(err.message)}</div>`;
+  }
+}
+
+function onParticipantReportChange(name) {
+  selectedParticipantReportName = name || '';
+  participantReportSearchTerm = '';
+  renderParticipantReportOptions();
+  renderParticipantReportResults(name);
+}
+
+document.addEventListener('click', (event) => {
+  const picker = document.getElementById('reportsParticipantPicker');
+  if (!picker) return;
+  if (!picker.contains(event.target)) closeReportsParticipantMenu();
+});
+
 function getSearchQuery() {
   const el = document.getElementById('gemSearch');
   return el ? el.value.trim().toLowerCase() : '';
@@ -2264,6 +2644,7 @@ function showView(name) {
   if (name === 'list')    loadTenderList();
   if (name === 'library') loadLibrary();
   if (name === 'profile') loadProfile();
+  if (name === 'reports') loadReports();
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
