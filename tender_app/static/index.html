@@ -843,6 +843,7 @@ body.col-resizing { cursor:col-resize !important; }
 .reports-card-head { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--slate-100); }
 .reports-card-head h3 { margin:0;font-size:14px;color:var(--slate-800);font-weight:700; }
 .reports-card-body { padding:16px; }
+.reports-filter-stack { display:flex;flex-direction:column;gap:18px; }
 .reports-selectbox { position:relative; width:100%; }
 .reports-select-trigger {
   width:100%;
@@ -949,6 +950,10 @@ body.col-resizing { cursor:col-resize !important; }
 .reports-tender-item { border:1px solid var(--slate-200);border-radius:10px;padding:12px 14px;background:linear-gradient(180deg,#fff,#f8fafc); }
 .reports-tender-title { font-size:13px;font-weight:700;color:var(--slate-800); }
 .reports-tender-sub { margin-top:4px;font-size:12px;color:var(--slate-500);line-height:1.5; }
+.reports-participant-grid { display:flex;flex-direction:column;gap:10px; }
+.reports-participant-item { border:1px solid var(--slate-200);border-radius:10px;padding:12px 14px;background:linear-gradient(180deg,#fff,#f8fafc); }
+.reports-participant-name { font-size:13px;font-weight:700;color:var(--slate-800); }
+.reports-participant-sub { margin-top:4px;font-size:12px;color:var(--slate-500);line-height:1.5; }
 @media (max-width: 960px) {
   .reports-shell { grid-template-columns:1fr; }
 }
@@ -1586,19 +1591,37 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="view" id="view-reports">
   <div class="reports-shell">
-    <div class="reports-card">
-      <div class="reports-card-head">
-        <h3>List of Participants</h3>
-      </div>
-      <div class="reports-card-body">
-        <div class="reports-selectbox" id="reportsParticipantPicker">
-          <button type="button" id="reportsParticipantTrigger" class="reports-select-trigger" onclick="toggleReportsParticipantMenu()">
-            <span class="reports-select-label" id="reportsParticipantLabel">Select participant</span>
-          </button>
-          <div id="reportsParticipantMenu" class="reports-select-menu"></div>
+    <div class="reports-filter-stack">
+      <div class="reports-card">
+        <div class="reports-card-head">
+          <h3>List of Participants</h3>
         </div>
-        <div class="reports-meta" id="reportsParticipantMeta" style="margin-top:12px">
-          Choose a participant to see all tenders where they participated.
+        <div class="reports-card-body">
+          <div class="reports-selectbox" id="reportsParticipantPicker">
+            <button type="button" id="reportsParticipantTrigger" class="reports-select-trigger" onclick="toggleReportsParticipantMenu()">
+              <span class="reports-select-label" id="reportsParticipantLabel">Select participant</span>
+            </button>
+            <div id="reportsParticipantMenu" class="reports-select-menu"></div>
+          </div>
+          <div class="reports-meta" id="reportsParticipantMeta" style="margin-top:12px">
+            Choose a participant to see all tenders where they participated.
+          </div>
+        </div>
+      </div>
+      <div class="reports-card">
+        <div class="reports-card-head">
+          <h3>List of Brands</h3>
+        </div>
+        <div class="reports-card-body">
+          <div class="reports-selectbox" id="reportsBrandPicker">
+            <button type="button" id="reportsBrandTrigger" class="reports-select-trigger" onclick="toggleReportsBrandMenu()">
+              <span class="reports-select-label" id="reportsBrandLabel">Select brand</span>
+            </button>
+            <div id="reportsBrandMenu" class="reports-select-menu"></div>
+          </div>
+          <div class="reports-meta" id="reportsBrandMeta" style="margin-top:12px">
+            Choose a brand to see the participants linked with that make.
+          </div>
         </div>
       </div>
     </div>
@@ -1736,9 +1759,12 @@ const PAGE_ACTIONS = {
 
 let tenderListCache = [];
 let participantReportIndex = [];
+let brandReportIndex = [];
 let selectedParticipantReportName = '';
 let companyProfileNameCache = '';
 let participantReportSearchTerm = '';
+let selectedBrandReportName = '';
+let brandReportSearchTerm = '';
 
 function normalizeParticipantName(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -1803,6 +1829,15 @@ function getParticipantReportTenderTitle(tender) {
   return tender.tender_number || tender.gem_bidding_number || `Tender #${tender.id}`;
 }
 
+function extractBrandNames(text) {
+  return [...new Set(
+    String(text || '')
+      .split(/\r\n|\n|\r|,|\/|;|\|/)
+      .map(value => normalizeParticipantName(value))
+      .filter(Boolean)
+  )];
+}
+
 function buildParticipantReportIndex(tenders) {
   const participantMap = new Map();
   (tenders || []).forEach(tender => {
@@ -1823,6 +1858,41 @@ function buildParticipantReportIndex(tenders) {
       tenders: entry.tenders
         .slice()
         .sort((a, b) => String(getParticipantReportTenderTitle(a)).localeCompare(String(getParticipantReportTenderTitle(b))))
+    }));
+}
+
+function buildBrandReportIndex(tenders) {
+  const brandMap = new Map();
+  (tenders || []).forEach(tender => {
+    const participantNames = extractParticipantNames(tender.participant_text).filter(shouldIncludeParticipantName);
+    const seenBrandsInTender = new Set();
+    extractBrandNames(tender.make).forEach(name => {
+      const key = name.toLowerCase();
+      if (!key || seenBrandsInTender.has(key)) return;
+      seenBrandsInTender.add(key);
+      if (!brandMap.has(key)) brandMap.set(key, { name, participants: new Map() });
+      const brandEntry = brandMap.get(key);
+      participantNames.forEach(participantName => {
+        const participantKey = participantName.toLowerCase();
+        if (!brandEntry.participants.has(participantKey)) {
+          brandEntry.participants.set(participantKey, { name: participantName, tenders: [] });
+        }
+        brandEntry.participants.get(participantKey).tenders.push(tender);
+      });
+    });
+  });
+  brandReportIndex = Array.from(brandMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(entry => ({
+      name: entry.name,
+      participants: Array.from(entry.participants.values())
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(participant => ({
+          name: participant.name,
+          tenders: participant.tenders
+            .slice()
+            .sort((a, b) => String(getParticipantReportTenderTitle(a)).localeCompare(String(getParticipantReportTenderTitle(b))))
+        }))
     }));
 }
 
@@ -1872,6 +1942,44 @@ function renderParticipantReportOptions() {
     : 'No participant names are available in All Tenders yet.';
 }
 
+function renderBrandReportOptions() {
+  const picker = document.getElementById('reportsBrandPicker');
+  const label = document.getElementById('reportsBrandLabel');
+  const menu = document.getElementById('reportsBrandMenu');
+  const meta = document.getElementById('reportsBrandMeta');
+  if (!picker || !label || !menu || !meta) return;
+  const filteredBrands = brandReportIndex.filter(entry =>
+    !brandReportSearchTerm || entry.name.toLowerCase().includes(brandReportSearchTerm)
+  );
+  label.textContent = selectedBrandReportName || 'Select brand';
+  menu.innerHTML = `
+    <input
+      type="text"
+      id="reportsBrandSearch"
+      class="reports-select-search"
+      placeholder="Search brand"
+      value="${esc(brandReportSearchTerm)}"
+      oninput="filterBrandReportOptions(this.value)"
+      onclick="event.stopPropagation()"
+    >
+    <button type="button" class="reports-select-option${!selectedBrandReportName ? ' is-selected' : ''}" data-index="-1">Select brand</button>
+  ` + (filteredBrands.length
+    ? filteredBrands.map(entry => (
+        `<button type="button" class="reports-select-option${selectedBrandReportName === entry.name ? ' is-selected' : ''}" data-name="${esc(entry.name)}">${esc(entry.name)}</button>`
+      )).join('')
+    : `<div class="reports-select-empty">No brands found.</div>`);
+  menu.querySelectorAll('.reports-select-option').forEach(button => {
+    button.addEventListener('click', () => {
+      const name = button.dataset.index === '-1' ? '' : (button.dataset.name || '');
+      onBrandReportChange(name);
+      closeReportsBrandMenu();
+    });
+  });
+  meta.textContent = brandReportIndex.length
+    ? `${brandReportIndex.length} unique brands found in All Tenders.`
+    : 'No brand names are available in All Tenders yet.';
+}
+
 function toggleReportsParticipantMenu() {
   const picker = document.getElementById('reportsParticipantPicker');
   if (!picker) return;
@@ -1894,6 +2002,35 @@ function filterParticipantReportOptions(value) {
   participantReportSearchTerm = String(value || '').trim().toLowerCase();
   renderParticipantReportOptions();
   const search = document.getElementById('reportsParticipantSearch');
+  if (search) {
+    search.focus();
+    const end = search.value.length;
+    search.setSelectionRange(end, end);
+  }
+}
+
+function toggleReportsBrandMenu() {
+  const picker = document.getElementById('reportsBrandPicker');
+  if (!picker) return;
+  const willOpen = !picker.classList.contains('is-open');
+  picker.classList.toggle('is-open');
+  if (willOpen) {
+    setTimeout(() => {
+      document.getElementById('reportsBrandSearch')?.focus();
+    }, 0);
+  }
+}
+
+function closeReportsBrandMenu() {
+  const picker = document.getElementById('reportsBrandPicker');
+  if (picker) picker.classList.remove('is-open');
+  brandReportSearchTerm = '';
+}
+
+function filterBrandReportOptions(value) {
+  brandReportSearchTerm = String(value || '').trim().toLowerCase();
+  renderBrandReportOptions();
+  const search = document.getElementById('reportsBrandSearch');
   if (search) {
     search.focus();
     const end = search.value.length;
@@ -1928,6 +2065,33 @@ function renderParticipantReportResults(name) {
   `).join('') + `</div>`;
 }
 
+function renderBrandReportResults(name) {
+  const title = document.getElementById('reportsResultTitle');
+  const body = document.getElementById('reportsResultBody');
+  if (!title || !body) return;
+  if (!name) {
+    title.textContent = 'Brand Participants';
+    body.innerHTML = `<div class="reports-empty">Select a brand from the dropdown to view related participants.</div>`;
+    return;
+  }
+  const entry = brandReportIndex.find(item => item.name === name);
+  if (!entry || !entry.participants.length) {
+    title.textContent = 'Brand Participants';
+    body.innerHTML = `<div class="reports-empty">No participants found for this brand.</div>`;
+    return;
+  }
+  title.textContent = `${entry.name} (${entry.participants.length})`;
+  body.innerHTML = `<div class="reports-participant-grid">` + entry.participants.map(participant => `
+    <div class="reports-participant-item">
+      <div class="reports-participant-name">${esc(participant.name)}</div>
+      <div class="reports-participant-sub">
+        Participated in ${participant.tenders.length} tender${participant.tenders.length === 1 ? '' : 's'}<br>
+        ${participant.tenders.map(tender => esc(getParticipantReportTenderTitle(tender))).join(', ')}
+      </div>
+    </div>
+  `).join('') + `</div>`;
+}
+
 async function loadReports() {
   const body = document.getElementById('reportsResultBody');
   if (body) body.innerHTML = `<div class="reports-empty"><span class="spinner"></span>&nbsp; Loading participants…</div>`;
@@ -1941,9 +2105,13 @@ async function loadReports() {
       companyProfileNameCache = profileData.company_name || companyProfileNameCache;
     }
     buildParticipantReportIndex(tenders);
+    buildBrandReportIndex(tenders);
     selectedParticipantReportName = '';
     participantReportSearchTerm = '';
+    selectedBrandReportName = '';
+    brandReportSearchTerm = '';
     renderParticipantReportOptions();
+    renderBrandReportOptions();
     renderParticipantReportResults('');
   } catch (err) {
     if (body) body.innerHTML = `<div class="reports-empty" style="color:var(--red-600)">Failed to load reports: ${esc(err.message)}</div>`;
@@ -1953,14 +2121,28 @@ async function loadReports() {
 function onParticipantReportChange(name) {
   selectedParticipantReportName = name || '';
   participantReportSearchTerm = '';
+  selectedBrandReportName = '';
+  brandReportSearchTerm = '';
   renderParticipantReportOptions();
+  renderBrandReportOptions();
   renderParticipantReportResults(name);
+}
+
+function onBrandReportChange(name) {
+  selectedBrandReportName = name || '';
+  brandReportSearchTerm = '';
+  selectedParticipantReportName = '';
+  participantReportSearchTerm = '';
+  renderBrandReportOptions();
+  renderParticipantReportOptions();
+  renderBrandReportResults(name);
 }
 
 document.addEventListener('click', (event) => {
   const picker = document.getElementById('reportsParticipantPicker');
-  if (!picker) return;
-  if (!picker.contains(event.target)) closeReportsParticipantMenu();
+  if (picker && !picker.contains(event.target)) closeReportsParticipantMenu();
+  const brandPicker = document.getElementById('reportsBrandPicker');
+  if (brandPicker && !brandPicker.contains(event.target)) closeReportsBrandMenu();
 });
 
 function getSearchQuery() {
