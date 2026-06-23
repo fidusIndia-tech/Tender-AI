@@ -59,3 +59,16 @@ Output lands in `output/<BID_NUMBER>/` with the produced docs, a `checklist.md`
   them via the GeM portal and feed paths into the manifest.
 - Add a review UI before zipping (the manual items always need a human).
 - PDF parsing is layout-dependent; keep a few sample bids as regression tests.
+
+## GeM browser autofill
+
+For production-friendly GeM search handoff, use the unpacked browser extension in
+`chrome_extension/gem-bidplus-autofill/`.
+
+The tender app opens GeM with a URL hash that carries the bid number, and the
+extension reads that value in the user's browser to:
+
+- switch to `Bid/RA Status`
+- set `Exact Search`
+- write the GeM bid number
+- trigger search
