@@ -1641,6 +1641,31 @@ body.col-resizing { cursor:col-resize !important; }
 
 <div id="toast"></div>
 
+<div class="attachments-overlay" id="gemExtensionPrompt" style="display:none" onclick="if(event.target===this)closeGemExtensionPrompt()">
+  <div class="attachments-modal" style="max-width:620px">
+    <div class="attachments-header">
+      <svg width="17" height="17" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5v-9m0 9l-3.75-3.75M12 16.5l3.75-3.75M3.75 19.5h16.5"/>
+      </svg>
+      <h3 id="gemExtensionPromptTitle">Install GeM Autofill Extension</h3>
+      <button onclick="closeGemExtensionPrompt()" style="background:none;border:none;cursor:pointer;color:var(--slate-400);font-size:20px;line-height:1;padding:2px 6px;" title="Close">&times;</button>
+    </div>
+    <div class="attachments-body">
+      <p id="gemExtensionPromptBody" style="margin:0 0 12px;color:var(--slate-600);line-height:1.5"></p>
+      <div style="display:grid;gap:8px;margin-bottom:14px;font-size:13px;color:var(--slate-700)">
+        <div id="gemExtensionPromptStep1"></div>
+        <div id="gemExtensionPromptStep2"></div>
+        <div id="gemExtensionPromptStep3"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-primary btn-sm" id="gemExtensionDownloadBtn" href="/api/extensions/gem-bidplus-autofill.zip" download="gem-bidplus-autofill.zip"></a>
+        <button class="btn btn-outline btn-sm" id="gemExtensionContinueBtn" onclick="continueGemResultsWithoutExtension()"></button>
+        <button class="btn btn-outline btn-sm" id="gemExtensionCloseBtn" onclick="closeGemExtensionPrompt()"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="deadline-overlay" id="deadlineOverlay">
   <div class="deadline-modal">
     <div class="deadline-header">
@@ -2890,6 +2915,14 @@ const EXPAND_TEXT = {
   resultsStatusChecking: 'Checking extension…',
   resultsStatusInstalled: 'Extension detected. GeM search will autofill automatically.',
   resultsStatusMissing: 'Extension not detected. GeM will open, but you will need to paste/search manually.',
+  resultsInstallTitle: 'Install GeM Autofill Extension',
+  resultsInstallBody: 'Install the browser extension once to enable one-click GeM autofill for your team.',
+  resultsInstallStep1: 'Download the extension zip from this app.',
+  resultsInstallStep2: 'Extract the zip to a folder on your computer.',
+  resultsInstallStep3: 'Open chrome://extensions, enable Developer mode, then choose Load unpacked and select the extracted folder.',
+  resultsInstallDownload: 'Download Extension Zip',
+  resultsInstallContinue: 'Continue Without Extension',
+  resultsInstallClose: 'Close',
   participantClearConfirm: 'Clear all participant data?',
   boqClearConfirm: 'Clear all BOQ items?',
   customClearConfirm: 'Clear all data in this section?',
@@ -2909,6 +2942,8 @@ const EXPAND_SECTION_DEFS = [
   { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
   { key: 'results', label: 'Results', renderer: renderExpandResults },
 ];
+const EXPAND_RESERVED_KEYS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.key).toLowerCase()));
+const EXPAND_RESERVED_LABELS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.label).trim().toLowerCase()));
 
 function parseParticipantTSV(text) {
   if (!text) return [];
@@ -2924,6 +2959,7 @@ let _expandBoqGrids = {}; // tenderId -> 2D array (part_number, item_description
 let _expandCustomSections = {}; // tenderId -> [{ key, label, grid }]
 let _expandActiveTabByTender = {};
 let _gemBidplusExtensionDetected = document.documentElement?.dataset?.gemBidplusExtension === 'installed';
+let _pendingGemResultsUrl = '';
 
 document.addEventListener('gem-bidplus-extension-ready', () => {
   _gemBidplusExtensionDetected = true;
@@ -2968,7 +3004,15 @@ function getDefaultBoqGrid() {
 function ensureExpandCustomSectionsLoaded(tenderId) {
   if (!_expandCustomSections[tenderId]) {
     const saved = getTenderExpandLocalState(tenderId).customSections;
-    _expandCustomSections[tenderId] = Array.isArray(saved) ? saved : [];
+    const cleaned = Array.isArray(saved) ? saved.filter(section => {
+      const key = String(section?.key || '').trim().toLowerCase();
+      const label = String(section?.label || '').trim().toLowerCase();
+      return !EXPAND_RESERVED_KEYS.has(key) && !EXPAND_RESERVED_LABELS.has(label);
+    }) : [];
+    _expandCustomSections[tenderId] = cleaned;
+    if (Array.isArray(saved) && cleaned.length !== saved.length) {
+      setTenderExpandLocalState(tenderId, { customSections: cleaned });
+    }
   }
   return _expandCustomSections[tenderId];
 }
@@ -3115,8 +3159,40 @@ async function openExpandResultsLink(tenderId) {
   }
   await copyExpandResultBidNumber(tenderId);
   const targetUrl = `https://bidplus.gem.gov.in/all-bids#bidrastatus-search-${encodeURIComponent(bidNumber)}`;
+  if (!_gemBidplusExtensionDetected) {
+    showGemExtensionPrompt(targetUrl);
+    return;
+  }
   window.open(targetUrl, '_blank', 'noopener');
   toast(EXPAND_TEXT.resultsOpened, 'success');
+}
+
+function showGemExtensionPrompt(targetUrl) {
+  _pendingGemResultsUrl = targetUrl;
+  const overlay = document.getElementById('gemExtensionPrompt');
+  if (!overlay) return;
+  document.getElementById('gemExtensionPromptTitle').textContent = EXPAND_TEXT.resultsInstallTitle;
+  document.getElementById('gemExtensionPromptBody').textContent = EXPAND_TEXT.resultsInstallBody;
+  document.getElementById('gemExtensionPromptStep1').textContent = `1. ${EXPAND_TEXT.resultsInstallStep1}`;
+  document.getElementById('gemExtensionPromptStep2').textContent = `2. ${EXPAND_TEXT.resultsInstallStep2}`;
+  document.getElementById('gemExtensionPromptStep3').textContent = `3. ${EXPAND_TEXT.resultsInstallStep3}`;
+  document.getElementById('gemExtensionDownloadBtn').textContent = EXPAND_TEXT.resultsInstallDownload;
+  document.getElementById('gemExtensionContinueBtn').textContent = EXPAND_TEXT.resultsInstallContinue;
+  document.getElementById('gemExtensionCloseBtn').textContent = EXPAND_TEXT.resultsInstallClose;
+  overlay.style.display = 'flex';
+}
+
+function closeGemExtensionPrompt() {
+  const overlay = document.getElementById('gemExtensionPrompt');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function continueGemResultsWithoutExtension() {
+  if (_pendingGemResultsUrl) {
+    window.open(_pendingGemResultsUrl, '_blank', 'noopener');
+    toast(EXPAND_TEXT.resultsOpened, 'success');
+  }
+  closeGemExtensionPrompt();
 }
 
 function renderExpandResults(tenderId, content) {

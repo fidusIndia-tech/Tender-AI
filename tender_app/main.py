@@ -1,4 +1,5 @@
 import base64
+import io
 import hashlib
 import hmac
 import json
@@ -8,6 +9,7 @@ import shutil
 import tempfile
 import time
 import uuid
+import zipfile
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import quote
@@ -32,6 +34,7 @@ UPLOADS_DIR     = HERE / "uploads"
 EXTRACTIONS_DIR = HERE / "extractions"
 COMPANY_DOCS_DIR = HERE / "company_docs"
 GENERATED_DIR    = HERE / "generated"
+EXTENSION_BUNDLE_DIR = HERE / "extension_bundle"
 
 for d in (UPLOADS_DIR, EXTRACTIONS_DIR, COMPANY_DOCS_DIR, GENERATED_DIR):
     d.mkdir(exist_ok=True)
@@ -307,6 +310,28 @@ async def health():
         "RAILWAY_ENVIRONMENT": os.environ.get("RAILWAY_ENVIRONMENT", "NOT SET"),
         "all_env_keys": [k for k in os.environ.keys()],
     }
+
+
+@app.get("/api/extensions/gem-bidplus-autofill.zip")
+async def download_gem_extension_zip():
+    if not EXTENSION_BUNDLE_DIR.exists():
+        raise HTTPException(404, "Extension bundle not found")
+
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(EXTENSION_BUNDLE_DIR.rglob("*")):
+            if path.is_file():
+                zf.write(path, arcname=path.relative_to(EXTENSION_BUNDLE_DIR).as_posix())
+    memory_file.seek(0)
+
+    headers = {
+        "Content-Disposition": 'attachment; filename="gem-bidplus-autofill.zip"'
+    }
+    return Response(
+        content=memory_file.getvalue(),
+        media_type="application/zip",
+        headers=headers,
+    )
 
 
 # ── Pydantic Models ───────────────────────────────────────────────────────────
