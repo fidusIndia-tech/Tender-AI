@@ -2880,6 +2880,16 @@ const EXPAND_TEXT = {
   boqSaveSuccess: 'BOQ items saved',
   boqSaveError: 'Save failed',
   customSaveSuccess: 'Section saved locally',
+  resultsTitle: 'GeM Results',
+  resultsOpen: 'Open GeM Results',
+  resultsCopy: 'Copy Bid Number',
+  resultsMissingBid: 'No bid number found for this tender',
+  resultsOpened: 'GeM page opened for extension autofill',
+  resultsCopied: 'Bid number copied',
+  resultsClipboardFallback: 'Copy failed, but the bid number is shown below',
+  resultsStatusChecking: 'Checking extension…',
+  resultsStatusInstalled: 'Extension detected. GeM search will autofill automatically.',
+  resultsStatusMissing: 'Extension not detected. GeM will open, but you will need to paste/search manually.',
   participantClearConfirm: 'Clear all participant data?',
   boqClearConfirm: 'Clear all BOQ items?',
   customClearConfirm: 'Clear all data in this section?',
@@ -2897,6 +2907,7 @@ const _EXPAND_LOCAL_KEY = 'tender_expand_ui_v2';
 const EXPAND_SECTION_DEFS = [
   { key: 'participants', label: 'Participants', renderer: renderExpandParticipants },
   { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
+  { key: 'results', label: 'Results', renderer: renderExpandResults },
 ];
 
 function parseParticipantTSV(text) {
@@ -2912,6 +2923,15 @@ let _expandParticipantGrids = {}; // tenderId -> 2D array
 let _expandBoqGrids = {}; // tenderId -> 2D array (part_number, item_description, quantity)
 let _expandCustomSections = {}; // tenderId -> [{ key, label, grid }]
 let _expandActiveTabByTender = {};
+let _gemBidplusExtensionDetected = document.documentElement?.dataset?.gemBidplusExtension === 'installed';
+
+document.addEventListener('gem-bidplus-extension-ready', () => {
+  _gemBidplusExtensionDetected = true;
+  document.querySelectorAll('[data-gem-extension-status]').forEach(el => {
+    el.textContent = EXPAND_TEXT.resultsStatusInstalled;
+    el.style.color = '#166534';
+  });
+});
 
 function _readExpandLocalStore() {
   try { return JSON.parse(localStorage.getItem(_EXPAND_LOCAL_KEY) || '{}'); } catch (_) { return {}; }
@@ -3061,6 +3081,56 @@ function renderExpandFutureSection(content) {
     <div class="expand-empty-state">
       <strong>${esc(EXPAND_TEXT.futureEmptyTitle)}</strong><br>
       ${esc(EXPAND_TEXT.futureEmptyBody)}
+    </div>
+  `;
+}
+
+function getExpandResultBidNumber(tenderId) {
+  const tender = tenderListCache.find(t => t.id === tenderId);
+  if (!tender) return '';
+  return String(tender.gem_bidding_number || tender.tender_number || '').trim();
+}
+
+async function copyExpandResultBidNumber(tenderId) {
+  const bidNumber = getExpandResultBidNumber(tenderId);
+  if (!bidNumber) {
+    toast(EXPAND_TEXT.resultsMissingBid, 'error');
+    return false;
+  }
+  try {
+    await navigator.clipboard.writeText(bidNumber);
+    toast(EXPAND_TEXT.resultsCopied, 'success');
+    return true;
+  } catch (_) {
+    toast(EXPAND_TEXT.resultsClipboardFallback, 'error');
+    return false;
+  }
+}
+
+async function openExpandResultsLink(tenderId) {
+  const bidNumber = getExpandResultBidNumber(tenderId);
+  if (!bidNumber) {
+    toast(EXPAND_TEXT.resultsMissingBid, 'error');
+    return;
+  }
+  await copyExpandResultBidNumber(tenderId);
+  const targetUrl = `https://bidplus.gem.gov.in/all-bids#bidrastatus-search-${encodeURIComponent(bidNumber)}`;
+  window.open(targetUrl, '_blank', 'noopener');
+  toast(EXPAND_TEXT.resultsOpened, 'success');
+}
+
+function renderExpandResults(tenderId, content) {
+  const statusText = _gemBidplusExtensionDetected
+    ? EXPAND_TEXT.resultsStatusInstalled
+    : EXPAND_TEXT.resultsStatusMissing;
+  const statusColor = _gemBidplusExtensionDetected ? '#166534' : '#92400e';
+  content.innerHTML = `
+    <div style="padding:16px 14px 14px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn btn-primary btn-sm" onclick="openExpandResultsLink(${tenderId})">${esc(EXPAND_TEXT.resultsOpen)}</button>
+        <button class="btn btn-outline btn-sm" onclick="copyExpandResultBidNumber(${tenderId})">${esc(EXPAND_TEXT.resultsCopy)}</button>
+      </div>
+      <div data-gem-extension-status style="margin-top:10px;font-size:12px;color:${statusColor}">${esc(statusText)}</div>
     </div>
   `;
 }
