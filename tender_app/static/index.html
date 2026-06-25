@@ -610,9 +610,9 @@ body.col-resizing { cursor:col-resize !important; }
 .expand-toggle-btn:hover { background:var(--blue-50);border-color:var(--blue-400);color:var(--blue-700); }
 .expand-row > td { background:var(--slate-50);border-top:1px solid var(--slate-200);border-bottom:1px solid var(--slate-200); }
 .expand-panel { padding:0; }
-.expand-tabs { display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--slate-200); }
+.expand-tabs { display:flex;flex-wrap:wrap;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--slate-200); }
 .expand-tab-btn {
-  background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;font-size:12px;
+  background:none;border:none;border-bottom:2px solid transparent;padding:6px 10px;font-size:12px;
   font-weight:600;color:var(--slate-500);cursor:pointer;
 }
 .expand-tab-btn:hover { color:var(--slate-700); }
@@ -993,6 +993,14 @@ body.col-resizing { cursor:col-resize !important; }
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v17.25A.75.75 0 004.5 21h15.75M7.5 16.5v-3.75m4.5 3.75V9.75m4.5 6.75V6"/></svg>
     Reports
   </div>
+  <div class="nav-item" id="nav-gem-watcher" onclick="showView('gem-watcher')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    GeM Watcher
+  </div>
+  <div class="nav-item" id="nav-gem-candidates" onclick="showView('gem-candidates')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.286z"/></svg>
+    GeM Tenders
+  </div>
 
   <div style="flex:1"></div>
   <div style="display:flex;align-items:center;gap:10px;padding:0 16px;">
@@ -1080,6 +1088,38 @@ body.col-resizing { cursor:col-resize !important; }
       <button class="btn btn-outline" onclick="clearUploadQueue()">Clear</button>
     </div>
     <div class="upload-summary" id="uploadSummary"></div>
+
+    <!-- ── OR: Scan GeM automatically ──────────────────────────────────────── -->
+    <div style="display:flex;align-items:center;gap:12px;margin:26px 0 18px">
+      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--slate-400)">OR</span>
+      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
+    </div>
+
+    <div class="card" style="margin:0">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+        Scan GeM for Tenders
+      </div>
+      <p style="font-size:12.5px;color:var(--slate-500);margin:0 0 14px">
+        Automatically search GeM for your active keywords, evaluate matches with AI, and add strong fits (score 8–10) to All Tenders.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Scan Start Date</label>
+          <input type="date" id="uploadScanDate">
+        </div>
+        <div class="form-group" style="align-self:flex-end">
+          <button class="btn btn-primary" id="uploadGemRunBtn" onclick="runGemScanFromUpload()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
+            Run Scan Now
+          </button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <a href="#" onclick="showView('gem-watcher');return false;" style="font-size:12.5px;font-weight:600;color:var(--blue-600);text-decoration:none">Manage keywords &amp; view scan logs →</a>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -1636,6 +1676,116 @@ body.col-resizing { cursor:col-resize !important; }
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- GEM WATCHER VIEW                                                        -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-gem-watcher">
+  <div id="gemScanBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;"></div>
+
+  <div class="card">
+    <div class="card-header">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+      Run Scan
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Scan Start Date</label>
+        <input type="date" id="gemScanDate">
+      </div>
+      <div class="form-group" style="align-self:flex-end;display:flex;gap:8px;flex-direction:row">
+        <button class="btn btn-primary" id="gemRunScanBtn" onclick="runGemScanNow()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
+          Run Scan Now
+        </button>
+        <button class="btn btn-danger" id="gemStopScanBtn" onclick="stopGemScan()" style="display:none">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+          Stop Scan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="gemKeywordForm" style="display:none">
+    <div class="card-header">Add Keyword</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Keyword *</label><input type="text" id="gemNewKeyword" placeholder="e.g. Siemens"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-success" onclick="saveGemKeyword()">Save</button>
+      <button class="btn btn-outline" onclick="toggleGemKeywordForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Keywords</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary btn-sm" onclick="toggleGemKeywordForm()">+ Add Keyword</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Keyword</th><th>Status</th><th>Last Checked</th><th style="width:140px">Actions</th></tr></thead>
+        <tbody id="gemKeywordsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="table-card" style="margin-top:18px">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100)">
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Scan Logs</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Started</th><th>Target Date</th><th>Status</th><th>Keywords</th>
+            <th>Found</th><th>New</th><th>Skipped (wrong date)</th><th>Approved</th><th>Rejected</th>
+          </tr>
+        </thead>
+        <tbody id="gemScanRunsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- GEM CANDIDATES VIEW                                                     -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-gem-candidates">
+  <div class="table-card">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">GeM Tenders</span>
+      <div style="flex:1"></div>
+      <select id="gemCandidateStatusFilter" onchange="loadGemCandidates()" style="padding:6px 10px;border:1.5px solid var(--slate-200);border-radius:var(--radius-sm);font-size:12px">
+        <option value="">All Statuses</option>
+        <option>QUEUED</option>
+        <option>FOUND</option>
+        <option>DOWNLOADING_PDF</option>
+        <option>PDF_DOWNLOADED</option>
+        <option>EXTRACTING</option>
+        <option>EVALUATING</option>
+        <option>EVALUATED</option>
+        <option>REVIEW</option>
+        <option>APPROVED</option>
+        <option>REJECTED</option>
+        <option>ERROR</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Matched Keywords</th><th>GeM Bid No</th><th>Organisation</th><th>Department</th><th>Title</th>
+            <th>Qty</th><th>Bid Start</th><th>Bid End</th><th>PDF</th><th>Score</th><th>Reason</th><th>Status</th><th style="width:90px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="gemCandidatesBody"></tbody>
+      </table>
+    </div>
+    <div id="gemCandidatesEmpty" class="empty-state" style="display:none"><p>No GeM tenders yet</p></div>
+  </div>
+</div>
+
   </main>
 </div><!-- end #app -->
 
@@ -1772,6 +1922,8 @@ const PAGE_TITLES = {
   library:'Document Library',
   profile:'Company Profile',
   reports:'Reports',
+  'gem-watcher':    'GeM Tender Watcher',
+  'gem-candidates': 'GeM Tenders',
 };
 const PAGE_ACTIONS = {
   upload:  '',
@@ -1780,6 +1932,8 @@ const PAGE_ACTIONS = {
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
   reports: '',
+  'gem-watcher': '',
+  'gem-candidates': '',
 };
 
 let tenderListCache = [];
@@ -2508,7 +2662,7 @@ function setBidSort(mode, el) {
 document.addEventListener('click', closeAllFilterMenus);
 window.addEventListener('scroll', function(e) {
   // Don't close when scrolling inside a dropdown list
-  if (!e.target.closest('.th-filter-menu')) closeAllFilterMenus();
+  if (!(e.target instanceof Element) || !e.target.closest('.th-filter-menu')) closeAllFilterMenus();
 }, true);
 window.addEventListener('resize', closeAllFilterMenus);
 function refreshTenderList() {
@@ -2852,6 +3006,8 @@ function showView(name) {
   if (name === 'library') loadLibrary();
   if (name === 'profile') loadProfile();
   if (name === 'reports') loadReports();
+  if (name === 'gem-watcher')    loadGemWatcher();
+  if (name === 'gem-candidates') loadGemCandidates();
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -2939,8 +3095,8 @@ const _EXPAND_LOCAL_KEY = 'tender_expand_ui_v2';
 
 const EXPAND_SECTION_DEFS = [
   { key: 'participants', label: 'Participants', renderer: renderExpandParticipants },
-  { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
   { key: 'results', label: 'Results', renderer: renderExpandResults },
+  { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
 ];
 const EXPAND_RESERVED_KEYS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.key).toLowerCase()));
 const EXPAND_RESERVED_LABELS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.label).trim().toLowerCase()));
@@ -4689,6 +4845,289 @@ function applyStatusColor(sel, value) {
   sel.setAttribute('value', value);
 }
 
+// ── GeM Tender Watcher ───────────────────────────────────────────────────────
+let gemScanPollTimer = null;
+
+function gemTodayIST() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+const GEM_STATUS_BADGE = {
+  QUEUED: 'badge-slate', FOUND: 'badge-slate', DOWNLOADING_PDF: 'badge-info',
+  PDF_DOWNLOADED: 'badge-info', EXTRACTING: 'badge-info', EVALUATING: 'badge-warning',
+  EVALUATED: 'badge-purple', REVIEW: 'badge-warning',
+  APPROVED: 'badge-success', REJECTED: 'badge-danger', ERROR: 'badge-danger',
+  RUNNING: 'badge-info', COMPLETED: 'badge-success', BLOCKED: 'badge-danger', FAILED: 'badge-danger',
+  CANCELLED: 'badge-warning',
+};
+
+async function loadGemWatcher() {
+  const dateInput = document.getElementById('gemScanDate');
+  const today = gemTodayIST();
+  if (!dateInput.value) dateInput.value = today;
+  dateInput.max = today;
+  await Promise.all([loadGemKeywords(), loadGemScanRuns()]);
+  await resumeGemScanIfRunning();
+}
+
+async function resumeGemScanIfRunning() {
+  try {
+    const res = await fetch('/api/gem-watcher/scan-runs');
+    const runs = await res.json();
+    const running = runs.find(r => r.status === 'RUNNING' && !r.finished_at);
+    if (running) {
+      document.getElementById('gemRunScanBtn').disabled = true;
+      showGemScanBanner(`A scan started at ${String(running.started_at).slice(0,16).replace('T',' ')} is still running…`, 'info');
+      pollGemScanRun(running.id);
+    }
+  } catch (err) { /* non-fatal — admin can still see scan logs below */ }
+}
+
+async function loadGemKeywords() {
+  const tbody = document.getElementById('gemKeywordsBody');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const res = await fetch('/api/gem-watcher/keywords');
+    const keywords = await res.json();
+    if (!keywords.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px">No keywords yet</td></tr>'; return; }
+    tbody.innerHTML = keywords.map(k => `
+      <tr>
+        <td style="font-weight:600;color:var(--slate-800)">${esc(k.keyword)}</td>
+        <td><span class="badge ${k.is_active ? 'badge-success' : 'badge-slate'}">${k.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td style="color:var(--slate-400);font-size:12px">${k.last_checked_at ? String(k.last_checked_at).slice(0,16).replace('T',' ') : '—'}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-xs" onclick="toggleGemKeywordActive(${k.id}, ${!k.is_active})">${k.is_active ? 'Deactivate' : 'Activate'}</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteGemKeyword(${k.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+function toggleGemKeywordForm() {
+  const form = document.getElementById('gemKeywordForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveGemKeyword() {
+  const keyword = val('gemNewKeyword');
+  if (!keyword) { toast('Keyword is required', 'error'); return; }
+  try {
+    const res = await fetch('/api/gem-watcher/keywords', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ keyword }) });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Save failed');
+    toast('Keyword added', 'success');
+    document.getElementById('gemNewKeyword').value = '';
+    toggleGemKeywordForm();
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function toggleGemKeywordActive(id, isActive) {
+  try {
+    const res = await fetch(`/api/gem-watcher/keywords/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ is_active: isActive }) });
+    if (!res.ok) throw new Error('Update failed');
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function deleteGemKeyword(id) {
+  if (!confirm('Delete this keyword?')) return;
+  try {
+    const res = await fetch(`/api/gem-watcher/keywords/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    toast('Keyword deleted', 'success');
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+function showGemScanBanner(message, kind) {
+  const el = document.getElementById('gemScanBanner');
+  const colors = {
+    info:    ['var(--cyan-100)', 'var(--cyan-700)'],
+    success: ['var(--green-100)', 'var(--green-700)'],
+    error:   ['var(--red-100)', 'var(--red-700)'],
+  }[kind] || ['var(--slate-100)', 'var(--slate-600)'];
+  el.style.background = colors[0]; el.style.color = colors[1];
+  el.textContent = message;
+  el.style.display = message ? 'block' : 'none';
+}
+
+async function runGemScanFromUpload() {
+  const dateInput = document.getElementById('uploadScanDate');
+  const scanDate = dateInput.value;
+  if (!scanDate) { toast('Please pick a scan date', 'error'); return; }
+  const btn = document.getElementById('uploadGemRunBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/gem-watcher/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ scan_target_date: scanDate }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not start scan');
+    toast('GeM scan started — opening Watcher to track progress', 'success');
+    showView('gem-watcher');  // loadGemWatcher() picks up the running scan and polls it
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+async function runGemScanNow() {
+  const scanDate = document.getElementById('gemScanDate').value;
+  if (!scanDate) { toast('Please pick a scan date', 'error'); return; }
+  const btn = document.getElementById('gemRunScanBtn');
+  btn.disabled = true;
+  showGemScanBanner('Starting scan…', 'info');
+  try {
+    const res = await fetch('/api/gem-watcher/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ scan_target_date: scanDate }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not start scan');
+    showGemScanBanner('Scan running…', 'info');
+    pollGemScanRun(data.run_id);
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    showGemScanBanner('', null);
+    btn.disabled = false;
+  }
+}
+
+let _gemRunningRunId = null;
+
+function _gemSetRunningUI(running, runId) {
+  const runBtn = document.getElementById('gemRunScanBtn');
+  const stopBtn = document.getElementById('gemStopScanBtn');
+  if (running) {
+    _gemRunningRunId = runId;
+    if (runBtn) runBtn.disabled = true;
+    if (stopBtn) { stopBtn.style.display = ''; stopBtn.disabled = false; }
+  } else {
+    _gemRunningRunId = null;
+    if (runBtn) runBtn.disabled = false;
+    if (stopBtn) stopBtn.style.display = 'none';
+  }
+}
+
+async function stopGemScan() {
+  if (!_gemRunningRunId) return;
+  if (!confirm('Stop the running scan? Tenders already evaluated are kept; the rest stay queued and you can resume by re-running the same date.')) return;
+  const stopBtn = document.getElementById('gemStopScanBtn');
+  if (stopBtn) stopBtn.disabled = true;
+  showGemScanBanner('Stopping scan…', 'info');
+  try {
+    const res = await fetch(`/api/gem-watcher/scan-runs/${_gemRunningRunId}/cancel`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not stop scan');
+    // pollGemScanRun keeps polling and will report the CANCELLED result.
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    if (stopBtn) stopBtn.disabled = false;
+  }
+}
+
+function pollGemScanRun(runId) {
+  clearInterval(gemScanPollTimer);
+  _gemSetRunningUI(true, runId);
+  loadGemScanRuns();  // show the RUNNING row immediately, not only after it finishes
+  gemScanPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/gem-watcher/scan-runs/${runId}`);
+      const run = await res.json();
+      loadGemScanRuns();  // keep the logs table live while the scan runs
+      if (run.finished_at) {
+        clearInterval(gemScanPollTimer);
+        _gemSetRunningUI(false);
+        if (run.status === 'BLOCKED') {
+          showGemScanBanner('GeM portal blocked this scan (captcha/anti-bot). ' + (run.error_message || ''), 'error');
+        } else if (run.status === 'FAILED') {
+          showGemScanBanner('Scan failed: ' + (run.error_message || 'unknown error'), 'error');
+        } else if (run.status === 'CANCELLED') {
+          showGemScanBanner(`Scan stopped — found ${run.total_found}, new ${run.new_found}, approved ${run.approved_count}, rejected ${run.rejected_count}. Re-run the same date to continue the rest.`, 'info');
+        } else {
+          showGemScanBanner(`Scan completed — found ${run.total_found}, new ${run.new_found}, approved ${run.approved_count}, rejected ${run.rejected_count}.`, 'success');
+        }
+        loadGemScanRuns();
+      }
+    } catch (err) {
+      clearInterval(gemScanPollTimer);
+      _gemSetRunningUI(false);
+    }
+  }, 4000);
+}
+
+async function loadGemScanRuns() {
+  const tbody = document.getElementById('gemScanRunsBody');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const res = await fetch('/api/gem-watcher/scan-runs');
+    const runs = await res.json();
+    if (!runs.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--slate-400);padding:24px">No scans run yet</td></tr>'; return; }
+    tbody.innerHTML = runs.map(r => `
+      <tr>
+        <td style="color:var(--slate-400);font-size:12px">${r.started_at ? String(r.started_at).slice(0,16).replace('T',' ') : '—'}</td>
+        <td>${r.scan_target_date || '—'}</td>
+        <td><span class="badge ${GEM_STATUS_BADGE[r.status] || 'badge-slate'}">${esc(r.status)}</span></td>
+        <td>${r.total_keywords ?? '—'}</td>
+        <td>${r.total_found ?? 0}</td>
+        <td>${r.new_found ?? 0}</td>
+        <td>${r.skipped_wrong_start_date ?? 0}</td>
+        <td>${r.approved_count ?? 0}</td>
+        <td>${r.rejected_count ?? 0}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadGemCandidates() {
+  const tbody = document.getElementById('gemCandidatesBody');
+  const empty = document.getElementById('gemCandidatesEmpty');
+  const status = document.getElementById('gemCandidateStatusFilter').value;
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const url = status ? `/api/gem-candidates?status=${encodeURIComponent(status)}` : '/api/gem-candidates';
+    const res = await fetch(url);
+    const candidates = await res.json();
+    if (!candidates.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = candidates.map(c => `
+      <tr style="vertical-align:top">
+        <td style="padding:10px 12px">${(c.matched_keywords || []).map(k => `<span class="badge badge-info">${esc(k)}</span>`).join(' ')}</td>
+        <td style="padding:10px 12px;font-weight:600;white-space:nowrap;font-size:12.5px">${esc(c.gem_bid_no)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.organisation, 2, 150)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.department, 2, 170)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.title, 2, 240)}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.quantity || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_start_date || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_end_date || '—'}</td>
+        <td style="padding:10px 12px">${c.pdf_file_id ? `<a class="btn btn-outline btn-xs" href="/files/${c.pdf_file_id}" target="_blank" rel="noopener">View</a>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center;font-weight:700;font-size:13px">${c.evaluation_score ?? '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.evaluation_reason, 3, 300, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;white-space:nowrap"><span class="badge ${GEM_STATUS_BADGE[c.status] || 'badge-slate'}">${esc(c.status)}</span></td>
+        <td style="padding:10px 12px">${c.status !== 'APPROVED' ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${c.id})">Approve</button>` : '—'}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="13" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+// Clamp long cell text to a few lines; full text shows on hover (title attr).
+function _gemClamp(text, lines, maxWidth, color) {
+  const safe = esc(text);
+  if (!safe) return '—';
+  const col = color ? `color:${color};` : '';
+  return `<div title="${safe}" style="display:-webkit-box;-webkit-line-clamp:${lines};-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;max-width:${maxWidth}px;font-size:12.5px;${col}">${safe}</div>`;
+}
+
+async function approveGemCandidate(id) {
+  if (!confirm('Manually approve this tender into All Tenders?')) return;
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/approve`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Approve failed');
+    toast('Tender approved into All Tenders', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function val(id) { const el=document.getElementById(id); return el?el.value.trim()||null:null; }
 function esc(s) {
@@ -4705,7 +5144,20 @@ function toast(msg, type='success') {
   setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-showView('upload');
+(function defaultUploadScanDate() {
+  const el = document.getElementById('uploadScanDate');
+  if (el) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    el.value = today;
+    el.max = today;
+  }
+})();
+(function bootstrapInitialView() {
+  const path = window.location.pathname.replace(/\/$/, '');
+  if (path === '/gem-watcher') { showView('gem-watcher'); return; }
+  if (path === '/gem-candidates') { showView('gem-candidates'); return; }
+  showView('upload');
+})();
 loadStartupDeadlineReminder();
 
 // ── SSO / Auth ────────────────────────────────────────────────────────────────
@@ -4741,7 +5193,7 @@ async function signOut() {
   try {
     const res = await fetch('/api/auth/me');
     if (!res.ok) {
-      window.location.href = isLocal ? '/dev-login' : _PORTAL + '/login';
+      window.location.href = isLocal ? '/dev-login?next=' + encodeURIComponent(location.pathname) : _PORTAL + '/login';
       return;
     }
     const data = await res.json();

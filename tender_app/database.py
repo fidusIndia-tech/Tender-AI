@@ -184,6 +184,79 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_keywords (
+                id SERIAL PRIMARY KEY,
+                keyword TEXT NOT NULL UNIQUE,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_checked_at TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_scan_runs (
+                id SERIAL PRIMARY KEY,
+                scan_target_date DATE NOT NULL,
+                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                finished_at TIMESTAMP,
+                status TEXT DEFAULT 'RUNNING',
+                total_keywords INTEGER DEFAULT 0,
+                total_found INTEGER DEFAULT 0,
+                new_found INTEGER DEFAULT 0,
+                skipped_wrong_start_date INTEGER DEFAULT 0,
+                approved_count INTEGER DEFAULT 0,
+                rejected_count INTEGER DEFAULT 0,
+                error_message TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_candidate_tenders (
+                id SERIAL PRIMARY KEY,
+                gem_bid_no TEXT NOT NULL UNIQUE,
+                matched_keywords TEXT[] DEFAULT '{}',
+                title TEXT,
+                organisation TEXT,
+                department TEXT,
+                quantity TEXT,
+                bid_start_date DATE,
+                bid_end_date DATE,
+                gem_detail_url TEXT,
+                pdf_url TEXT,
+                pdf_file_id TEXT,
+                tender_id INTEGER REFERENCES tenders(id),
+                evaluation_score INTEGER,
+                evaluation_reason TEXT,
+                evaluation_json JSONB,
+                status TEXT DEFAULT 'FOUND',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_evaluations (
+                id SERIAL PRIMARY KEY,
+                candidate_id INTEGER REFERENCES gem_candidate_tenders(id) ON DELETE CASCADE,
+                score INTEGER,
+                rating_label TEXT,
+                matched_brands TEXT,
+                eligibility_status TEXT,
+                rejection_reason TEXT,
+                evaluation_json JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("SELECT COUNT(*) FROM gem_keywords")
+        if cur.fetchone()[0] == 0:
+            default_keywords = [
+                "IFM", "PILZ", "Siemens", "SICK", "Omron", "Baumer",
+                "Turck", "Balluff", "Pepperl+Fuchs", "ABB", "Schneider", "Keyence",
+            ]
+            for kw in default_keywords:
+                cur.execute(
+                    "INSERT INTO gem_keywords (keyword) VALUES (%s) ON CONFLICT (keyword) DO NOTHING",
+                    (kw,),
+                )
     conn.commit()
     conn.close()
     print("[DB] All PostgreSQL tables initialized")
@@ -997,3 +1070,296 @@ def get_company_document_file(doc_id):
         return {"missing": True}
     finally:
         conn.close()
+
+
+# ── GeM Tender Watcher: Keywords ────────────────────────────────────────────────
+
+def list_gem_keywords(active_only: bool = False):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        query = "SELECT * FROM gem_keywords"
+        if active_only:
+            query += " WHERE is_active = TRUE"
+        query += " ORDER BY keyword"
+        cur.execute(query)
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def create_gem_keyword(keyword: str) -> int:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO gem_keywords (keyword) VALUES (%s) RETURNING id",
+            (keyword,),
+        )
+        keyword_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return keyword_id
+
+
+def update_gem_keyword(keyword_id: int, keyword=None, is_active=None):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("SELECT keyword, is_active FROM gem_keywords WHERE id=%s", (keyword_id,))
+        existing = cur.fetchone()
+        if not existing:
+            conn.close()
+            return None
+        new_keyword = keyword if keyword is not None else existing[0]
+        new_is_active = is_active if is_active is not None else existing[1]
+        cur.execute(
+            "UPDATE gem_keywords SET keyword=%s, is_active=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+            (new_keyword, new_is_active, keyword_id),
+        )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def delete_gem_keyword(keyword_id: int):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gem_keywords WHERE id=%s", (keyword_id,))
+    conn.commit()
+    conn.close()
+
+
+def touch_gem_keyword_checked(keyword_id: int):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("UPDATE gem_keywords SET last_checked_at=CURRENT_TIMESTAMP WHERE id=%s", (keyword_id,))
+    conn.commit()
+    conn.close()
+
+
+# ── GeM Tender Watcher: Scan Runs ───────────────────────────────────────────────
+
+def fail_stale_running_scans():
+    """Mark any lingering RUNNING scan runs as FAILED. Called on app startup —
+    a freshly started process has no in-flight scans, so any row still marked
+    RUNNING is an orphan from a previous process that died mid-scan (e.g. a
+    server restart). Without this, that stale row blocks all future scans."""
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """UPDATE gem_scan_runs
+               SET status='FAILED', finished_at=CURRENT_TIMESTAMP,
+                   error_message=COALESCE(error_message,'') || ' [auto-failed: server restarted while running]'
+               WHERE status='RUNNING'"""
+        )
+        n = cur.rowcount
+    conn.commit()
+    conn.close()
+    if n:
+        print(f"[DB] Cleared {n} stale RUNNING scan run(s) on startup")
+    return n
+
+
+def create_gem_scan_run(scan_target_date, total_keywords: int) -> int:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO gem_scan_runs (scan_target_date, status, total_keywords)
+               VALUES (%s, 'RUNNING', %s) RETURNING id""",
+            (scan_target_date, total_keywords),
+        )
+        run_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return run_id
+
+
+def update_gem_scan_run(run_id: int, **fields):
+    if not fields:
+        return
+    conn = get_db()
+    with conn.cursor() as cur:
+        set_parts = [f"{k}=%s" for k in fields]
+        cur.execute(
+            f"UPDATE gem_scan_runs SET {', '.join(set_parts)} WHERE id=%s",
+            list(fields.values()) + [run_id],
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_gem_scan_run(run_id: int):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_scan_runs WHERE id=%s", (run_id,))
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_gem_scan_runs(limit: int = 50):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_scan_runs ORDER BY started_at DESC LIMIT %s", (limit,))
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def is_gem_scan_running() -> bool:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM gem_scan_runs WHERE status='RUNNING' LIMIT 1")
+        row = cur.fetchone()
+    conn.close()
+    return row is not None
+
+
+# ── GeM Tender Watcher: Candidate Tenders ───────────────────────────────────────
+
+def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict) -> int:
+    """Insert a new candidate, or — if gem_bid_no already exists — merge the
+    searched keyword into matched_keywords. For stale/unprocessed rows (no PDF
+    saved yet), also refresh the latest GeM metadata/URLs so a re-scan can
+    recover from earlier partial failures without disturbing already-processed
+    tenders."""
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO gem_candidate_tenders (
+                   gem_bid_no, matched_keywords, title, organisation, department,
+                   quantity, bid_start_date, bid_end_date, gem_detail_url, pdf_url, status
+               ) VALUES (%s, ARRAY[%s], %s, %s, %s, %s, %s, %s, %s, %s, 'QUEUED')
+               ON CONFLICT (gem_bid_no) DO UPDATE SET
+                   matched_keywords = (
+                       SELECT ARRAY(SELECT DISTINCT unnest(gem_candidate_tenders.matched_keywords || EXCLUDED.matched_keywords))
+                   ),
+                   title = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.title, gem_candidate_tenders.title)
+                       ELSE gem_candidate_tenders.title
+                   END,
+                   organisation = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.organisation, gem_candidate_tenders.organisation)
+                       ELSE gem_candidate_tenders.organisation
+                   END,
+                   department = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.department, gem_candidate_tenders.department)
+                       ELSE gem_candidate_tenders.department
+                   END,
+                   quantity = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.quantity, gem_candidate_tenders.quantity)
+                       ELSE gem_candidate_tenders.quantity
+                   END,
+                   bid_start_date = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.bid_start_date, gem_candidate_tenders.bid_start_date)
+                       ELSE gem_candidate_tenders.bid_start_date
+                   END,
+                   bid_end_date = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.bid_end_date, gem_candidate_tenders.bid_end_date)
+                       ELSE gem_candidate_tenders.bid_end_date
+                   END,
+                   gem_detail_url = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.gem_detail_url, gem_candidate_tenders.gem_detail_url)
+                       ELSE gem_candidate_tenders.gem_detail_url
+                   END,
+                   pdf_url = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL THEN COALESCE(EXCLUDED.pdf_url, gem_candidate_tenders.pdf_url)
+                       ELSE gem_candidate_tenders.pdf_url
+                   END,
+                   status = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL
+                            AND gem_candidate_tenders.status IN ('FOUND', 'ERROR', 'QUEUED')
+                       THEN 'QUEUED'
+                       ELSE gem_candidate_tenders.status
+                   END,
+                   evaluation_reason = CASE
+                       WHEN gem_candidate_tenders.pdf_file_id IS NULL
+                            AND gem_candidate_tenders.status IN ('FOUND', 'ERROR', 'QUEUED')
+                       THEN NULL
+                       ELSE gem_candidate_tenders.evaluation_reason
+                   END,
+                   updated_at = CURRENT_TIMESTAMP
+               RETURNING id""",
+            (
+                gem_bid_no, keyword, data.get("title"), data.get("organisation"), data.get("department"),
+                data.get("quantity"), data.get("bid_start_date"), data.get("bid_end_date"),
+                data.get("gem_detail_url"), data.get("pdf_url"),
+            ),
+        )
+        candidate_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return candidate_id
+
+
+def get_gem_candidate(candidate_id: int):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_candidate_tenders WHERE id=%s", (candidate_id,))
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_gem_candidates(status: str = None):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        if status:
+            cur.execute(
+                """SELECT * FROM gem_candidate_tenders
+                   WHERE status=%s
+                   ORDER BY bid_start_date DESC NULLS LAST, created_at DESC""",
+                (status,),
+            )
+        else:
+            cur.execute(
+                """SELECT * FROM gem_candidate_tenders
+                   ORDER BY bid_start_date DESC NULLS LAST, created_at DESC"""
+            )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def list_gem_candidates_found_without_pdf():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_candidate_tenders WHERE status='FOUND' AND pdf_file_id IS NULL")
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_gem_candidate(candidate_id: int, **fields):
+    if not fields:
+        return
+    values = [psycopg2.extras.Json(v) if isinstance(v, dict) else v for v in fields.values()]
+    conn = get_db()
+    with conn.cursor() as cur:
+        set_parts = [f"{k}=%s" for k in fields]
+        cur.execute(
+            f"UPDATE gem_candidate_tenders SET {', '.join(set_parts)}, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+            values + [candidate_id],
+        )
+    conn.commit()
+    conn.close()
+
+
+# ── GeM Tender Watcher: Evaluations ─────────────────────────────────────────────
+
+def save_gem_tender_evaluation(candidate_id: int, score, rating_label, matched_brands,
+                                eligibility_status, rejection_reason, evaluation_json) -> int:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO tender_evaluations (
+                   candidate_id, score, rating_label, matched_brands,
+                   eligibility_status, rejection_reason, evaluation_json
+               ) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (
+                candidate_id, score, rating_label, matched_brands,
+                eligibility_status, rejection_reason, psycopg2.extras.Json(evaluation_json),
+            ),
+        )
+        eval_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return eval_id
