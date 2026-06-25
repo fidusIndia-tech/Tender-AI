@@ -3132,7 +3132,12 @@ function renderExpandFutureSection(content) {
 function getExpandResultBidNumber(tenderId) {
   const tender = tenderListCache.find(t => t.id === tenderId);
   if (!tender) return '';
-  return String(tender.gem_bidding_number || tender.tender_number || '').trim();
+  const gemBidNo = String(tender.gem_bidding_number || '').trim();
+  const tenderNo = String(tender.tender_number || '').trim();
+  const looksLikeGemCode = value => /^GEM\//i.test(value);
+  if (looksLikeGemCode(gemBidNo)) return gemBidNo;
+  if (looksLikeGemCode(tenderNo)) return tenderNo;
+  return gemBidNo || tenderNo;
 }
 
 async function copyExpandResultBidNumber(tenderId) {
