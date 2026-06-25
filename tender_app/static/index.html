@@ -3132,7 +3132,7 @@ function renderExpandFutureSection(content) {
 function getExpandResultBidNumber(tenderId) {
   const tender = tenderListCache.find(t => t.id === tenderId);
   if (!tender) return '';
-  return String(tender.tender_number || tender.gem_bidding_number || '').trim();
+  return String(tender.gem_bidding_number || tender.tender_number || '').trim();
 }
 
 async function copyExpandResultBidNumber(tenderId) {
