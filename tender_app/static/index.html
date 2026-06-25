@@ -1268,6 +1268,7 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-expand"  style="width:30px">
           <col id="col-sel"     style="width:30px">
           <col id="col-num"     style="width:32px">
+          <col id="col-upload"  style="width:160px">
           <col id="col-gem"     style="width:140px">
           <col id="col-tn"      style="width:140px">
           <col id="col-org"     style="width:180px">
@@ -1284,6 +1285,25 @@ body.col-resizing { cursor:col-resize !important; }
             <th style="text-align:center;padding:0"></th>
             <th class="check-col has-resize" style="position:relative"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select all"><div class="col-resize-handle" onpointerdown="startColResize('sel',event)" ondblclick="resetColWidth('sel')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="white-space:nowrap;position:relative">
+              Upload Date<span style="display:inline-block">
+                <span class="th-filter-btn active" id="uploadFilterBtn" onclick="toggleFilterMenu('upload',event)" title="Sort by upload date">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
+                </span>
+                <div class="th-filter-menu" id="uploadFilterMenu">
+                  <div class="th-filter-option selected" onclick="setUploadSort('desc',this)">Descending</div>
+                  <div class="th-filter-option" onclick="setUploadSort('asc',this)">Ascending</div>
+                </div>
+              </span><span style="display:inline-block">
+                <span class="th-filter-btn" id="uploadDateBtn" onclick="toggleUploadCalendar(event)" title="Filter by upload date range">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                </span>
+                <div class="th-filter-menu" id="uploadDateFilterMenu" style="min-width:244px;padding:0;" onclick="event.stopPropagation()">
+                  <div id="uploadCalendarWidget" style="padding:11px 12px 10px;"></div>
+                </div>
+              </span><span id="uploadDateClearBtn" style="display:none;margin-left:1px;cursor:pointer;font-size:10px;font-weight:700;color:var(--blue-600);vertical-align:middle;line-height:1" onclick="clearUploadDateFilter()" title="Clear upload date filter">×</span>
+              <div class="col-resize-handle" onpointerdown="startColResize('upload',event)" ondblclick="resetColWidth('upload')" title="Drag to resize - Double-click to reset"></div>
+            </th>
             <th class="has-resize" style="position:relative">GeM Bidding No.<div class="col-resize-handle" onpointerdown="startColResize('gem',event)" ondblclick="resetColWidth('gem')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="position:relative">Tender Number<div class="col-resize-handle" onpointerdown="startColResize('tn',event)" ondblclick="resetColWidth('tn')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;position:relative">
@@ -2214,10 +2234,17 @@ function getTenderSearchText(t) {
 let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
 let statusSelectedValues = new Set(); // empty = show all
+let listSortField = 'upload';       // 'upload' | 'bid'
+let uploadSortMode = 'desc';        // 'desc' | 'asc'
 let bidSortMode = 'desc';           // 'desc' | 'asc'
 let _currentPage = 1;
 const _PAGE_SIZE = 100;
 let _filteredRows = [];
+let uploadDateFrom = null;   // null or 'YYYY-MM-DD' - range start
+let uploadDateTo   = null;   // null or 'YYYY-MM-DD' - range end
+let _uploadCalPickFrom = true;
+let _uploadCalYear  = new Date().getFullYear();
+let _uploadCalMonth = new Date().getMonth();
 let bidDateFrom  = null;   // null or 'YYYY-MM-DD' — range start
 let bidDateTo    = null;   // null or 'YYYY-MM-DD' — range end
 let _calPickFrom = true;   // true = next click sets From, false = sets To
@@ -2241,6 +2268,32 @@ function toggleBidCalendar(e) {
       _calYear = now.getFullYear(); _calMonth = now.getMonth();
     }
     _renderCalendar();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuW = 244;
+    let left = rect.left;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if (left < 8) left = 8;
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.add('open');
+  }
+}
+
+function toggleUploadCalendar(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('uploadDateFilterMenu');
+  const isOpen = menu.classList.contains('open');
+  closeAllFilterMenus();
+  if (!isOpen) {
+    _uploadCalPickFrom = true;
+    if (uploadDateFrom) {
+      const d = new Date(uploadDateFrom + 'T00:00:00');
+      _uploadCalYear = d.getFullYear(); _uploadCalMonth = d.getMonth();
+    } else {
+      const now = new Date();
+      _uploadCalYear = now.getFullYear(); _uploadCalMonth = now.getMonth();
+    }
+    _renderUploadCalendar();
     const rect = e.currentTarget.getBoundingClientRect();
     const menuW = 244;
     let left = rect.left;
@@ -2297,6 +2350,51 @@ function _renderCalendar() {
   `;
 }
 
+function _renderUploadCalendar() {
+  const el = document.getElementById('uploadCalendarWidget');
+  if (!el) return;
+  const today = new Date();
+  const todayStr = _dateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const firstDow = new Date(_uploadCalYear, _uploadCalMonth, 1).getDay();
+  const daysInMonth = new Date(_uploadCalYear, _uploadCalMonth + 1, 0).getDate();
+  const fmtD = ds => ds ? ds.slice(5).replace('-', '/') : '—';
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-day cal-other"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = _dateStr(_uploadCalYear, _uploadCalMonth + 1, d);
+    let cls = 'cal-day';
+    const isFrom = ds === uploadDateFrom;
+    const isTo = ds === uploadDateTo;
+    const inRange = uploadDateFrom && uploadDateTo && ds > uploadDateFrom && ds < uploadDateTo;
+    if (isFrom && isTo) cls += ' cal-range-start cal-range-end';
+    else if (isFrom) cls += ' cal-range-start';
+    else if (isTo) cls += ' cal-range-end';
+    else if (inRange) cls += ' cal-range-mid';
+    else if (ds === todayStr) cls += ' cal-today';
+    cells += `<div class="${cls}" onclick="_selectUploadCalDate('${ds}')">${d}</div>`;
+  }
+  const hasFilter = !!(uploadDateFrom || uploadDateTo);
+  el.innerHTML = `
+    <div class="cal-pick-row">
+      <button class="cal-pick-btn${_uploadCalPickFrom ? ' picking' : ''}" onclick="_uploadCalPickFrom=true;_renderUploadCalendar()">
+        From<br><b>${fmtD(uploadDateFrom)}</b>
+      </button>
+      <span class="cal-pick-arr">&#8594;</span>
+      <button class="cal-pick-btn${!_uploadCalPickFrom ? ' picking' : ''}" onclick="_uploadCalPickFrom=false;_renderUploadCalendar()">
+        To<br><b>${fmtD(uploadDateTo)}</b>
+      </button>
+    </div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="_uploadCalNav(-1)">&#8249;</button>
+      <span class="cal-month-label">${_CAL_MONTHS[_uploadCalMonth]} ${_uploadCalYear}</span>
+      <button class="cal-nav" onclick="_uploadCalNav(1)">&#8250;</button>
+    </div>
+    <div class="cal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="cal-grid">${cells}</div>
+    ${hasFilter ? `<div class="cal-clear" onclick="clearUploadDateFilter();closeAllFilterMenus()">&#x2715; Clear date filter</div>` : ''}
+  `;
+}
+
 function _dateStr(y, m, d) {
   return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
@@ -2306,6 +2404,13 @@ function _calNav(dir) {
   if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
   if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
   _renderCalendar();
+}
+
+function _uploadCalNav(dir) {
+  _uploadCalMonth += dir;
+  if (_uploadCalMonth < 0)  { _uploadCalMonth = 11; _uploadCalYear--; }
+  if (_uploadCalMonth > 11) { _uploadCalMonth = 0;  _uploadCalYear++; }
+  _renderUploadCalendar();
 }
 
 function _selectCalDate(ds) {
@@ -2323,10 +2428,31 @@ function _selectCalDate(ds) {
   }
 }
 
+function _selectUploadCalDate(ds) {
+  if (_uploadCalPickFrom) {
+    uploadDateFrom = ds;
+    uploadDateTo = null;
+    _uploadCalPickFrom = false;
+    _renderUploadCalendar();
+    _applyUploadDateFilter();
+  } else {
+    if (ds < uploadDateFrom) { uploadDateTo = uploadDateFrom; uploadDateFrom = ds; }
+    else { uploadDateTo = ds; }
+    _applyUploadDateFilter();
+    closeAllFilterMenus();
+  }
+}
+
 function _applyBidDateFilter() {
   const hasFilter = !!(bidDateFrom || bidDateTo);
   document.getElementById('bidDateBtn').classList.toggle('active', hasFilter);
   document.getElementById('bidDateClearBtn').style.display = hasFilter ? 'inline-block' : 'none';
+  renderTenderTable(tenderListCache);
+}
+function _applyUploadDateFilter() {
+  const hasFilter = !!(uploadDateFrom || uploadDateTo);
+  document.getElementById('uploadDateBtn').classList.toggle('active', hasFilter);
+  document.getElementById('uploadDateClearBtn').style.display = hasFilter ? 'inline-block' : 'none';
   renderTenderTable(tenderListCache);
 }
 function clearBidDateFilter() {
@@ -2335,6 +2461,14 @@ function clearBidDateFilter() {
   _calPickFrom = true;
   document.getElementById('bidDateBtn').classList.remove('active');
   document.getElementById('bidDateClearBtn').style.display = 'none';
+  renderTenderTable(tenderListCache);
+}
+function clearUploadDateFilter() {
+  uploadDateFrom = null;
+  uploadDateTo = null;
+  _uploadCalPickFrom = true;
+  document.getElementById('uploadDateBtn').classList.remove('active');
+  document.getElementById('uploadDateClearBtn').style.display = 'none';
   renderTenderTable(tenderListCache);
 }
 function _bidDateMatches(bidEndDatetime) {
@@ -2346,6 +2480,15 @@ function _bidDateMatches(bidEndDatetime) {
   if (bidDateFrom && bidDateTo) return tDate >= bidDateFrom && tDate <= bidDateTo;
   if (bidDateFrom) return tDate === bidDateFrom;
   return tDate === bidDateTo;
+}
+
+function _uploadDateMatches(uploadedAt) {
+  if (!uploadDateFrom && !uploadDateTo) return true;
+  const tDate = parseUploadDateKey(uploadedAt);
+  if (!tDate) return false;
+  if (uploadDateFrom && uploadDateTo) return tDate >= uploadDateFrom && tDate <= uploadDateTo;
+  if (uploadDateFrom) return tDate === uploadDateFrom;
+  return tDate === uploadDateTo;
 }
 
 function toggleFilterMenu(which, e) {
@@ -2499,11 +2642,28 @@ function filterByStatCard(value) {
   renderTenderTable(tenderListCache);
 }
 function setBidSort(mode, el) {
+  listSortField = 'bid';
   bidSortMode = mode;
+  _syncSortButtons();
   document.querySelectorAll('#bidFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
   closeAllFilterMenus();
   renderTenderTable(tenderListCache);
+}
+function setUploadSort(mode, el) {
+  listSortField = 'upload';
+  uploadSortMode = mode;
+  _syncSortButtons();
+  document.querySelectorAll('#uploadFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  closeAllFilterMenus();
+  renderTenderTable(tenderListCache);
+}
+function _syncSortButtons() {
+  const uploadBtn = document.getElementById('uploadFilterBtn');
+  const bidBtn = document.getElementById('bidFilterBtn');
+  if (uploadBtn) uploadBtn.classList.toggle('active', listSortField === 'upload');
+  if (bidBtn) bidBtn.classList.toggle('active', listSortField === 'bid');
 }
 document.addEventListener('click', closeAllFilterMenus);
 window.addEventListener('scroll', function(e) {
@@ -2534,15 +2694,21 @@ function clearAllFilters() {
   const makeSearchInp = document.querySelector('#makeFilterMenu .filter-search-box input');
   if (makeSearchInp) makeSearchInp.value = '';
 
+  // Reset upload date sort to default (desc)
+  listSortField = 'upload';
+  uploadSortMode = 'desc';
+  document.querySelectorAll('#uploadFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
+  const firstUpload = document.querySelector('#uploadFilterMenu .th-filter-option');
+  if (firstUpload) firstUpload.classList.add('selected');
+  clearUploadDateFilter();
+
   // Reset bid end date sort to default (desc)
   bidSortMode = 'desc';
   document.querySelectorAll('#bidFilterMenu .th-filter-option').forEach(o => o.classList.remove('selected'));
   const firstBid = document.querySelector('#bidFilterMenu .th-filter-option');
   if (firstBid) firstBid.classList.add('selected');
-  const bidBtn = document.getElementById('bidFilterBtn');
-  if (bidBtn) bidBtn.classList.remove('active');
-  // Clear date picker filter
   clearBidDateFilter();
+  _syncSortButtons();
 
   // Reset status filter
   statusSelectedValues.clear();
@@ -2558,6 +2724,7 @@ function exportToExcel() {
   const data = rows.map(t => {
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     return {
+      'Upload Date'      : formatUploadDateTime(t.uploaded_at),
       'GeM Bidding No.'  : t.gem_bidding_number   || '',
       'Tender Number'    : t.tender_number         || '',
       'Organisation'     : t.organization_name     || '',
@@ -2573,7 +2740,7 @@ function exportToExcel() {
 
   const ws = XLSX.utils.json_to_sheet(data);
   // Column widths
-  ws['!cols'] = [22,20,35,22,20,16,8,14,14,25].map(w => ({wch: w}));
+  ws['!cols'] = [22,22,20,35,22,20,16,8,14,14,25].map(w => ({wch: w}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Tender Records');
   const today = new Date().toISOString().slice(0, 10);
@@ -2609,6 +2776,24 @@ function parseBidEndDate(value) {
   const isoStr = `${yyyy}-${mm}-${dd}T${String(h).padStart(2,'0')}:${min}:${sec}`;
   const ts = new Date(isoStr).getTime();
   return Number.isNaN(ts) ? 0 : ts;
+}
+function parseUploadTimestamp(value) {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+function parseUploadDateKey(value) {
+  const ts = parseUploadTimestamp(value);
+  return ts ? _dateKeyFromTs(ts) : '';
+}
+function formatUploadDateTime(value) {
+  const ts = parseUploadTimestamp(value);
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 let _deadlineReminderShown = false;
 let _deadlineReminderTenders = [];
@@ -2665,8 +2850,18 @@ function openDeadlineGroup(group) {
   orgSelectedValues.clear();
   makeSelectedValues.clear();
   statusSelectedValues.clear();
+  uploadDateFrom = null;
+  uploadDateTo = null;
   bidDateFrom = null;
   bidDateTo = null;
+  const uploadDateBtn = document.getElementById('uploadDateBtn');
+  const uploadDateClearBtn = document.getElementById('uploadDateClearBtn');
+  if (uploadDateBtn) uploadDateBtn.classList.remove('active');
+  if (uploadDateClearBtn) uploadDateClearBtn.style.display = 'none';
+  const bidDateBtn = document.getElementById('bidDateBtn');
+  const bidDateClearBtn = document.getElementById('bidDateClearBtn');
+  if (bidDateBtn) bidDateBtn.classList.remove('active');
+  if (bidDateClearBtn) bidDateClearBtn.style.display = 'none';
   updateOrgFilterCount();
   updateMakeFilterCount();
   updateStatusFilterCount();
@@ -2724,11 +2919,17 @@ function renderTenderTable(tenders) {
     if (_deadlineFilter && _deadlineGroupForTender(t) !== _deadlineFilter) return false;
     if (orgSelectedValues.size > 0 && !orgSelectedValues.has(t.organization_name)) return false;
     if (makeSelectedValues.size > 0 && !makeSelectedValues.has(t.make)) return false;
+    if (!_uploadDateMatches(t.uploaded_at)) return false;
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     if (statusSelectedValues.size > 0 && !statusSelectedValues.has(tSt)) return false;
     return true;
   }).sort((a, b) => {
+    if (listSortField === 'upload') {
+      const aDate = parseUploadTimestamp(a.uploaded_at);
+      const bDate = parseUploadTimestamp(b.uploaded_at);
+      return uploadSortMode === 'asc' ? aDate - bDate : bDate - aDate;
+    }
     const aDate = parseBidEndDate(a.bid_end_datetime);
     const bDate = parseBidEndDate(b.bid_end_datetime);
     return bidSortMode === 'asc' ? aDate - bDate : bDate - aDate;
@@ -2770,6 +2971,7 @@ function _renderCurrentPage() {
           <input type="checkbox" class="row-check" data-id="${t.id}" onchange="syncSelectAll()">
         </td>
         <td class="col-num">${rowNum}</td>
+        <td class="col-upload">${formatUploadDateTime(t.uploaded_at)}</td>
         <td class="col-gem">${esc(t.gem_bidding_number)||'—'}</td>
         <td class="col-tn">${esc(t.tender_number)||'—'}</td>
         <td class="col-org" title="${esc(t.organization_name)}">${esc(t.organization_name)||'—'}</td>
@@ -2802,7 +3004,7 @@ function _renderCurrentPage() {
         </td>
       </tr>
       <tr class="expand-row" id="expandRow-${t.id}" style="display:none">
-        <td colspan="13" style="padding:0">
+        <td colspan="14" style="padding:0">
           <div class="expand-panel">
             <div class="expand-tabs" id="expandTabs-${t.id}">
               ${renderExpandTabs(t.id)}
@@ -4031,7 +4233,7 @@ async function loadTenderList() {
   const tbody  = document.getElementById('tendersTableBody');
   const empty  = document.getElementById('listEmpty');
   const statRow = document.getElementById('statRow');
-  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
   try {
     const res = await fetch('/api/tenders');
     const tenders = await res.json();
@@ -4043,6 +4245,7 @@ async function loadTenderList() {
     tenderListCache = tenders;
     buildOrgFilterMenu(tenders);
     buildMakeFilterMenu(tenders);
+    _syncSortButtons();
 
     statRow.style.display = 'flex';
     statRow.innerHTML = [
@@ -4065,7 +4268,7 @@ async function loadTenderList() {
     renderTenderTable(tenders);
     showDeadlineReminder(tenders);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
   }
 }
 async function loadStartupDeadlineReminder() {
