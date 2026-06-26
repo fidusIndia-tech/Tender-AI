@@ -156,6 +156,38 @@ def init_db():
             )
         """)
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_portals (
+                id SERIAL PRIMARY KEY,
+                portal_name TEXT NOT NULL,
+                portal_url TEXT,
+                login_id TEXT,
+                encrypted_password TEXT,
+                notes TEXT,
+                status TEXT DEFAULT 'ACTIVE',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS portal_url TEXT")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS login_id TEXT")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS encrypted_password TEXT")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS notes TEXT")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE'")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        cur.execute("ALTER TABLE tender_portals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        cur.execute("""
+            INSERT INTO tender_portals (portal_name, portal_url, login_id, encrypted_password, notes, status, created_at, updated_at)
+            SELECT gp.name, gp.url, gp.username, gp.password_encrypted, gp.notes, 'ACTIVE', gp.created_at, CURRENT_TIMESTAMP
+            FROM government_portals gp
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM tender_portals tp
+                WHERE COALESCE(tp.portal_name, '') = COALESCE(gp.name, '')
+                  AND COALESCE(tp.portal_url, '') = COALESCE(gp.url, '')
+                  AND COALESCE(tp.login_id, '') = COALESCE(gp.username, '')
+            )
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS company_capability_profile (
                 id SERIAL PRIMARY KEY,
                 year_established INTEGER,
@@ -372,22 +404,43 @@ def init_db():
 
 # ── Government Portals ────────────────────────────────────────────────────────
 
-def list_portals():
+def list_tender_portals(include_inactive: bool = True):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            "SELECT id, name, url, username, notes, created_at FROM government_portals ORDER BY name"
-        )
+        if include_inactive:
+            cur.execute(
+                """
+                SELECT id, portal_name, portal_url, login_id, notes, status, created_at, updated_at,
+                       CASE WHEN COALESCE(encrypted_password, '') <> '' THEN TRUE ELSE FALSE END AS has_password
+                FROM tender_portals
+                ORDER BY LOWER(portal_name), id DESC
+                """
+            )
+        else:
+            cur.execute(
+                """
+                SELECT id, portal_name, portal_url, login_id, notes, status, created_at, updated_at,
+                       CASE WHEN COALESCE(encrypted_password, '') <> '' THEN TRUE ELSE FALSE END AS has_password
+                FROM tender_portals
+                WHERE COALESCE(status, 'ACTIVE') <> 'INACTIVE'
+                ORDER BY LOWER(portal_name), id DESC
+                """
+            )
         rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
-def get_portal(portal_id: int):
+def get_tender_portal(portal_id: int):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT id, name, url, username, notes FROM government_portals WHERE id=%s",
+            """
+            SELECT id, portal_name, portal_url, login_id, notes, status, created_at, updated_at,
+                   CASE WHEN COALESCE(encrypted_password, '') <> '' THEN TRUE ELSE FALSE END AS has_password
+            FROM tender_portals
+            WHERE id=%s
+            """,
             (portal_id,),
         )
         row = cur.fetchone()
@@ -395,11 +448,15 @@ def get_portal(portal_id: int):
     return dict(row) if row else None
 
 
-def get_portal_with_password(portal_id: int):
+def get_tender_portal_with_password(portal_id: int):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT id, name, url, username, password_encrypted, notes FROM government_portals WHERE id=%s",
+            """
+            SELECT id, portal_name, portal_url, login_id, encrypted_password, notes, status, created_at, updated_at
+            FROM tender_portals
+            WHERE id=%s
+            """,
             (portal_id,),
         )
         row = cur.fetchone()
@@ -407,12 +464,16 @@ def get_portal_with_password(portal_id: int):
     return dict(row) if row else None
 
 
-def create_portal(name: str, url, username, password_encrypted: str, notes) -> int:
+def create_tender_portal(portal_name: str, portal_url, login_id, encrypted_password: str, notes, status: str = "ACTIVE") -> int:
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO government_portals (name, url, username, password_encrypted, notes) VALUES (%s,%s,%s,%s,%s) RETURNING id",
-            (name, url, username, password_encrypted, notes),
+            """
+            INSERT INTO tender_portals (portal_name, portal_url, login_id, encrypted_password, notes, status, updated_at)
+            VALUES (%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)
+            RETURNING id
+            """,
+            (portal_name, portal_url, login_id, encrypted_password, notes, status),
         )
         portal_id = cur.fetchone()[0]
     conn.commit()
@@ -420,23 +481,102 @@ def create_portal(name: str, url, username, password_encrypted: str, notes) -> i
     return portal_id
 
 
-def update_portal(portal_id: int, name: str, url, username, password_encrypted: str, notes):
+def update_tender_portal(portal_id: int, portal_name: str, portal_url, login_id, encrypted_password: str, notes, status: str):
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE government_portals SET name=%s, url=%s, username=%s, password_encrypted=%s, notes=%s WHERE id=%s",
-            (name, url, username, password_encrypted, notes, portal_id),
+            """
+            UPDATE tender_portals
+            SET portal_name=%s,
+                portal_url=%s,
+                login_id=%s,
+                encrypted_password=%s,
+                notes=%s,
+                status=%s,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=%s
+            """,
+            (portal_name, portal_url, login_id, encrypted_password, notes, status, portal_id),
         )
     conn.commit()
     conn.close()
 
 
-def delete_portal(portal_id: int):
+def set_tender_portal_status(portal_id: int, status: str):
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM government_portals WHERE id=%s", (portal_id,))
+        cur.execute(
+            "UPDATE tender_portals SET status=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+            (status, portal_id),
+        )
     conn.commit()
     conn.close()
+
+
+def list_portals():
+    rows = list_tender_portals(include_inactive=True)
+    return [
+        {
+            "id": r["id"],
+            "name": r.get("portal_name"),
+            "url": r.get("portal_url"),
+            "username": r.get("login_id"),
+            "notes": r.get("notes"),
+            "status": r.get("status"),
+            "created_at": r.get("created_at"),
+            "updated_at": r.get("updated_at"),
+            "has_password": r.get("has_password"),
+        }
+        for r in rows
+    ]
+
+
+def get_portal(portal_id: int):
+    row = get_tender_portal(portal_id)
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "name": row.get("portal_name"),
+        "url": row.get("portal_url"),
+        "username": row.get("login_id"),
+        "notes": row.get("notes"),
+        "status": row.get("status"),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+        "has_password": row.get("has_password"),
+    }
+
+
+def get_portal_with_password(portal_id: int):
+    row = get_tender_portal_with_password(portal_id)
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "name": row.get("portal_name"),
+        "url": row.get("portal_url"),
+        "username": row.get("login_id"),
+        "password_encrypted": row.get("encrypted_password"),
+        "notes": row.get("notes"),
+        "status": row.get("status"),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
+
+
+def create_portal(name: str, url, username, password_encrypted: str, notes) -> int:
+    return create_tender_portal(name, url, username, password_encrypted, notes, "ACTIVE")
+
+
+def update_portal(portal_id: int, name: str, url, username, password_encrypted: str, notes):
+    existing = get_tender_portal_with_password(portal_id)
+    status = existing.get("status", "ACTIVE") if existing else "ACTIVE"
+    update_tender_portal(portal_id, name, url, username, password_encrypted, notes, status)
+
+
+def delete_portal(portal_id: int):
+    set_tender_portal_status(portal_id, "INACTIVE")
 
 
 # ── Uploaded Files ────────────────────────────────────────────────────────────

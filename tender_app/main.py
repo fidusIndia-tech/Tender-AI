@@ -12,7 +12,7 @@ import uuid
 import zipfile
 from pathlib import Path
 from typing import List, Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -88,6 +88,16 @@ def _require_admin(request: Request) -> dict:
     if payload.get("role", "employee") not in ("admin", "director"):
         raise HTTPException(403, "Access restricted to admin/director")
     return payload
+
+
+def _normalize_portal_url(url: Optional[str]) -> Optional[str]:
+    value = (url or "").strip()
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise HTTPException(422, "Portal URL must be a valid http/https URL")
+    return value
 
 # ── SSO / Auth ─────────────────────────────────────────────────────────────────
 
@@ -1066,6 +1076,130 @@ async def recover_tenders(limit: int = 3):
 
 # ── Government Portals ────────────────────────────────────────────────────────
 
+class TenderPortalCreate(BaseModel):
+    portal_name: str
+    portal_url: Optional[str] = None
+    login_id: Optional[str] = None
+    password: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = "ACTIVE"
+
+
+class TenderPortalUpdate(BaseModel):
+    portal_name: Optional[str] = None
+    portal_url: Optional[str] = None
+    login_id: Optional[str] = None
+    password: Optional[str] = None  # None = keep existing encrypted password
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+def _serialize_tender_portal(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "portal_name": row.get("portal_name"),
+        "portal_url": row.get("portal_url"),
+        "login_id": row.get("login_id"),
+        "notes": row.get("notes"),
+        "status": row.get("status") or "ACTIVE",
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+        "has_password": bool(row.get("has_password")),
+        "password_masked": "********" if row.get("has_password") else "",
+    }
+
+
+@app.get("/api/tender-portals")
+async def list_tender_portals(request: Request):
+    _require_admin(request)
+    return [_serialize_tender_portal(row) for row in database.list_tender_portals(include_inactive=True)]
+
+
+@app.post("/api/tender-portals", status_code=201)
+async def create_tender_portal(portal: TenderPortalCreate, request: Request):
+    _require_admin(request)
+    portal_name = (portal.portal_name or "").strip()
+    if not portal_name:
+        raise HTTPException(422, "Portal name is required")
+    status = (portal.status or "ACTIVE").strip().upper()
+    if status not in ("ACTIVE", "INACTIVE"):
+        raise HTTPException(422, "Status must be ACTIVE or INACTIVE")
+    portal_id = database.create_tender_portal(
+        portal_name=portal_name,
+        portal_url=_normalize_portal_url(portal.portal_url),
+        login_id=(portal.login_id or "").strip() or None,
+        encrypted_password=_encrypt_password(portal.password or ""),
+        notes=(portal.notes or "").strip() or None,
+        status=status,
+    )
+    created = database.get_tender_portal(portal_id)
+    return {"status": "created", "portal": _serialize_tender_portal(created)}
+
+
+@app.put("/api/tender-portals/{portal_id}")
+async def update_tender_portal(portal_id: int, portal: TenderPortalUpdate, request: Request):
+    _require_admin(request)
+    existing = database.get_tender_portal_with_password(portal_id)
+    if not existing:
+        raise HTTPException(404, "Tender portal not found")
+    portal_name = (portal.portal_name if portal.portal_name is not None else existing.get("portal_name") or "").strip()
+    if not portal_name:
+        raise HTTPException(422, "Portal name is required")
+    portal_url = _normalize_portal_url(portal.portal_url) if portal.portal_url is not None else existing.get("portal_url")
+    login_id = (portal.login_id if portal.login_id is not None else existing.get("login_id") or "").strip() or None
+    notes = (portal.notes if portal.notes is not None else existing.get("notes") or "").strip() or None
+    status = (portal.status if portal.status is not None else existing.get("status") or "ACTIVE").strip().upper()
+    if status not in ("ACTIVE", "INACTIVE"):
+        raise HTTPException(422, "Status must be ACTIVE or INACTIVE")
+    encrypted_password = existing.get("encrypted_password", "")
+    if portal.password is not None:
+        encrypted_password = _encrypt_password(portal.password or "")
+    database.update_tender_portal(portal_id, portal_name, portal_url, login_id, encrypted_password, notes, status)
+    updated = database.get_tender_portal(portal_id)
+    return {"status": "updated", "portal": _serialize_tender_portal(updated)}
+
+
+@app.post("/api/tender-portals/{portal_id}/reveal-password")
+async def reveal_tender_portal_password(portal_id: int, request: Request):
+    _require_admin(request)
+    portal = database.get_tender_portal_with_password(portal_id)
+    if not portal:
+        raise HTTPException(404, "Tender portal not found")
+    encrypted = portal.get("encrypted_password", "")
+    if not encrypted:
+        return {"password": ""}
+    try:
+        return {"password": _decrypt_password(encrypted)}
+    except InvalidToken:
+        print(f"[WARN] Tender portal {portal_id}: InvalidToken - password was encrypted with a different key")
+        raise HTTPException(422, "Password must be re-entered because the encryption key changed")
+    except Exception as e:
+        print(f"[ERROR] Tender portal {portal_id}: decrypt failed - {type(e).__name__}: {e}")
+        raise HTTPException(500, "Failed to decrypt password")
+
+
+@app.patch("/api/tender-portals/{portal_id}/deactivate")
+async def deactivate_tender_portal(portal_id: int, request: Request):
+    _require_admin(request)
+    existing = database.get_tender_portal(portal_id)
+    if not existing:
+        raise HTTPException(404, "Tender portal not found")
+    database.set_tender_portal_status(portal_id, "INACTIVE")
+    updated = database.get_tender_portal(portal_id)
+    return {"status": "deactivated", "portal": _serialize_tender_portal(updated)}
+
+
+@app.patch("/api/tender-portals/{portal_id}/activate")
+async def activate_tender_portal(portal_id: int, request: Request):
+    _require_admin(request)
+    existing = database.get_tender_portal(portal_id)
+    if not existing:
+        raise HTTPException(404, "Tender portal not found")
+    database.set_tender_portal_status(portal_id, "ACTIVE")
+    updated = database.get_tender_portal(portal_id)
+    return {"status": "activated", "portal": _serialize_tender_portal(updated)}
+
+
 class PortalCreate(BaseModel):
     name: str
     url: Optional[str] = None
@@ -1078,7 +1212,7 @@ class PortalUpdate(BaseModel):
     name: Optional[str] = None
     url: Optional[str] = None
     username: Optional[str] = None
-    password: Optional[str] = None  # None = keep existing encrypted password
+    password: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -1091,29 +1225,29 @@ async def list_portals(request: Request):
 @app.post("/api/portals", status_code=201)
 async def create_portal(portal: PortalCreate, request: Request):
     _require_admin(request)
-    enc_pw = _encrypt_password(portal.password) if portal.password else ""
-    portal_id = database.create_portal(
-        name=portal.name,
-        url=portal.url,
-        username=portal.username,
-        password_encrypted=enc_pw,
+    payload = TenderPortalCreate(
+        portal_name=portal.name,
+        portal_url=portal.url,
+        login_id=portal.username,
+        password=portal.password,
         notes=portal.notes,
+        status="ACTIVE",
     )
-    return {"id": portal_id, "status": "created"}
+    result = await create_tender_portal(payload, request)
+    return {"id": result["portal"]["id"], "status": "created"}
 
 
 @app.put("/api/portals/{portal_id}")
 async def update_portal(portal_id: int, portal: PortalUpdate, request: Request):
     _require_admin(request)
-    existing = database.get_portal_with_password(portal_id)
-    if not existing:
-        raise HTTPException(404, "Portal not found")
-    new_name = portal.name if portal.name is not None else existing["name"]
-    new_url = portal.url if portal.url is not None else existing.get("url")
-    new_username = portal.username if portal.username is not None else existing.get("username")
-    new_notes = portal.notes if portal.notes is not None else existing.get("notes")
-    new_enc_pw = _encrypt_password(portal.password) if portal.password else existing.get("password_encrypted", "")
-    database.update_portal(portal_id, new_name, new_url, new_username, new_enc_pw, new_notes)
+    payload = TenderPortalUpdate(
+        portal_name=portal.name,
+        portal_url=portal.url,
+        login_id=portal.username,
+        password=portal.password,
+        notes=portal.notes,
+    )
+    await update_tender_portal(portal_id, payload, request)
     return {"status": "updated"}
 
 
@@ -1128,20 +1262,7 @@ async def delete_portal(portal_id: int, request: Request):
 @app.post("/api/portals/{portal_id}/reveal")
 async def reveal_portal_password(portal_id: int, request: Request):
     _require_admin(request)
-    portal = database.get_portal_with_password(portal_id)
-    if not portal:
-        raise HTTPException(404, "Portal not found")
-    enc = portal.get("password_encrypted", "")
-    if not enc:
-        return {"password": ""}
-    try:
-        return {"password": _decrypt_password(enc)}
-    except InvalidToken:
-        print(f"[WARN] Portal {portal_id}: InvalidToken — password was encrypted with a different key")
-        raise HTTPException(422, "Password must be re-entered — encryption key has changed")
-    except Exception as e:
-        print(f"[ERROR] Portal {portal_id}: decrypt failed — {type(e).__name__}")
-        raise HTTPException(500, "Failed to decrypt password")
+    return await reveal_tender_portal_password(portal_id, request)
 
 
 app.include_router(gem_watcher_router, dependencies=[Depends(_require_admin)])
@@ -1154,6 +1275,11 @@ async def gem_watcher_page():
 
 @app.get("/gem-candidates")
 async def gem_candidates_page():
+    return FileResponse(str(HERE / "static" / "index.html"))
+
+
+@app.get("/tender-portals")
+async def tender_portals_page():
     return FileResponse(str(HERE / "static" / "index.html"))
 
 

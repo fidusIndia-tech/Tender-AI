@@ -1352,7 +1352,7 @@ body.col-resizing { cursor:col-resize !important; }
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
     All Tenders
   </div>
-  <div class="nav-item" id="nav-portals" onclick="openPortalsModal()" style="display:none">
+  <div class="nav-item" id="nav-portals-legacy" onclick="openPortalsModal()" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/></svg>
     Gov Portals
   </div>
@@ -1367,6 +1367,10 @@ body.col-resizing { cursor:col-resize !important; }
   <div class="nav-item" id="nav-reports" onclick="showView('reports')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v17.25A.75.75 0 004.5 21h15.75M7.5 16.5v-3.75m4.5 3.75V9.75m4.5 6.75V6"/></svg>
     Reports
+  </div>
+  <div class="nav-item" id="nav-tender-portals" onclick="showView('tender-portals')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582"/></svg>
+    Tender Portals
   </div>
   <div class="nav-item" id="nav-gem-watcher" onclick="showView('gem-watcher')" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
@@ -2104,6 +2108,81 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <!-- GEM WATCHER VIEW                                                        -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-tender-portals">
+  <div style="display:grid;gap:18px">
+    <div class="table-card">
+      <div style="padding:16px;border-bottom:1px solid var(--slate-100);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--slate-800)">Tender Portals</div>
+          <div style="font-size:12px;color:var(--slate-500);margin-top:3px">Store portal URLs, usernames, and encrypted passwords permanently in the database.</div>
+        </div>
+        <div style="flex:1"></div>
+        <input id="tenderPortalSearchInput" type="search" placeholder="Search portals..." oninput="filterTenderPortals()" style="min-width:220px;padding:9px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:12px">
+        <button class="btn btn-outline btn-sm" onclick="loadTenderPortals()">Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="showTenderPortalForm()">+ Add Portal</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Portal Name</th>
+              <th>Portal URL</th>
+              <th>Login ID</th>
+              <th>Password</th>
+              <th>Notes</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+              <th style="width:210px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tenderPortalsBody"></tbody>
+        </table>
+      </div>
+      <div id="tenderPortalsEmpty" class="empty-state" style="display:none">
+        <p>No tender portals saved yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="showTenderPortalForm()">Add Portal</button>
+      </div>
+    </div>
+
+    <div class="table-card" id="tenderPortalFormCard" style="display:none;max-width:720px">
+      <div style="padding:16px;border-bottom:1px solid var(--slate-100)">
+        <div id="tenderPortalFormTitle" style="font-size:14px;font-weight:700;color:var(--slate-800)">Add Portal</div>
+        <div style="font-size:12px;color:var(--slate-500);margin-top:3px">Only admin users can reveal or copy saved passwords.</div>
+      </div>
+      <div style="padding:16px;display:grid;gap:12px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:5px">Portal Name *</label>
+          <input id="tpf-name" type="text" style="width:100%;padding:10px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:5px">Portal URL</label>
+          <input id="tpf-url" type="url" placeholder="https://example.com/login" style="width:100%;padding:10px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:5px">Login ID / Username</label>
+          <input id="tpf-login-id" type="text" autocomplete="off" style="width:100%;padding:10px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:5px">Password</label>
+          <div style="display:flex;gap:8px">
+            <input id="tpf-password" type="password" autocomplete="new-password" style="flex:1;padding:10px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:13px">
+            <button type="button" class="btn btn-outline btn-sm" onclick="toggleTenderPortalFormPassword()">Show</button>
+          </div>
+          <div id="tenderPortalPasswordHint" style="font-size:11px;color:var(--slate-400);margin-top:5px"></div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:5px">Notes</label>
+          <textarea id="tpf-notes" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--slate-200);border-radius:10px;font-size:13px;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="saveTenderPortalForm()">Save Portal</button>
+          <button class="btn btn-outline btn-sm" onclick="resetTenderPortalForm()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="view" id="view-gem-watcher">
   <div id="gemScanBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;"></div>
 
@@ -2349,6 +2428,7 @@ const PAGE_TITLES = {
   library:'Document Library',
   profile:'Company Profile',
   reports:'Reports',
+  'tender-portals': 'Tender Portals',
   'gem-watcher':    'GeM Tender Watcher',
   'gem-review-candidates': 'Review Tenders',
   'gem-rejected-candidates': 'Rejected Tenders',
@@ -2360,6 +2440,7 @@ const PAGE_ACTIONS = {
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
   reports: '',
+  'tender-portals': '<button class="btn btn-primary btn-sm" onclick="showTenderPortalForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Portal</button>',
   'gem-watcher': '',
   'gem-candidates': '',
   'gem-review-candidates': '',
@@ -3596,6 +3677,7 @@ function showView(name) {
   if (effectiveName === 'library') loadLibrary();
   if (effectiveName === 'profile') loadProfile();
   if (effectiveName === 'reports') loadReports();
+  if (effectiveName === 'tender-portals') loadTenderPortals();
   if (effectiveName === 'upload') {
     loadUnifiedWorkflow();
   }
@@ -6038,11 +6120,12 @@ function toast(msg, type='success') {
 })();
 (function bootstrapInitialView() {
   const path = window.location.pathname.replace(/\/$/, '');
-  if (path === '/gem-watcher') { showView('gem-watcher'); return; }
-  if (path === '/gem-candidates') { showView('gem-candidates'); return; }
-  if (path === '/gem-review-candidates') { showView('gem-review-candidates'); return; }
-  if (path === '/gem-rejected-candidates') { showView('gem-rejected-candidates'); return; }
-  showView('upload');
+  if (path === '/gem-watcher') { setTimeout(() => showView('gem-watcher'), 0); return; }
+  if (path === '/gem-candidates') { setTimeout(() => showView('gem-candidates'), 0); return; }
+  if (path === '/gem-review-candidates') { setTimeout(() => showView('gem-review-candidates'), 0); return; }
+  if (path === '/gem-rejected-candidates') { setTimeout(() => showView('gem-rejected-candidates'), 0); return; }
+  if (path === '/tender-portals') { setTimeout(() => showView('tender-portals'), 0); return; }
+  setTimeout(() => showView('upload'), 0);
 })();
 loadStartupDeadlineReminder();
 
@@ -6335,6 +6418,272 @@ async function savePortalForm() {
   }
 }
 
+function portalFormatDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toLocaleDateString('en-GB');
+}
+
+function portalStatusBadge(status) {
+  const normalized = String(status || 'ACTIVE').toUpperCase();
+  const bg = normalized === 'ACTIVE' ? 'rgba(22,163,74,.12)' : 'rgba(148,163,184,.14)';
+  const color = normalized === 'ACTIVE' ? '#15803d' : '#64748b';
+  return `<span style="display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:${bg};color:${color};font-size:11px;font-weight:700">${_esc(normalized)}</span>`;
+}
+
+openPortalsModal = function() { showView('tender-portals'); };
+closePortalsModal = function() {
+  const overlay = document.getElementById('portalsOverlay');
+  if (overlay) overlay.classList.remove('open');
+  _revealedPw = {};
+};
+
+loadTenderPortals = async function() {
+  const body = document.getElementById('tenderPortalsBody');
+  const empty = document.getElementById('tenderPortalsEmpty');
+  if (body) body.innerHTML = '<tr><td colspan="9" style="padding:18px;text-align:center;color:var(--slate-400)">Loading portals...</td></tr>';
+  if (empty) empty.style.display = 'none';
+  try {
+    const res = await fetch('/api/tender-portals');
+    const data = await res.json().catch(() => []);
+    if (!res.ok) throw new Error(data.detail || 'Failed to load tender portals');
+    _portalsCache = Array.isArray(data)
+      ? data.filter((portal) => String(portal.status || 'ACTIVE').toUpperCase() !== 'INACTIVE')
+      : [];
+    filterTenderPortals();
+  } catch (err) {
+    if (body) body.innerHTML = `<tr><td colspan="8" style="padding:18px;text-align:center;color:var(--red-600)">${_esc(err.message || 'Failed to load portals')}</td></tr>`;
+  }
+};
+
+loadPortals = async function() { await loadTenderPortals(); };
+
+renderTenderPortals = function(list) {
+  const body = document.getElementById('tenderPortalsBody');
+  const empty = document.getElementById('tenderPortalsEmpty');
+  if (!body) return;
+  if (!list.length) {
+    body.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  body.innerHTML = list.map((portal) => `
+    <tr>
+      <td style="font-weight:700;color:var(--slate-800)">${_esc(portal.portal_name || '—')}</td>
+      <td>${portal.portal_url ? `<a href="${_esc(portal.portal_url)}" target="_blank" rel="noopener" style="color:var(--blue-600);word-break:break-all">${_esc(portal.portal_url)}</a>` : '—'}</td>
+      <td><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>${_esc(portal.login_id || '—')}</span>${portal.login_id ? `<button class="btn btn-outline btn-xs" onclick="portalCopy(${_esc(JSON.stringify(portal.login_id))}, 'Login ID copied')">Copy</button>` : ''}</div></td>
+      <td><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span id="tp-pw-disp-${portal.id}" style="letter-spacing:2px">${portal.has_password ? '********' : '—'}</span>${portal.has_password ? `<button class="btn btn-outline btn-xs" id="tp-pw-toggle-${portal.id}" onclick="toggleTenderPortalPassword(${portal.id})">Reveal</button>` : ''}${portal.has_password ? `<button class="btn btn-outline btn-xs" onclick="copyTenderPortalPassword(${portal.id})">Copy</button>` : ''}</div></td>
+      <td style="max-width:220px;white-space:normal;color:var(--slate-600)">${_esc(portal.notes || '—')}</td>
+      <td>${portalFormatDate(portal.created_at)}</td>
+      <td>${portalFormatDate(portal.updated_at)}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${portal.portal_url ? `<a class="btn btn-outline btn-xs" href="${_esc(portal.portal_url)}" target="_blank" rel="noopener">Open Portal</a>` : ''}<button class="btn btn-outline btn-xs" onclick="editTenderPortal(${portal.id})">Edit</button><button class="btn btn-outline btn-xs" onclick="copyAllTenderPortalCredentials(${portal.id})">Copy All</button><button class="btn btn-danger btn-xs" onclick="deactivateTenderPortal(${portal.id})" title="Delete portal" style="padding:2px 7px;font-size:11px">x</button></div></td>
+    </tr>
+  `).join('');
+};
+
+renderPortalList = function(list) { renderTenderPortals(list); };
+
+filterTenderPortals = function() {
+  const search = (document.getElementById('tenderPortalSearchInput')?.value || '').toLowerCase().trim();
+  const filtered = _portalsCache.filter((portal) => {
+    const haystack = [portal.portal_name, portal.portal_url, portal.login_id, portal.notes].join(' ').toLowerCase();
+    const searchMatch = !search || haystack.includes(search);
+    return searchMatch;
+  });
+  renderTenderPortals(filtered);
+};
+
+searchPortals = function(query) {
+  const input = document.getElementById('tenderPortalSearchInput');
+  if (input) input.value = query || '';
+  filterTenderPortals();
+};
+
+toggleTenderPortalPassword = async function(id) {
+  const disp = document.getElementById(`tp-pw-disp-${id}`);
+  const toggle = document.getElementById(`tp-pw-toggle-${id}`);
+  if (!disp) return;
+  if (_revealedPw[id] !== undefined) {
+    const hidden = disp.textContent === '********';
+    disp.textContent = hidden ? (_revealedPw[id] || '(no password)') : '********';
+    disp.style.letterSpacing = hidden ? 'normal' : '2px';
+    if (toggle) toggle.textContent = hidden ? 'Hide' : 'Reveal';
+    return;
+  }
+  try {
+    const res = await fetch(`/api/tender-portals/${id}/reveal-password`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to reveal password');
+    _revealedPw[id] = data.password || '';
+    disp.textContent = _revealedPw[id] || '(no password)';
+    disp.style.letterSpacing = 'normal';
+    if (toggle) toggle.textContent = 'Hide';
+  } catch (err) {
+    toast(err.message || 'Failed to reveal password', 'error');
+  }
+};
+
+togglePortalPw = async function(id) { await toggleTenderPortalPassword(id); };
+
+copyTenderPortalPassword = async function(id) {
+  if (_revealedPw[id] !== undefined) { portalCopy(_revealedPw[id], 'Password copied'); return; }
+  try {
+    const res = await fetch(`/api/tender-portals/${id}/reveal-password`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to copy password');
+    _revealedPw[id] = data.password || '';
+    portalCopy(_revealedPw[id], 'Password copied');
+  } catch (err) {
+    toast(err.message || 'Failed to copy password', 'error');
+  }
+};
+
+portalCopyPw = async function(id) { await copyTenderPortalPassword(id); };
+
+copyAllPortalCredentials = async function(id) {
+  const p = _portalsCache.find(x => x.id === id);
+  if (!p) return;
+  let password = _revealedPw[id];
+  if (password === undefined) {
+    try {
+      const res = await fetch(`/api/tender-portals/${id}/reveal-password`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to retrieve password');
+      password = data.password || '';
+      _revealedPw[id] = password;
+    } catch (err) {
+      toast(err.message || 'Failed to retrieve password', 'error');
+      return;
+    }
+  }
+  const lines = [
+    `Portal: ${p.portal_name || ''}`,
+    p.portal_url ? `URL: ${p.portal_url}` : null,
+    `Login ID: ${p.login_id || '—'}`,
+    `Password: ${password || '—'}`,
+  ].filter(Boolean).join('\n');
+  navigator.clipboard.writeText(lines)
+    .then(() => toast('Portal credentials copied', 'success'))
+    .catch(() => toast('Copy failed - please copy manually', 'error'));
+};
+
+copyAllTenderPortalCredentials = function(id) { return copyAllPortalCredentials(id); };
+
+showTenderPortalForm = function() {
+  _editingPortalId = null;
+  document.getElementById('tenderPortalFormCard').style.display = 'block';
+  document.getElementById('tenderPortalFormTitle').textContent = 'Add Portal';
+  document.getElementById('tpf-name').value = '';
+  document.getElementById('tpf-url').value = '';
+  document.getElementById('tpf-login-id').value = '';
+  document.getElementById('tpf-password').value = '';
+  document.getElementById('tpf-password').type = 'password';
+  document.getElementById('tpf-notes').value = '';
+  document.getElementById('tenderPortalPasswordHint').textContent = '';
+  document.getElementById('tpf-name').focus();
+};
+
+showPortalForm = function() { showTenderPortalForm(); };
+
+editTenderPortal = function(id) {
+  const p = _portalsCache.find(x => x.id === id);
+  if (!p) return;
+  _editingPortalId = id;
+  document.getElementById('tenderPortalFormCard').style.display = 'block';
+  document.getElementById('tenderPortalFormTitle').textContent = 'Edit Portal';
+  document.getElementById('tpf-name').value = p.portal_name || '';
+  document.getElementById('tpf-url').value = p.portal_url || '';
+  document.getElementById('tpf-login-id').value = p.login_id || '';
+  document.getElementById('tpf-password').value = '';
+  document.getElementById('tpf-password').type = 'password';
+  document.getElementById('tpf-notes').value = p.notes || '';
+  document.getElementById('tenderPortalPasswordHint').textContent = 'Leave password blank to keep the existing encrypted password.';
+  document.getElementById('tpf-name').focus();
+};
+
+editPortal = function(id) { editTenderPortal(id); };
+
+resetTenderPortalForm = function() {
+  _editingPortalId = null;
+  document.getElementById('tenderPortalFormCard').style.display = 'none';
+  document.getElementById('tenderPortalFormTitle').textContent = 'Add Portal';
+  document.getElementById('tpf-name').value = '';
+  document.getElementById('tpf-url').value = '';
+  document.getElementById('tpf-login-id').value = '';
+  document.getElementById('tpf-password').value = '';
+  document.getElementById('tpf-password').type = 'password';
+  document.getElementById('tpf-notes').value = '';
+  document.getElementById('tenderPortalPasswordHint').textContent = '';
+};
+
+cancelPortalForm = function() { resetTenderPortalForm(); };
+toggleTenderPortalFormPassword = function() {
+  const inp = document.getElementById('tpf-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+toggleFormPwVisibility = function() { toggleTenderPortalFormPassword(); };
+
+saveTenderPortalForm = async function() {
+  const name = document.getElementById('tpf-name').value.trim();
+  if (!name) { toast('Portal name is required', 'error'); return; }
+  const body = {
+    portal_name: name,
+    portal_url: document.getElementById('tpf-url').value.trim() || null,
+    login_id: document.getElementById('tpf-login-id').value.trim() || null,
+    password: document.getElementById('tpf-password').value,
+    notes: document.getElementById('tpf-notes').value.trim() || null,
+    status: 'ACTIVE',
+  };
+  if (!_editingPortalId && !body.password) body.password = null;
+  if (_editingPortalId && body.password === '') body.password = null;
+  try {
+    const url = _editingPortalId ? `/api/tender-portals/${_editingPortalId}` : '/api/tender-portals';
+    const method = _editingPortalId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Save failed');
+    toast(_editingPortalId ? 'Portal updated' : 'Portal added', 'success');
+    resetTenderPortalForm();
+    await loadTenderPortals();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+};
+
+savePortalForm = async function() { await saveTenderPortalForm(); };
+
+deactivateTenderPortal = async function(id) {
+  const portal = _portalsCache.find((item) => item.id === id);
+  if (!confirm(`Delete portal "${portal?.portal_name || id}"?`)) return;
+  try {
+    const res = await fetch(`/api/tender-portals/${id}/deactivate`, { method: 'PATCH' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to deactivate portal');
+    toast('Portal deleted', 'success');
+    await loadTenderPortals();
+  } catch (err) {
+    toast(err.message || 'Failed to delete portal', 'error');
+  }
+};
+
+activateTenderPortal = async function(id) {
+  try {
+    const res = await fetch(`/api/tender-portals/${id}/activate`, { method: 'PATCH' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to activate portal');
+    toast('Portal activated', 'success');
+    await loadTenderPortals();
+  } catch (err) {
+    toast(err.message || 'Failed to activate portal', 'error');
+  }
+};
+
 // ── Column Resize ──────────────────────────────────────────────────────────
 const _COL_RESIZE_KEY = 'tenderColWidths_v1';
 const _COL_DEFS = {
@@ -6421,17 +6770,7 @@ function resetColWidth(k) {
 _initColWidths();
 
 async function deletePortal(id) {
-  const p = _portalsCache.find(x => x.id === id);
-  if (!confirm(`Delete portal "${p ? p.name : id}"?\nThis cannot be undone.`)) return;
-  try {
-    const res = await fetch(`/api/portals/${id}`, { method: 'DELETE' });
-    if (!res.ok && res.status !== 204) throw new Error('Delete failed');
-    toast('Portal deleted', 'success');
-    delete _revealedPw[id];
-    await loadPortals();
-  } catch (err) {
-    toast('Error: ' + err.message, 'error');
-  }
+  await deactivateTenderPortal(id);
 }
 
 async function loadGemCandidates(sectionName) {
