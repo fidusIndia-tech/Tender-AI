@@ -6691,15 +6691,6 @@ function workflowCandidateRow(candidate) {
       }
     </div>
   `;
-  const scoreMarkup = `
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
-      ${keywordScore != null ? `<span class="badge badge-info" title="Keyword fit score">Keyword ${esc(keywordScore)}/10</span>` : ''}
-      ${finalScore != null
-        ? `<span class="badge badge-success" title="Final evaluation score">Final ${esc(finalScore)}/10</span>`
-        : (!isManual ? `<span style="font-size:12px;color:var(--slate-500)">Final pending</span>` : '')
-      }
-    </div>
-  `;
   const strengths = candidate?.strengths || candidate?.positive_points || [];
   const risks = candidate?.risks || candidate?.risk_factors || [];
   const missingDocs = candidate?.missing_documents || candidate?.missing_information || [];
