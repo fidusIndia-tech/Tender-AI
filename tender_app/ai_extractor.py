@@ -51,7 +51,10 @@ Required JSON structure:
     "office_name_location": "string or null",
     "total_quantity": "string or null",
     "make": "string or null",
-    "tender_approx_value": "string or null"
+    "tender_approx_value": "string or null",
+    "item_category": "string or null",
+    "primary_product": "string or null",
+    "delivery_period": "string or null"
   },
   "items": [
     {
@@ -214,9 +217,14 @@ def _deterministic_gem_extract(pdf_path: str) -> dict | None:
             "total_quantity": parsed.get("total_quantity"),
             "make": make,
             "tender_approx_value": None,
+            "item_category": parsed.get("item_category"),
+            "primary_product": parsed.get("primary_product"),
+            "delivery_period": None,
         },
         "items": items,
         "required_documents": required_documents,
+        "emd": parsed.get("emd") or {},
+        "technical_specifications": [row.get("item") for row in (parsed.get("schedules") or []) if row.get("item")][:20],
         "extraction_mode": "deterministic_gem",
     }
 
@@ -239,9 +247,14 @@ def merge_results(results: list) -> dict:
             "total_quantity": None,
             "make": None,
             "tender_approx_value": None,
+            "item_category": None,
+            "primary_product": None,
+            "delivery_period": None,
         },
         "items": [],
         "required_documents": [],
+        "emd": {},
+        "technical_specifications": [],
     }
 
     seen_items = set()
@@ -269,6 +282,11 @@ def merge_results(results: list) -> dict:
                     seen_docs.add(norm)
                     merged["required_documents"].append(doc.strip())
 
+        if not merged["emd"] and result.get("emd"):
+            merged["emd"] = result.get("emd") or {}
+        if not merged["technical_specifications"] and result.get("technical_specifications"):
+            merged["technical_specifications"] = list(result.get("technical_specifications") or [])[:20]
+
     return merged
 
 
@@ -285,9 +303,14 @@ def _merge_prefer_first(results: list) -> dict:
             "total_quantity": None,
             "make": None,
             "tender_approx_value": None,
+            "item_category": None,
+            "primary_product": None,
+            "delivery_period": None,
         },
         "items": [],
         "required_documents": [],
+        "emd": {},
+        "technical_specifications": [],
     }
 
     seen_items = set()
@@ -325,6 +348,11 @@ def _merge_prefer_first(results: list) -> dict:
                 if norm not in seen_docs:
                     seen_docs.add(norm)
                     merged["required_documents"].append(label)
+
+        if not merged["emd"] and result.get("emd"):
+            merged["emd"] = result.get("emd") or {}
+        if not merged["technical_specifications"] and result.get("technical_specifications"):
+            merged["technical_specifications"] = list(result.get("technical_specifications") or [])[:20]
 
     if modes:
         merged["extraction_mode"] = "+".join(modes)
@@ -396,6 +424,12 @@ def _local_extract_from_text(text: str) -> dict:
             "total_quantity": qty,
             "make": item_category,
             "tender_approx_value": value,
+            "item_category": item_category,
+            "primary_product": item_category,
+            "delivery_period": _first_match(compact, [
+                r"Delivery\s*Period\s*[:|\-]?\s*([^\n\r|]+)",
+                r"Delivery\s*to\s*start\s*after\s*[:|\-]?\s*([^\n\r|]+)",
+            ]),
         },
         "items": [{"part_number": None, "item_description": item_category, "quantity": qty}] if item_category or qty else [],
         "required_documents": docs,

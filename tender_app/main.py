@@ -220,6 +220,7 @@ class TenderPayload(BaseModel):
     won_text: Optional[str] = None
     lost_text: Optional[str] = None
     participant_text: Optional[str] = None
+    expand_sections_json: Optional[list[dict]] = None
     participation_status: Optional[str] = None
     pdf_path: Optional[str] = None
     extraction_json_path: Optional[str] = None
@@ -613,6 +614,7 @@ async def update_record_fields(tender_id: int, body: dict):
         None,
         body.get("participant_text"),
         body.get("remark"),
+        body.get("expand_sections_json"),
     )
     return {"id": tender_id}
 

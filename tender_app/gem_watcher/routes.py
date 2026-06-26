@@ -4,7 +4,13 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 import database
-from gem_watcher.scanner import execute_scan, request_cancel, start_scan
+from gem_watcher.scanner import (
+    execute_scan,
+    request_cancel,
+    rerun_extraction_for_candidate,
+    run_full_evaluation_for_candidate,
+    start_scan,
+)
 
 router = APIRouter()
 
@@ -20,6 +26,10 @@ class KeywordUpdate(BaseModel):
 
 class ScanRequest(BaseModel):
     scan_target_date: str  # YYYY-MM-DD
+
+
+class CandidateOverrideRequest(BaseModel):
+    reason: Optional[str] = None
 
 
 # ── Keywords ─────────────────────────────────────────────────────────────────
@@ -92,8 +102,8 @@ async def cancel_scan_run(run_id: int):
 # ── Candidate tenders ────────────────────────────────────────────────────────
 
 @router.get("/api/gem-candidates")
-async def list_candidates(status: Optional[str] = None):
-    return database.list_gem_candidates(status=status)
+async def list_candidates(status: Optional[str] = None, run_id: Optional[int] = None):
+    return database.list_gem_candidates(status=status, scan_run_id=run_id)
 
 
 @router.get("/api/gem-candidates/{candidate_id}")
@@ -179,3 +189,61 @@ async def approve_candidate(candidate_id: int):
         evaluation_reason=(candidate.get("evaluation_reason") or "") + " (manually approved by admin despite score below threshold)",
     )
     return {"status": "APPROVED", "tender_id": tender_id}
+
+
+@router.post("/api/gem-candidates/{candidate_id}/review")
+async def send_candidate_to_review(candidate_id: int, payload: CandidateOverrideRequest | None = None):
+    candidate = database.get_gem_candidate(candidate_id)
+    if not candidate:
+        raise HTTPException(404, "Candidate not found")
+    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+        raise HTTPException(400, "This tender is already in All Tenders. Keep it approved there or handle it manually.")
+    reason = (payload.reason if payload else None) or candidate.get("evaluation_reason") or "Moved to review by admin"
+    database.set_gem_candidate_status(candidate_id, "REVIEW", reason)
+    return {"status": "REVIEW"}
+
+
+@router.post("/api/gem-candidates/{candidate_id}/reject")
+async def reject_candidate(candidate_id: int, payload: CandidateOverrideRequest | None = None):
+    candidate = database.get_gem_candidate(candidate_id)
+    if not candidate:
+        raise HTTPException(404, "Candidate not found")
+    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+        raise HTTPException(400, "This tender is already in All Tenders. Keep it approved there or handle it manually.")
+    reason = (payload.reason if payload else None) or candidate.get("evaluation_reason") or "Rejected by admin"
+    database.set_gem_candidate_status(candidate_id, "REJECTED", reason)
+    return {"status": "REJECTED"}
+
+
+@router.post("/api/gem-candidates/{candidate_id}/full-evaluate")
+async def full_evaluate_candidate(candidate_id: int):
+    candidate = database.get_gem_candidate(candidate_id)
+    if not candidate:
+        raise HTTPException(404, "Candidate not found")
+    if not candidate.get("pdf_file_id"):
+        raise HTTPException(400, "Candidate has no downloaded PDF yet")
+    outcome = run_full_evaluation_for_candidate(candidate_id)
+    return {"status": outcome}
+
+
+@router.post("/api/gem-candidates/{candidate_id}/rerun-extraction")
+async def rerun_candidate_extraction(candidate_id: int):
+    candidate = database.get_gem_candidate(candidate_id)
+    if not candidate:
+        raise HTTPException(404, "Candidate not found")
+    if not candidate.get("pdf_file_id"):
+        raise HTTPException(400, "Candidate has no downloaded PDF yet")
+    outcome = rerun_extraction_for_candidate(candidate_id)
+    return {"status": outcome}
+
+
+@router.delete("/api/gem-candidates/{candidate_id}", status_code=204)
+async def delete_candidate(candidate_id: int):
+    candidate = database.get_gem_candidate(candidate_id)
+    if not candidate:
+        raise HTTPException(404, "Candidate not found")
+    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+        raise HTTPException(400, "Candidate already exists in All Tenders and cannot be deleted here")
+    deleted = database.delete_gem_candidate(candidate_id)
+    if not deleted:
+        raise HTTPException(404, "Candidate not found")
