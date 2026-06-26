@@ -1,0 +1,72 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7607133",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 13:00:00",
+    "bid_opening_datetime": "06-07-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "1369",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Rotational Moulded Polyethylene Water Storage Tanks (V3) Conforming To IS 12701",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulically Regulated Door Closers Conforming To IS 3564",
+      "quantity": "47"
+    },
+    {
+      "part_number": null,
+      "item_description": "Curtain Pipe, Sider And Mounting Bracket",
+      "quantity": "114"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steel Butt Hinges As Per IS 1341",
+      "quantity": "76"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tower Bolts (Ferrous Metals) As Per IS 204",
+      "quantity": "57"
+    },
+    {
+      "part_number": null,
+      "item_description": "Barrel Tower Bolts (Type - 1A)",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": "Semi-Barrel Tower Bolts (Type - 1A)",
+      "quantity": "71"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 1(Requested in ATC)",
+    "UPLOAD DECLARATION/ CERTIFICATES/ UNDERTAKINGS ON IP ADDRESS, CARTEL BIDDING, SISTER CONCERN FIRMS, M.I.I. UNDERTAKING, BIDDER FINANCIAL STANDING",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate Duly Certified By Bank",
+    "UPLOAD M.I.I. CERTIFICATE FROM OEMs OF MAKES QUOTED OUT OF THE MAKES MENTIONED",
+    "WARRANTY CERTIFICATES",
+    "UPLOAD OEM’S BID SPECIFIC AUTHORIZATIONON ON OEM’S LETTER HEAD",
+    "Copy of last FY 2024-25 GST return and also submitted ITR last year",
+    "Required tds copy of branded items"
+  ]
+}

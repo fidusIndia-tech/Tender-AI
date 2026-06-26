@@ -26,6 +26,7 @@ class KeywordUpdate(BaseModel):
 
 class ScanRequest(BaseModel):
     scan_target_date: str  # YYYY-MM-DD
+    keyword: Optional[str] = None  # one-shot ad-hoc keyword; falls back to saved keywords
 
 
 class CandidateOverrideRequest(BaseModel):
@@ -44,8 +45,8 @@ async def create_keyword(payload: KeywordCreate):
     keyword = payload.keyword.strip()
     if not keyword:
         raise HTTPException(400, "Keyword cannot be empty")
-    keyword_id = database.create_gem_keyword(keyword)
-    return {"id": keyword_id}
+    result = database.create_gem_keyword(keyword)
+    return {"id": result["id"], "already_existed": result["already_existed"]}
 
 
 @router.put("/api/gem-watcher/keywords/{keyword_id}")
@@ -66,12 +67,12 @@ async def delete_keyword(keyword_id: int):
 @router.post("/api/gem-watcher/scan")
 async def run_scan_now(payload: ScanRequest, background_tasks: BackgroundTasks):
     try:
-        run_id, scan_target_date = start_scan(payload.scan_target_date)
+        run_id, scan_target_date = start_scan(payload.scan_target_date, keyword=payload.keyword)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except RuntimeError as e:
         raise HTTPException(409, str(e))
-    background_tasks.add_task(execute_scan, run_id, scan_target_date)
+    background_tasks.add_task(execute_scan, run_id, scan_target_date, payload.keyword)
     return {"run_id": run_id, "status": "RUNNING"}
 
 
@@ -119,8 +120,8 @@ async def approve_candidate(candidate_id: int):
     candidate = database.get_gem_candidate(candidate_id)
     if not candidate:
         raise HTTPException(404, "Candidate not found")
-    if candidate.get("status") == "APPROVED":
-        return {"status": "APPROVED", "tender_id": candidate.get("tender_id")}
+    if candidate.get("status") in {"APPROVED", "SENT_TO_ALL_TENDERS"}:
+        return {"status": candidate.get("status"), "tender_id": candidate.get("tender_id")}
     if not candidate.get("pdf_file_id"):
         raise HTTPException(400, "Candidate has no downloaded PDF yet — cannot approve")
 
@@ -178,17 +179,18 @@ async def approve_candidate(candidate_id: int):
     duplicate = database.find_tender_duplicate(tender_data["gem_bidding_number"], tender_data["tender_number"])
     if duplicate:
         database.update_gem_candidate(
-            candidate_id, status="APPROVED", tender_id=duplicate["id"],
+            candidate_id, status="SENT_TO_ALL_TENDERS", scan_status="DUPLICATE", tender_id=duplicate["id"],
+            duplicate_reason="GeM bid number already exists in All Tenders.",
             evaluation_reason=(candidate.get("evaluation_reason") or "") + " (manually approved; already exists in All Tenders)",
         )
-        return {"status": "APPROVED", "tender_id": duplicate["id"]}
+        return {"status": "SENT_TO_ALL_TENDERS", "tender_id": duplicate["id"]}
 
     tender_id = database.save_tender(tender_data, boq_items, required_documents)
     database.update_gem_candidate(
-        candidate_id, status="APPROVED", tender_id=tender_id,
+        candidate_id, status="SENT_TO_ALL_TENDERS", scan_status="SENT_TO_ALL_TENDERS", tender_id=tender_id,
         evaluation_reason=(candidate.get("evaluation_reason") or "") + " (manually approved by admin despite score below threshold)",
     )
-    return {"status": "APPROVED", "tender_id": tender_id}
+    return {"status": "SENT_TO_ALL_TENDERS", "tender_id": tender_id}
 
 
 @router.post("/api/gem-candidates/{candidate_id}/review")
@@ -196,9 +198,10 @@ async def send_candidate_to_review(candidate_id: int, payload: CandidateOverride
     candidate = database.get_gem_candidate(candidate_id)
     if not candidate:
         raise HTTPException(404, "Candidate not found")
-    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+    if candidate.get("status") in {"APPROVED", "SENT_TO_ALL_TENDERS"} and candidate.get("tender_id"):
         raise HTTPException(400, "This tender is already in All Tenders. Keep it approved there or handle it manually.")
     reason = (payload.reason if payload else None) or candidate.get("evaluation_reason") or "Moved to review by admin"
+    database.update_gem_candidate(candidate_id, scan_status="REVIEW")
     database.set_gem_candidate_status(candidate_id, "REVIEW", reason)
     return {"status": "REVIEW"}
 
@@ -208,9 +211,10 @@ async def reject_candidate(candidate_id: int, payload: CandidateOverrideRequest 
     candidate = database.get_gem_candidate(candidate_id)
     if not candidate:
         raise HTTPException(404, "Candidate not found")
-    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+    if candidate.get("status") in {"APPROVED", "SENT_TO_ALL_TENDERS"} and candidate.get("tender_id"):
         raise HTTPException(400, "This tender is already in All Tenders. Keep it approved there or handle it manually.")
     reason = (payload.reason if payload else None) or candidate.get("evaluation_reason") or "Rejected by admin"
+    database.update_gem_candidate(candidate_id, scan_status="REJECTED")
     database.set_gem_candidate_status(candidate_id, "REJECTED", reason)
     return {"status": "REJECTED"}
 
@@ -242,7 +246,7 @@ async def delete_candidate(candidate_id: int):
     candidate = database.get_gem_candidate(candidate_id)
     if not candidate:
         raise HTTPException(404, "Candidate not found")
-    if candidate.get("status") == "APPROVED" and candidate.get("tender_id"):
+    if candidate.get("status") in {"APPROVED", "SENT_TO_ALL_TENDERS"} and candidate.get("tender_id"):
         raise HTTPException(400, "Candidate already exists in All Tenders and cannot be deleted here")
     deleted = database.delete_gem_candidate(candidate_id)
     if not deleted:

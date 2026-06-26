@@ -1,0 +1,52 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7702800",
+    "date": "23-06-2026",
+    "bid_end_datetime": "03-07-2026 20:00:00",
+    "bid_opening_datetime": "03-07-2026 20:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "14",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "2 POLE ISOLATOR SWITCH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PUMP HYDRAULIC RAM DRIVEN",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "SPRING BRAKE CHAMBER LH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "SPRING BRAKE CHAMBER RH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABIN LIFTING PUMP",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "VALVE RELAY AIR PRESSURE",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PART KIT ENGINE OIUL PUMP",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": []
+}

@@ -1,0 +1,200 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7702698",
+    "date": "23-06-2026",
+    "bid_end_datetime": "03-07-2026 19:00:00",
+    "bid_opening_datetime": "03-07-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "1359",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "10 100 M 73D 00",
+      "item_description": "ENGINE 4 VALVE MPFI",
+      "quantity": null
+    },
+    {
+      "part_number": "99000 M 24120",
+      "item_description": "370 ENGINE OVERHAUL",
+      "quantity": null
+    },
+    {
+      "part_number": "29510",
+      "item_description": "83050 CASE TRANSFER",
+      "quantity": null
+    },
+    {
+      "part_number": "F 7474000",
+      "item_description": "4310 003690 AIR",
+      "quantity": null
+    },
+    {
+      "part_number": "131 411 099 005",
+      "item_description": "131 SPEED 411 099 005",
+      "quantity": null
+    },
+    {
+      "part_number": "150 200 003 004",
+      "item_description": "AGGREGATE HA 25 3V PUMP",
+      "quantity": null
+    },
+    {
+      "part_number": "4320 004125",
+      "item_description": "HYDRAULIC RAM HAND DRIVEN",
+      "quantity": null
+    },
+    {
+      "part_number": "4730 000058",
+      "item_description": "GREASE CONICAL HD STRAIGHT",
+      "quantity": null
+    },
+    {
+      "part_number": "2786 0911 9904",
+      "item_description": "FILTER",
+      "quantity": null
+    },
+    {
+      "part_number": "6220 004440",
+      "item_description": "LIGHT 12",
+      "quantity": null
+    },
+    {
+      "part_number": "2610 001588",
+      "item_description": "INNER COMBINED WITH VALVE",
+      "quantity": null
+    },
+    {
+      "part_number": "X 3806750",
+      "item_description": "CODE 20V FOR TYRE SIZE",
+      "quantity": null
+    },
+    {
+      "part_number": "F8047000",
+      "item_description": "TAIL LIGHT ASSY",
+      "quantity": null
+    },
+    {
+      "part_number": "6220 000160",
+      "item_description": "TAIL LIGHT STOP LIGHT",
+      "quantity": null
+    },
+    {
+      "part_number": "CVD X 3922400",
+      "item_description": "PRESSURE GUAGE",
+      "quantity": null
+    },
+    {
+      "part_number": "CVD F 193 1150",
+      "item_description": "INFLATOR HOSE",
+      "quantity": null
+    },
+    {
+      "part_number": "15100 M 830 A1",
+      "item_description": "ASSY FUEL",
+      "quantity": null
+    },
+    {
+      "part_number": "38340 M 82C000",
+      "item_description": "BLADE ASSY",
+      "quantity": null
+    },
+    {
+      "part_number": "55810 M 70A 00",
+      "item_description": "PAD",
+      "quantity": null
+    },
+    {
+      "part_number": "37200 M 83200 23H",
+      "item_description": "ASSY CHANGE OVER",
+      "quantity": null
+    },
+    {
+      "part_number": "99000 M 24120",
+      "item_description": "471 HEAD LAMP",
+      "quantity": null
+    },
+    {
+      "part_number": "37400 M 80030",
+      "item_description": "ASSY COMBINATION",
+      "quantity": null
+    },
+    {
+      "part_number": "37670 M 80020",
+      "item_description": "ASSY DOOR",
+      "quantity": null
+    },
+    {
+      "part_number": "38860 M 79OFOO",
+      "item_description": "MAIN AND FUEL",
+      "quantity": null
+    },
+    {
+      "part_number": "2540 006508",
+      "item_description": "REGULATOR ASSY",
+      "quantity": null
+    },
+    {
+      "part_number": "B 3942303",
+      "item_description": "AIR DRYER",
+      "quantity": null
+    },
+    {
+      "part_number": "F 2630200",
+      "item_description": "ENG MTG",
+      "quantity": null
+    },
+    {
+      "part_number": "X 8000600",
+      "item_description": "COMBINATION",
+      "quantity": null
+    },
+    {
+      "part_number": "443 311 809 109",
+      "item_description": "WATER PROOF FOG",
+      "quantity": null
+    },
+    {
+      "part_number": "5340 012171",
+      "item_description": "SUPPORT BLOCK",
+      "quantity": null
+    },
+    {
+      "part_number": "29510 83050",
+      "item_description": "CASE TRANSFER",
+      "quantity": "1"
+    },
+    {
+      "part_number": "F 7474000 4310 003690",
+      "item_description": "AIR",
+      "quantity": "1"
+    },
+    {
+      "part_number": "131 411 099 005 131",
+      "item_description": "SPEED 411 099 005",
+      "quantity": "2"
+    },
+    {
+      "part_number": "55810 M 70A 00 PAD",
+      "item_description": "ASSY CHANGE OVER",
+      "quantity": "111"
+    },
+    {
+      "part_number": "99000 M 24120 471",
+      "item_description": "HEAD LAMP",
+      "quantity": "7"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7695796",
+    "date": "22-06-2026",
+    "bid_end_datetime": "23-07-2026 17:00:00",
+    "bid_opening_datetime": "23-07-2026 17:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Uranium Corporation Of India Limited",
+    "office_name_location": "Kadapa",
+    "total_quantity": "50",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC HOSE PIPE",
+      "quantity": "50"
+    }
+  ],
+  "required_documents": [
+    "Past Performance"
+  ]
+}

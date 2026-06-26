@@ -1,0 +1,61 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678186",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 20:00:00",
+    "bid_opening_datetime": "27-06-2026 20:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "9",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "oil filter cartridge",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "main fuel filter element",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "fuel primary filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "hydraulic hose",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "steering vane pump assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "power steering pipe",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "road spring bush",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "water valve",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover"
+  ]
+}

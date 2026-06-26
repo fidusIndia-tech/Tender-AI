@@ -1,0 +1,44 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7710584",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Bhakra Beas Managemet Board",
+    "organization_name": "Bhakra Beas Management Board",
+    "office_name_location": "Bhakra Beas Management Board, Chandigarh",
+    "total_quantity": "1488",
+    "make": "HPCL, BPCL, IOC",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Wheel Bearing Grease (V2) Conforming To IS 10647",
+      "quantity": "182"
+    },
+    {
+      "part_number": null,
+      "item_description": "Gear Lubricants, Multipurpose (?Extreme?Pressure?Gear?Oil?) (V3) Conforming To IS 1118",
+      "quantity": "420"
+    },
+    {
+      "part_number": null,
+      "item_description": "Internal Combustion Engine Crankcase Oils For Automotive Application (V2) Conforming To IS 13656",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "Multipurpose Industrial Grease (V2) Conforming To IS 7623",
+      "quantity": "364 kilogram"
+    },
+    {
+      "part_number": null,
+      "item_description": "Antiwear Hydraulic Oil, Extra Heavy Duty Type (V3) Conforming To IS 11656",
+      "quantity": "420 liter"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)"
+  ]
+}

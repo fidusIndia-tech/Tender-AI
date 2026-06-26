@@ -1,0 +1,22 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7680969",
+    "date": "18-06-2026",
+    "bid_end_datetime": "09-07-2026 14:00:00",
+    "bid_opening_datetime": "09-07-2026 14:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10040025-c F P Rudrapur",
+    "total_quantity": "840",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC OIL GRADE 68",
+      "quantity": "840"
+    }
+  ],
+  "required_documents": []
+}

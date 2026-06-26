@@ -1,0 +1,109 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7697664",
+    "date": "22-06-2026",
+    "bid_end_datetime": "03-07-2026 20:00:00",
+    "bid_opening_datetime": "03-07-2026 20:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "23",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": null
+    },
+    {
+      "part_number": null,
+      "item_description": "Hose Compressor Gauge",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hose Vaccume Gauge",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Wheel Nut",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Lock Washer",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Impeller Pump Centrifugal KD FP5 45",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Socket 15AMP",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "AVR Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "PTO Oil Seal",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fan Belt",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Pressure Hose",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Mech Seal Kit Complete",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Hydraulic",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hyd Pipe",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hyd Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Pipe 19x19",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steering Cyl Seal Kit",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Past Performance,Bidder Turnover,OEM Annual Turnover,Additional Doc 1 (Requested in ATC)"
+  ]
+}

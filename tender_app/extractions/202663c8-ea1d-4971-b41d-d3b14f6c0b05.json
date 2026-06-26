@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7681540",
+    "date": "18-06-2026",
+    "bid_end_datetime": "04-07-2026 16:00:00",
+    "bid_opening_datetime": "04-07-2026 16:30:00",
+    "department_name": "Uttar Pradesh Cooperative Sugar Factories Federation Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": "140000"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Supply of Removing of Old Damage Mill Hydraulic Cap sleeve With Fitting",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Scope of Work:1781775366.pdf",
+    "Payment Terms:1781775443.pdf",
+    "Undertaking of Competent Authority is mandatory to create Custom Bid for Services. Please download standard format document and upload:1781775460.pdf",
+    "GEM Availability Report ( GAR):1781775494.pdf"
+  ]
+}

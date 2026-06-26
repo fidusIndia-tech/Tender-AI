@@ -1,0 +1,144 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7661392",
+    "date": "22-06-2026",
+    "bid_end_datetime": "03-07-2026 19:00:00",
+    "bid_opening_datetime": "03-07-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "4282",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Copper Alloy Taps/Stop Valves (V2) Conforming To IS 8931",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bathroom Water Shower (V2)",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "Copper Alloy Gate Valve For Waterworks Purpose (V2) Conforming To IS 778",
+      "quantity": "26"
+    },
+    {
+      "part_number": null,
+      "item_description": "Towel Rail",
+      "quantity": "136"
+    },
+    {
+      "part_number": null,
+      "item_description": "Towel Ring",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Weld Mesh Fabric As Per IS 4948",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Connector Pipes For Washbasins/ Sinks/ Geyser",
+      "quantity": "191"
+    },
+    {
+      "part_number": null,
+      "item_description": "Stainless Steel Shelf Rack",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "Stop valve cancealed, 15mm",
+      "quantity": "53"
+    },
+    {
+      "part_number": null,
+      "item_description": "Aluminium Hydraulic Door Closure Plate Type Cap120 Kg",
+      "quantity": "69"
+    },
+    {
+      "part_number": null,
+      "item_description": "Corner Shelf Glass, 300mm With All Fitting Accessories",
+      "quantity": "69"
+    },
+    {
+      "part_number": null,
+      "item_description": "Curtain Rod SS 25mm 1mm Thick",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "M Seal In 100gm Pkt",
+      "quantity": "500"
+    },
+    {
+      "part_number": null,
+      "item_description": "Magnetic Catcher",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Putty For Fixing Window Glass",
+      "quantity": "500"
+    },
+    {
+      "part_number": null,
+      "item_description": "Paint Synthetic Enamal Smoke Gray , 01 Ltr Packaging",
+      "quantity": "300"
+    },
+    {
+      "part_number": null,
+      "item_description": "Plain Sheet Glass, 3 Mm Thick",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Polyethylene Sheet, Transparent 3MM Thick, Size 4ft X 8ft",
+      "quantity": "300"
+    },
+    {
+      "part_number": null,
+      "item_description": "PTMT 20mm Ball Cock And Rod",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC Seat And Back Of 4mm Thick Of PPCP Material",
+      "quantity": "350"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC Seat Of 4mm Thick Of PPCP Material",
+      "quantity": "400"
+    },
+    {
+      "part_number": null,
+      "item_description": "Telescopic Channel 12 Inch",
+      "quantity": "400"
+    },
+    {
+      "part_number": null,
+      "item_description": "Telescopic Hinges",
+      "quantity": "100"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

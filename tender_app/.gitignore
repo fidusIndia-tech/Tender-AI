@@ -1,0 +1,13 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+*.log
+debug.log
+uvicorn-*.log
+.git_diff_export.txt
+.tmp-upload-date/
+tender_app/debug.log
+tender_app/extractions/
+tender_app/uploads/
+*.db

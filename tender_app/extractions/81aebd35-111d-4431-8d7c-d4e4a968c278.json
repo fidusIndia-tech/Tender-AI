@@ -1,0 +1,34 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7711001",
+    "date": "25-06-2026",
+    "bid_end_datetime": "11-07-2026 09:00:00",
+    "bid_opening_datetime": "11-07-2026 09:30:00",
+    "department_name": "Uttar Pradesh Cooperative Sugar Factories Federation Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "20",
+    "make": "EPE",
+    "tender_approx_value": "140000"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Cheking Testing of Mill Turbin , Remaintain the Pressure , EPE Make bladder cap , EPE Make Gas fill valve , EPE Make liquid seal kit",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Liquid Seal Kit",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "scanned copy of signed integrity pact"
+  ]
+}

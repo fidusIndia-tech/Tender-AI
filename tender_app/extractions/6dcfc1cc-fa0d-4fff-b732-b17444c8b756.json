@@ -1,0 +1,88 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7622906",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 12:00:00",
+    "bid_opening_datetime": "27-06-2026 12:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": "***********",
+    "total_quantity": "27",
+    "make": "AKONA, Akona",
+    "tender_approx_value": "228153"
+  },
+  "items": [
+    {
+      "part_number": "RD 15B3E ED 09 159",
+      "item_description": "Hydraulic Pump Double Concrete Mixture AKONA",
+      "quantity": "1"
+    },
+    {
+      "part_number": "RD 15B3E PD 03 55",
+      "item_description": "Hydraulic Motor Concrete Mixture AKONA",
+      "quantity": "1"
+    },
+    {
+      "part_number": "HMP FBF A0156 02 031",
+      "item_description": "Pedestal Bearing UCP 211 HMP Akona",
+      "quantity": "1"
+    },
+    {
+      "part_number": "HMP BC A0156 01 014",
+      "item_description": "Take Up Pedestal UCT 209 HMP Akona",
+      "quantity": "2"
+    },
+    {
+      "part_number": "HMP BC A0156 01 017",
+      "item_description": "V Belt B 169LP B64 HMP Akona",
+      "quantity": "4"
+    },
+    {
+      "part_number": "HMP DD A0156 07 140",
+      "item_description": "V Belt",
+      "quantity": "2"
+    },
+    {
+      "part_number": "HMP LOC A0156 16 260",
+      "item_description": "V Belt",
+      "quantity": "2"
+    },
+    {
+      "part_number": "HMP EBF A0 56 02 055",
+      "item_description": "Pedestal Bearing",
+      "quantity": "2"
+    },
+    {
+      "part_number": "HMP BC A0156 01 012",
+      "item_description": "Conveyor Belt W450x03 Mtr",
+      "quantity": "1"
+    },
+    {
+      "part_number": "A5410920805 48 999 20 0 00",
+      "item_description": "Fuel Filter Paper And Cloth",
+      "quantity": "2"
+    },
+    {
+      "part_number": "06 474 50 0 00",
+      "item_description": "Fuel Water Sep",
+      "quantity": "2"
+    },
+    {
+      "part_number": "06 436 01 0 00",
+      "item_description": "Engine Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": "4H 166 11 00 0",
+      "item_description": "Air Filter Primary",
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

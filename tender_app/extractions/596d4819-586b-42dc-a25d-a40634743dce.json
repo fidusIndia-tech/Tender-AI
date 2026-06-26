@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678080",
+    "date": "17-06-2026",
+    "bid_end_datetime": "11-07-2026 09:00:00",
+    "bid_opening_datetime": "11-07-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Air Force",
+    "office_name_location": "***********",
+    "total_quantity": "14",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Hose",
+      "quantity": "14"
+    }
+  ],
+  "required_documents": [
+    "BUYER'S SPECIFICATION WITH YOUR FIRM STAMP AND SIGNATURE FOR TECHNICAL EVALUATION",
+    "DGAQA CERTIFICATE FOR TECHNICAL EVALUATION",
+    "EXPERIENCES( ONLY CRAC COPY , JOB COMPLETION CERTIFICATE AND PAYMENT DETAILS OF SAME ITEMS WILL BE ACCEPTABLE BUT GEM CONTRACT COPY WILL NOT BE TREATED AS EXPERIENCES CERTIFICATE) GEM CERTIFICATE FOR THE SAME ITEMS THAT YOUR FIRM HAS SUPPLIED RECENTLY FOR TECHNICAL EVALUATION"
+  ]
+}

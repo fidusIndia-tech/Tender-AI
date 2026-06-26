@@ -1,0 +1,88 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7583962",
+    "date": "26-05-2026",
+    "bid_end_datetime": "15-06-2026 18:00:00",
+    "bid_opening_datetime": "15-06-2026 18:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "19",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Armature for Wood Cutting Machine",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Carbon Brush for Wood Cutting Machine",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Armature with bearing for Hand Grinder Machine",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Carbon Brush for Hand Grinding Machine",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Vice for Drilling sensitive piller",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Copper condenser for Window AC",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Blower For Window AC",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bobbin Case For Sewing Machine",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Needle Organ For Sewing Machine",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Belt For Sewing Machine",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Electric Motor For Outer Unit For Split AC HP One By Eight RPM One Hundred Thirty",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Seal For Hydraulic Jack Trolley",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

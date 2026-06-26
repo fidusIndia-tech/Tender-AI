@@ -1,0 +1,25 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7674980",
+    "date": "18-06-2026",
+    "bid_end_datetime": "20-07-2026 11:00:00",
+    "bid_opening_datetime": "20-07-2026 11:30:00",
+    "department_name": "Indian Railways",
+    "organization_name": "North Eastern Railway",
+    "office_name_location": "Office Of The Principal Chief Material Manager Ner",
+    "total_quantity": "44940",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Anti Wear Hydraulic Oil (V5) Conforming To IS 10522",
+      "quantity": "44940"
+    }
+  ],
+  "required_documents": [
+    "Past Performance,Certificate (Requested in ATC),OEM Authorization Certificate",
+    "In case any bidder is seeking exemption from Experience / Turnover Criteria, the supporting documents to prove his eligibility for exemption must be uploaded for evaluation by the buyer"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7674986",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 16:00:00",
+    "bid_opening_datetime": "29-06-2026 16:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Bharat Earth Movers Limited (beml)",
+    "office_name_location": "***********",
+    "total_quantity": "103",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "787HS02665",
+      "item_description": "HYDRAULIC PUMP",
+      "quantity": "103"
+    }
+  ],
+  "required_documents": []
+}

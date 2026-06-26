@@ -1,0 +1,98 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7674795",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 13:00:00",
+    "bid_opening_datetime": "27-06-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "506",
+    "make": "Anabond, Tata, MG, Everest",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Anabond Tube",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Flat Patti",
+      "quantity": "26"
+    },
+    {
+      "part_number": null,
+      "item_description": "Angle Iron",
+      "quantity": "26"
+    },
+    {
+      "part_number": null,
+      "item_description": "10 Ton Hydraulic Jack Repair Kit",
+      "quantity": "124"
+    },
+    {
+      "part_number": null,
+      "item_description": "3 Ton Hydraulic Jack Repair Kit",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Jack Wheel",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Seat Cover Tata Yodha",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Body Matting MG",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Everest End Joint",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "RST MS Socket",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Angle Iron 2 And Half Inch",
+      "quantity": "325"
+    },
+    {
+      "part_number": null,
+      "item_description": "Safety Goggles",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Plasma Nozzle",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Welding Set Connector",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Welding Machine 200A MAG MMA 3 In 1",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Past Performance,Bidder Turnover,Certificate (Requested in ATC),OEM Authorization Certificate,OEM Annual Turnover",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

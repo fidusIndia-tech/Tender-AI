@@ -1,0 +1,49 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7651658",
+    "date": "11-06-2026",
+    "bid_end_datetime": "02-07-2026 20:00:00",
+    "bid_opening_datetime": "02-07-2026 20:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Border Security Force (bsf)",
+    "office_name_location": "153 Bn Bsf Bhuj",
+    "total_quantity": "9",
+    "make": null,
+    "tender_approx_value": "30000"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Front Disc Pad",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Pipe with Socket",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rear Brake Shoes",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rear Brake Shoe Set Complete",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Front Brake Pad Set",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Welding Rod",
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)"
+  ]
+}

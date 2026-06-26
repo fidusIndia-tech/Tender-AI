@@ -1,0 +1,64 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7396496",
+    "date": "27-03-2026",
+    "bid_end_datetime": "17-04-2026 10:00:00",
+    "bid_opening_datetime": "17-04-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Air Force",
+    "office_name_location": "***********",
+    "total_quantity": "2028",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "K8 Crash Rated Hydraulic Blocking Bollard with four Pillars each",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Monoblock Pump",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Traffic Signal Light",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI Pole",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Armoured Power Cable",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "Power Cable",
+      "quantity": "500"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC Conduit Pipe",
+      "quantity": "500"
+    },
+    {
+      "part_number": null,
+      "item_description": "Digging Work",
+      "quantity": "500"
+    },
+    {
+      "part_number": null,
+      "item_description": "Installation Testing And Commissioning Of All Four Hydraulioc Blocking Bollard With Four Pillars Each Along With All Accessories",
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Additional Doc 1 (Requested in ATC)"
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7658301",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 13:00:00",
+    "bid_opening_datetime": "27-06-2026 13:30:00",
+    "department_name": "Rashtriya Ispat Nigam Limited",
+    "organization_name": "Rashtriya Ispat Nigam Limited",
+    "office_name_location": "Visakhapatnam Steel Plant",
+    "total_quantity": "42",
+    "make": "LUKAS",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "70-10-70",
+      "item_description": "POWER PACK, DC 650 4 POWER",
+      "quantity": "1"
+    },
+    {
+      "part_number": "15-10-10",
+      "item_description": "HYDR. OIL VG-10, (10 LTR. CAN)",
+      "quantity": "1"
+    },
+    {
+      "part_number": "70-20-20",
+      "item_description": "CENTRAL CONTROL PANEL, CU-4DVV",
+      "quantity": "1"
+    },
+    {
+      "part_number": "70-63-02",
+      "item_description": "EXT. HIGH PR. HOSE PAIR (BLUE-GREY)",
+      "quantity": "1"
+    },
+    {
+      "part_number": "70-50-70",
+      "item_description": "LUKAS CYLINDER, HP 130/115R",
+      "quantity": "1"
+    },
+    {
+      "part_number": "70-50-65",
+      "item_description": "TELESCOPIC CYLINDER, HP65/T400R",
+      "quantity": "1"
+    },
+    {
+      "part_number": "840721321",
+      "item_description": "STACKING SET, CYLNDR, HP130/115R",
+      "quantity": "1"
+    },
+    {
+      "part_number": "840728563",
+      "item_description": "STACKING SET, CYLNDR HP65/T400R",
+      "quantity": "1"
+    },
+    {
+      "part_number": "840728463",
+      "item_description": "RE-RAILING BRIDGE 2.20M/184MM",
+      "quantity": "1"
+    },
+    {
+      "part_number": "840727382",
+      "item_description": "LUKAS ROLLER CARRIAGE, 1000 KN",
+      "quantity": "1"
+    },
+    {
+      "part_number": "840721631",
+      "item_description": "SINGLE ACTING CYLNDR, LFM25/100",
+      "quantity": "1"
+    },
+    {
+      "part_number": "851453011",
+      "item_description": "AXLE PUSHER, TYPE AXP125",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "EXTENSION HIGH PR HOSE PAIR BLUE GREY",
+      "quantity": "1"
+    },
+    {
+      "part_number": "HP 130 115R",
+      "item_description": "LUKAS CYLINDER",
+      "quantity": "10"
+    },
+    {
+      "part_number": "HP65 T400R",
+      "item_description": "TELESCOPIC CYLINDER",
+      "quantity": "1"
+    },
+    {
+      "part_number": "HP 65 T 400R",
+      "item_description": "BASE PLATE FOR",
+      "quantity": "6"
+    },
+    {
+      "part_number": "HP130 115R",
+      "item_description": "STACKING SET FOR CYLINDER",
+      "quantity": "6"
+    },
+    {
+      "part_number": "HP65 T400R",
+      "item_description": "STACKING SET FOR CYLINDER",
+      "quantity": "1"
+    },
+    {
+      "part_number": "2 20M 184MM",
+      "item_description": "RE RAILING BRIDGE",
+      "quantity": "4"
+    },
+    {
+      "part_number": "1000 KN",
+      "item_description": "LUKAS ROLLER CARRIAGE",
+      "quantity": "3"
+    },
+    {
+      "part_number": "LFM25 100",
+      "item_description": "SINGLE ACTING CYLINDER",
+      "quantity": "2"
+    },
+    {
+      "part_number": "AXP125",
+      "item_description": "AXLE PUSHER TYPE",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

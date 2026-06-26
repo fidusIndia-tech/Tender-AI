@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7596721",
+    "date": "29-05-2026",
+    "bid_end_datetime": "13-06-2026 18:00:00",
+    "bid_opening_datetime": "13-06-2026 18:30:00",
+    "department_name": "Steel Authority Of India Limited",
+    "organization_name": "Rourkela Steel Plant",
+    "office_name_location": "Contract Cell Works Office",
+    "total_quantity": null,
+    "make": "ROUND THE CLOCK COMPREHENSIVE MECHANICAL",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "ROUND THE CLOCK COMPREHENSIVE MECHANICAL",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

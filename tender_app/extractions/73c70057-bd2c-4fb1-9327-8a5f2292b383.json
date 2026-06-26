@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7710439",
+    "date": "25-06-2026",
+    "bid_end_datetime": "29-06-2026 13:00:00",
+    "bid_opening_datetime": "29-06-2026 13:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Border Security Force (bsf)",
+    "office_name_location": "47 Bn Bsf Gopalpur Po K K Bari Coochbehar Wb",
+    "total_quantity": "1",
+    "make": "HYDRAULIC TROLLEY",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Repair and Overhauling Service - Wheeled Skid Steer Loader",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

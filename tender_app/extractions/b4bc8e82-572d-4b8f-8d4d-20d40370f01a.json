@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678524",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 09:00:00",
+    "bid_opening_datetime": "29-06-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "null",
+    "total_quantity": "41",
+    "make": "null",
+    "tender_approx_value": "null"
+  },
+  "items": [
+    {
+      "part_number": "null",
+      "item_description": "HYDRAULIC CONVEYOR SYSTEM",
+      "quantity": "1"
+    },
+    {
+      "part_number": "null",
+      "item_description": "ROLLER CONVEYER SYSTEM",
+      "quantity": "40"
+    }
+  ],
+  "required_documents": []
+}

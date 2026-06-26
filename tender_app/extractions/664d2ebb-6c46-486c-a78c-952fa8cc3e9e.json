@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7702520",
+    "date": "23-06-2026",
+    "bid_end_datetime": "03-07-2026 19:00:00",
+    "bid_opening_datetime": "03-07-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "29",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "LAMP ROOF COMPLETE",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

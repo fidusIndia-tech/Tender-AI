@@ -1,0 +1,22 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7703492",
+    "date": "24-06-2026",
+    "bid_end_datetime": "27-06-2026 10:00:00",
+    "bid_opening_datetime": "27-06-2026 10:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Armed Forces Tribunal",
+    "office_name_location": null,
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": "8500"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Hose",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": []
+}

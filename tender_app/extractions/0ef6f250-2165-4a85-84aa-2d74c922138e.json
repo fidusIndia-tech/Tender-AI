@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7697050",
+    "date": "22-06-2026",
+    "bid_end_datetime": "03-07-2026 18:00:00",
+    "bid_opening_datetime": "03-07-2026 18:30:00",
+    "department_name": "Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": null,
+    "make": "CELL/RETUBING/HYDRAULIC TESTING WORK; Consumables",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "CELL/RETUBING/HYDRAULIC TESTING WORK; Consumables",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

@@ -1,0 +1,87 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7675949",
+    "date": "17-06-2026",
+    "bid_end_datetime": "08-07-2026 16:00:00",
+    "bid_opening_datetime": "08-07-2026 16:30:00",
+    "department_name": "Nmdc Steel Limited",
+    "organization_name": "Nmdc Steel Limited",
+    "office_name_location": "Nmdc Iron Steel Plant Jagdalpur Bastar Cg 494001",
+    "total_quantity": "56",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 20ton Rem 1015mm 700 Bar",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 30ton Rem 6075mm 700 Bar",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 100to Rem 5560mm 700 Bar",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 100to Rem 100mm 700 Bar",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Hand Pump Two Speed 61 700 40",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Hand Pump Two Speed 25 700 35",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 50 Sin 16 700",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 50 Sin 60 Mm 700bar",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 200 T Rem 150mm 700",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 20ton Rem 4555 M 700",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Hand Pump Hydraulic 150 12",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC HAND PUMP TWO SPEED 61 700",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC HAND PUMP TWO SPEED 25 700",
+      "quantity": "5"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)"
+  ]
+}

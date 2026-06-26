@@ -1,0 +1,60 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7709469",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 12:00:00",
+    "bid_opening_datetime": "06-07-2026 12:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "7",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Pneumatic Wrench 3 By 4 Inch",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cordless Impact Socket Wrench With Socket Set",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Plastic Creeper",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cutting Plier",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cutter Blade 5 Inch",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cutter Blade 4 Inch",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 3 Ton",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "Seller are hereby requested to provide a demo/sample of items being procured.",
+    "Seller are hereby requested to upload Pre Bid Meeting Certificate duly signed by buyer.",
+    "Seller are hereby requested to provide proof of service and support centre near Jammu Region."
+  ]
+}

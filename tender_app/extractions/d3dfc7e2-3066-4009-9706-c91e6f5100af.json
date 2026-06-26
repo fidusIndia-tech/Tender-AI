@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7644738",
+    "date": "15-06-2026",
+    "bid_end_datetime": "25-06-2026 18:00:00",
+    "bid_opening_datetime": "25-06-2026 18:30:00",
+    "department_name": "Materials",
+    "organization_name": "National Aluminium Company Limited, Bhubaneswar",
+    "office_name_location": "Angul",
+    "total_quantity": "30",
+    "make": "ANALOG I/P MODULE IMFEC12, ABB DCS SPARES",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "AI CARD OF ABB DCS-NTAI05",
+      "quantity": "30"
+    }
+  ],
+  "required_documents": [
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "GST",
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

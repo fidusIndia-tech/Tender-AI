@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7680634",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 14:00:00",
+    "bid_opening_datetime": "29-06-2026 14:30:00",
+    "department_name": "Materials",
+    "organization_name": "National Aluminium Company Limited, Bhubaneswar",
+    "office_name_location": "Mines Division,damanjodi,koraput",
+    "total_quantity": "4",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "YA00003078",
+      "item_description": "Hydraulic Main Pump, PUMP PISTON",
+      "quantity": "3"
+    },
+    {
+      "part_number": "4434308",
+      "item_description": "PUMP PISTON",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7666386",
+    "date": "15-06-2026",
+    "bid_end_datetime": "26-06-2026 19:00:00",
+    "bid_opening_datetime": "26-06-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "55",
+    "make": "FLY WHEEL RING",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": ", WELDING ROD , DRIVE PINION",
+      "quantity": "55"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Certificate (Requested in ATC)",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "GST",
+    "PAN",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

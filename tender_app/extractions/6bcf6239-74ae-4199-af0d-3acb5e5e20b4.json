@@ -1,0 +1,72 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7709792",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 12:00:00",
+    "bid_opening_datetime": "06-07-2026 12:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "23",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hose",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fly Wheel Ring",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Alternator Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Spider Brg",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Pipe",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Washer Rubber",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Nozzle",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Delevery Valve",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hyd Pipe",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "4"
+    }
+  ],
+  "required_documents": []
+}

@@ -1,0 +1,84 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678742",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 10:00:00",
+    "bid_opening_datetime": "29-06-2026 10:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": "***********",
+    "total_quantity": "15",
+    "make": null,
+    "tender_approx_value": "85000"
+  },
+  "items": [
+    {
+      "part_number": "C8HN45163500",
+      "item_description": "HOSE",
+      "quantity": "1"
+    },
+    {
+      "part_number": "C8HN45162000",
+      "item_description": "HOSE",
+      "quantity": "1"
+    },
+    {
+      "part_number": "C8HA45203500",
+      "item_description": "HOSE",
+      "quantity": "1"
+    },
+    {
+      "part_number": "C83631258400",
+      "item_description": "HOSE",
+      "quantity": "2"
+    },
+    {
+      "part_number": "C83635044300",
+      "item_description": "HOSE",
+      "quantity": "1"
+    },
+    {
+      "part_number": "4H181001000",
+      "item_description": "AIR CLEANER SAFETY ELEMENT",
+      "quantity": "2"
+    },
+    {
+      "part_number": "4H181002000",
+      "item_description": "AIR CLEANER PRIMARY ELEMENT",
+      "quantity": "1"
+    },
+    {
+      "part_number": "4811704000 0647410000 SK100738700",
+      "item_description": "FUEL FILTER ELEMENT",
+      "quantity": "1"
+    },
+    {
+      "part_number": "0643601000",
+      "item_description": "SPIN ON FILTER FOR LUBRICATING OIL",
+      "quantity": "2"
+    },
+    {
+      "part_number": "0436701000 D10197190",
+      "item_description": "ALTERNATOR MICO 12V55A",
+      "quantity": "1"
+    },
+    {
+      "part_number": "6013901000 0466901000",
+      "item_description": "V BELT COGGED SPZ LP 1135 FOR ALTERNATOR PULLEY 81 PCD",
+      "quantity": "1"
+    },
+    {
+      "part_number": "C8PP111580000 PP11159",
+      "item_description": "HYDRAULIC OIL FILTER ELEMENT",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

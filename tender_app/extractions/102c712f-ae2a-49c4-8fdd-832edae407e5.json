@@ -1,0 +1,42 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7709663",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 12:00:00",
+    "bid_opening_datetime": "06-07-2026 12:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "5",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "BOOM BUSH CUTTING AND WELDING",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "BOOM BEND REMOVING",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "NEW BUSH INSTALING",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "NEW PIN INSTALING",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC PRESS BENDING",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": []
+}

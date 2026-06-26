@@ -1,0 +1,36 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7620073",
+    "date": "18-06-2026",
+    "bid_end_datetime": "09-07-2026 15:00:00",
+    "bid_opening_datetime": "09-07-2026 15:30:00",
+    "department_name": "Department of Atomic Energy",
+    "organization_name": "Uranium Corporation of India Limited",
+    "office_name_location": "Jaduguda",
+    "total_quantity": "2",
+    "make": "Make-Any Make",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "MS18 2- A21-F19-1620-5DEJ",
+      "item_description": "HYDRAULIC MOTOR ASSY, MODEL: MS18 2- A21-F19-1620-5DEJ, Make-Any Make",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Annual Turnover",
+    "Specification Document",
+    "Bidder's offer is liable to be rejected if they don't upload any of the certificates / documents sought in the Bid document, ATC and Corrigendum if any.",
+    "Buyer Organization specific Integrity Pact"
+  ]
+}

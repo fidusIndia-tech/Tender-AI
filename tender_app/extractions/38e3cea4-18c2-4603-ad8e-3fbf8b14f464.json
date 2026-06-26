@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7402606",
+    "date": "16-05-2026",
+    "bid_end_datetime": "06-06-2026 13:00:00",
+    "bid_opening_datetime": "06-06-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Hqids",
+    "office_name_location": "***********",
+    "total_quantity": "170000",
+    "make": "Chicken (Broiler) Dressed & Chicken Precut Frozen",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Chicken (Broiler) Dressed & Chicken Precut Frozen",
+      "quantity": "170000"
+    }
+  ],
+  "required_documents": [
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

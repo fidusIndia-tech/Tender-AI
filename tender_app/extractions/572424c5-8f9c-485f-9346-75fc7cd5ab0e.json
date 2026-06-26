@@ -1,0 +1,46 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7697150",
+    "date": "22-06-2026",
+    "bid_end_datetime": "13-07-2026 20:00:00",
+    "bid_opening_datetime": "13-07-2026 20:30:00",
+    "department_name": "Indian Railways",
+    "organization_name": "North Eastern Railway",
+    "office_name_location": "Ner",
+    "total_quantity": "5",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Custom Bid for Services - Inspection Quarterly",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Custom Bid for Services - Painting and Labelling",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Custom Bid for Services - Hydraulic Pressure Testing",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Custom Bid for Services - Annual Refilling of ABC type FE 4 kg or 5kg or 6kg for 3 years",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Custom Bid for Services - DCP powder required to refill DCP type FE 4kg, 5Kg and 6 kg for 3 years",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)"
+  ]
+}

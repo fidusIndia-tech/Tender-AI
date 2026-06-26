@@ -1,0 +1,24 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7613112",
+    "date": "18-06-2026",
+    "bid_end_datetime": "10-07-2026 11:00:00",
+    "bid_opening_datetime": "10-07-2026 11:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Nuclear Power Corporation Of India Limited",
+    "office_name_location": "Boisar Maharashtra",
+    "total_quantity": "2",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)"
+  ]
+}

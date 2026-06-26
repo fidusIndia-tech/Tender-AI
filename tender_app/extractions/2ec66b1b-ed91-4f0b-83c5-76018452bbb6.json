@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7656004",
+    "date": "15-06-2026",
+    "bid_end_datetime": "26-06-2026 12:00:00",
+    "bid_opening_datetime": "26-06-2026 12:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Indian Coast Guard",
+    "office_name_location": "***********",
+    "total_quantity": "2685",
+    "make": "Broom Country",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "500 ml , Garbage Bag , Paint Roller 6 Inch , Paint Roller 4",
+      "quantity": "2685"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

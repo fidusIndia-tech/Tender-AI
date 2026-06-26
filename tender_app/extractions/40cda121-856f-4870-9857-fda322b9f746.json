@@ -1,0 +1,142 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7661444",
+    "date": "13-06-2026",
+    "bid_end_datetime": "23-06-2026 15:00:00",
+    "bid_opening_datetime": "23-06-2026 15:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "24000",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Brinjal",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Snake Gd",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Carrot Country",
+      "quantity": "480"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cabbage",
+      "quantity": "960"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bitter Gd",
+      "quantity": "1680"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cauliflower",
+      "quantity": "2160"
+    },
+    {
+      "part_number": null,
+      "item_description": "Parwal",
+      "quantity": "960"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bottle Gd",
+      "quantity": "1680"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pumpkin",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Lady Finger",
+      "quantity": "2400"
+    },
+    {
+      "part_number": null,
+      "item_description": "Capsicum",
+      "quantity": "1440"
+    },
+    {
+      "part_number": null,
+      "item_description": "Kundru",
+      "quantity": "2400"
+    },
+    {
+      "part_number": null,
+      "item_description": "Amarnath",
+      "quantity": "480"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cucumber",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tori Jhinga",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Spinach",
+      "quantity": "480"
+    },
+    {
+      "part_number": null,
+      "item_description": "Arvi",
+      "quantity": "720"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tomato R",
+      "quantity": "1200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Corriander Gr",
+      "quantity": "120"
+    },
+    {
+      "part_number": null,
+      "item_description": "Coconut",
+      "quantity": "120"
+    },
+    {
+      "part_number": null,
+      "item_description": "Chillies Gr",
+      "quantity": "120"
+    },
+    {
+      "part_number": null,
+      "item_description": "Ginger",
+      "quantity": "240"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fresh Lime",
+      "quantity": "480"
+    },
+    {
+      "part_number": null,
+      "item_description": "Mint Gr",
+      "quantity": "120"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)"
+  ]
+}

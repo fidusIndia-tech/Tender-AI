@@ -1,0 +1,16 @@
+{
+  "tender_information": {
+    "tender_number": null,
+    "date": "24-06-2026",
+    "bid_end_datetime": null,
+    "bid_opening_datetime": null,
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": "***********",
+    "total_quantity": null,
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [],
+  "required_documents": []
+}

@@ -1,0 +1,77 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7693475",
+    "date": "22-06-2026",
+    "bid_end_datetime": "07-07-2026 10:00:00",
+    "bid_opening_datetime": "07-07-2026 10:30:00",
+    "department_name": "Uttar Pradesh Cooperative Sugar Factories Federation Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "515",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "O Ring For Double Beat Valve OD 43mmXID33mmXThicknes 5mm",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Seat For Double Bit Valve ID 25mmXOD 185mmXThickness 16mm",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "Mud Boat Seal A And Per Sample",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Squeezer For 150 Degree Temp Thick 1 By 2 X Width 5 X Length 30",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Seat For Telescopic Valve 138X175X20",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Seat For Pan Discharge Valve 40 Ton As Per Drg",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Bush 30mm X18mmX35mm",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Bush 30mm X16mmX35mm",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Bush 34mm X16mmX40mm",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rubber Bush 40mm X21mmX50mm",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Condensor Main Hole Rubber Seat OD 610mmXID480mmXThickness 15mm For 60 Ton Pan",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Condensor Main Hole Rubber Jet Box OD 380mmXID 300mmXThickness 10mm Fro 60 Ton Pan",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": []
+}

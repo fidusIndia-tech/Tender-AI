@@ -1,0 +1,29 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7391480",
+    "date": "25-03-2026",
+    "bid_end_datetime": "20-04-2026 16:00:00",
+    "bid_opening_datetime": "20-04-2026 16:30:00",
+    "department_name": "Department Of Fertilizers",
+    "organization_name": "Brahmaputra Valley Fertilizer Corporation Limited (bvfcl)",
+    "office_name_location": "Namrup Assam",
+    "total_quantity": "56",
+    "make": "Carbamate Pumps , Seal Ring for H P , Carbon Bush for H P",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Carbamate Pumps , Seal Ring for H P , Carbon Bush for H P",
+      "quantity": "56"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

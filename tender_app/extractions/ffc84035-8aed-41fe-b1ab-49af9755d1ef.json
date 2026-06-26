@@ -1,0 +1,72 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7680894",
+    "date": "18-06-2026",
+    "bid_end_datetime": "08-07-2026 14:00:00",
+    "bid_opening_datetime": "08-07-2026 14:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "265",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Electrolyte",
+      "quantity": "70"
+    },
+    {
+      "part_number": null,
+      "item_description": "Distilled Water",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Minerally Jelly",
+      "quantity": "70"
+    },
+    {
+      "part_number": null,
+      "item_description": "Coolant Red",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Engine Oil 15W40",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "DEF",
+      "quantity": "80"
+    },
+    {
+      "part_number": null,
+      "item_description": "Silicon Grease",
+      "quantity": "24"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Oil",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Transmission Oil",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Gear Box Oil",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "10"
+    }
+  ],
+  "required_documents": []
+}

@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7124160",
+    "date": "17-02-2026",
+    "bid_end_datetime": "04-03-2026 13:00:00",
+    "bid_opening_datetime": "04-03-2026 13:30:00",
+    "department_name": "Na",
+    "organization_name": "Employees State Insurance Corporation (esic)",
+    "office_name_location": "Esic Model Hospital Ludhiana Punajb",
+    "total_quantity": "1",
+    "make": "5204, IS 4381, IS 5204 (Q3)",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "5204, IS 4381, IS 5204 (Q3)",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

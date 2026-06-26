@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7404370",
+    "date": "31-03-2026",
+    "bid_end_datetime": "21-04-2026 12:00:00",
+    "bid_opening_datetime": "21-04-2026 12:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Hindustan Aeronautics Limited (hal)",
+    "office_name_location": "***********",
+    "total_quantity": "2",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Shearing Machine",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

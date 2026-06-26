@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7671472",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 15:00:00",
+    "bid_opening_datetime": "29-06-2026 15:30:00",
+    "department_name": "Gail India Limited",
+    "organization_name": "Gail India Limited",
+    "office_name_location": "Pata",
+    "total_quantity": "1",
+    "make": "WOODWARD",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "DIERE SERVICES FOR WOODWARD MAKE HYDRAULIC ACTUATORS",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Schedule of Rates - Price Breakup - 1781608237.xlsx",
+    "Scope of Work:1781607204.pdf",
+    "Payment Terms:1781607209.pdf",
+    "GEM Availability Report ( GAR):1781607216.pdf",
+    "Undertaking of Competent Authority is mandatory to create Custom Bid for Services. Please download standard format document and upload:1781607223.pdf"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7674264",
+    "date": "17-06-2026",
+    "bid_end_datetime": "02-07-2026 12:00:00",
+    "bid_opening_datetime": "02-07-2026 12:30:00",
+    "department_name": "Uttar Pradesh Cooperative Sugar Factories Federation Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "1",
+    "make": "Hydraulic",
+    "tender_approx_value": "380000"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Checking Testing of our Mill Hydraulic Accumulators",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)"
+  ]
+}

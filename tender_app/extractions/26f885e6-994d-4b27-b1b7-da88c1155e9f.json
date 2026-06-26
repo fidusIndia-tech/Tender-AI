@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7367138",
+    "date": "18-03-2026",
+    "bid_end_datetime": "28-03-2026 09:00:00",
+    "bid_opening_datetime": "28-03-2026 09:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10330014-tp Jhansi",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC JACK CAPACITY: 50 TON DOUBLE ACTING",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

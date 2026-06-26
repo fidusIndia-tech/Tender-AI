@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7708373",
+    "date": "24-06-2026",
+    "bid_end_datetime": "09-07-2026 10:00:00",
+    "bid_opening_datetime": "09-07-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "639",
+    "make": "2574 3345 3104 TAPPER ROLLER BEARING FRONT HUB ,",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "2574 3345 3104 TAPPER ROLLER BEARING FRONT HUB ,",
+      "quantity": "639"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

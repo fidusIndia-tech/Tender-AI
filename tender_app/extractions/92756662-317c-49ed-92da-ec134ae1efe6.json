@@ -1,0 +1,60 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7681600",
+    "date": "18-06-2026",
+    "bid_end_datetime": "01-07-2026 13:00:00",
+    "bid_opening_datetime": "01-07-2026 13:30:00",
+    "department_name": "Nmdc Steel Limited",
+    "organization_name": "Nmdc Steel Limited",
+    "office_name_location": "Nmdc Iron Steel Plant Jagdalpur Bastar Cg 494001",
+    "total_quantity": "19",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "2100017119",
+      "item_description": null,
+      "quantity": "6"
+    },
+    {
+      "part_number": "2100016980",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": "2100016958",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": "2100016936",
+      "item_description": null,
+      "quantity": "3"
+    },
+    {
+      "part_number": "2100017116",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": "2100017115",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": "2100017114",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

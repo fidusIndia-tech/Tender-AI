@@ -1,0 +1,32 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7663566",
+    "date": "15-06-2026",
+    "bid_end_datetime": "26-06-2026 12:00:00",
+    "bid_opening_datetime": "26-06-2026 12:30:00",
+    "department_name": "Madhyanchal Vidyut Vitaran Nigam Limited Lucknow",
+    "organization_name": "Mvvnl",
+    "office_name_location": "4 A Gokhale Marg Lucknow",
+    "total_quantity": null,
+    "make": "Facility Management Services - LumpSum Based - Extension of Control Room at 33 11 K V Sub Station Kabba Khera Unnao; Civil Works; Consumables to be provided by service provider (inclusive in contract cost)",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Unnao; Civil Works; Consumables to be provided by service",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)",
+    "GST",
+    "PAN",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

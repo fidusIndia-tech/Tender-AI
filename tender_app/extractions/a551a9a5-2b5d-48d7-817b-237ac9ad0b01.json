@@ -1,0 +1,80 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7704130",
+    "date": "24-06-2026",
+    "bid_end_datetime": "04-07-2026 12:00:00",
+    "bid_opening_datetime": "04-07-2026 12:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "145",
+    "make": "JCB",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Injector Return Pipe Line JCB 3DX Super",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Starting Relay JCB 3DX Super",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Accelerator Cable JCB 3DX Super",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Iginition Switch JCB 3DX Super",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Head Light JCB 3DX Super",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Break Light JCB 3DX Super",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Spindle Bearing Front And Rear JCB 3DX Super",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Self Starter JCB 3DX Super",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Self Starter Solenoid Assy JCB 3DX Super",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Thermostate Valve JCB 3DX Super",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Wiper Motor With Blade JCB 3DX Super",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

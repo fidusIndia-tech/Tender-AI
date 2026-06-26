@@ -121,6 +121,11 @@ def _log_scan_step(run_id: int | None, step: str, target_date=None, keyword: str
             "counts="
             f"found:{counters.get('total_found', 0)} "
             f"new:{counters.get('new_found', 0)} "
+            f"duplicates:{counters.get('duplicates_count', 0)} "
+            f"below_score:{counters.get('below_score_count', 0)} "
+            f"pdf_failed:{counters.get('pdf_failed_count', 0)} "
+            f"extraction_failed:{counters.get('extraction_failed_count', 0)} "
+            f"evaluation_failed:{counters.get('evaluation_failed_count', 0)} "
             f"approved:{counters.get('approved_count', 0)} "
             f"review:{counters.get('review_count', 0)} "
             f"rejected:{counters.get('rejected_count', 0)} "
@@ -174,17 +179,37 @@ def _first(value):
     return value
 
 
-def _parse_iso_date(value):
-    """final_start_date_sort looks like '2026-06-19T17:08:42Z'. GeM labels its
-    IST timestamps with a 'Z'; the time-of-day matches the site's own display,
-    so the calendar date is simply the first 10 characters (no TZ conversion)."""
+def _parse_gem_date(value):
+    """Normalize GeM date values and compare only the calendar date.
+
+    Supported inputs include:
+    - 2026-06-19T17:08:42Z
+    - 2026-06-19
+    - 23-06-2026 2:40 PM
+    - 23-06-2026
+    """
     s = _first(value)
     if not s:
         return None
-    try:
-        return datetime.strptime(str(s)[:10], "%Y-%m-%d").date()
-    except ValueError:
-        return None
+    text = _norm_space(s)
+    iso_match = re.search(r"(\d{4})-(\d{2})-(\d{2})", text)
+    if iso_match:
+        try:
+            return date(int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3)))
+        except ValueError:
+            return None
+    dmy_match = re.search(r"(\d{2})-(\d{2})-(\d{4})", text)
+    if dmy_match:
+        try:
+            return date(int(dmy_match.group(3)), int(dmy_match.group(2)), int(dmy_match.group(1)))
+        except ValueError:
+            return None
+    for fmt in ("%d/%m/%Y", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(text[:10], fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def _norm_space(value) -> str:
@@ -344,8 +369,8 @@ def _doc_to_parsed(doc):
         "organisation": _first(doc.get("ba_official_details_minName")),
         "department": _first(doc.get("ba_official_details_deptName")),
         "quantity": str(qty) if qty is not None else None,
-        "bid_start_date": _parse_iso_date(doc.get("final_start_date_sort")),
-        "bid_end_date": _parse_iso_date(doc.get("final_end_date_sort")),
+        "bid_start_date": _parse_gem_date(doc.get("final_start_date_sort") or doc.get("final_start_date")),
+        "bid_end_date": _parse_gem_date(doc.get("final_end_date_sort") or doc.get("final_end_date")),
         "gem_detail_url": pdf_url,
         "pdf_url": pdf_url,
     }
@@ -374,16 +399,16 @@ def _search_keyword_matches(page, keyword, csrf, scan_target_date, counters):
             parsed = _doc_to_parsed(doc)
             if not parsed:
                 continue
-            counters["total_found"] += 1
             start = parsed["bid_start_date"]
             if start == scan_target_date:
-                if _keyword_has_strict_match(keyword, parsed):
-                    matches.append(parsed)
-                else:
-                    print(
-                        f"[gem_watcher] skipping fuzzy GeM match for keyword={keyword!r}: "
-                        f"{parsed.get('gem_bid_no')} | {parsed.get('title')}"
+                counters["total_found"] += 1
+                parsed["keyword_strict_match"] = _keyword_has_strict_match(keyword, parsed)
+                if not parsed["keyword_strict_match"]:
+                    parsed["skip_reason"] = (
+                        "GeM returned this row for the keyword search, but the keyword was not "
+                        "confirmed in the visible listing fields. Manual review required."
                     )
+                matches.append(parsed)
             else:
                 counters["skipped_wrong_start_date"] += 1
                 if start is not None and start < scan_target_date:
@@ -518,9 +543,11 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="REVIEW",
+            scan_status="EXTRACTION_FAILED",
             extraction_status="FAILED",
             extraction_confidence="LOW",
             extraction_error_message="Candidate reached extraction stage without a saved PDF",
+            extraction_error="Candidate reached extraction stage without a saved PDF",
             evaluation_reason="Extraction failed or incomplete. Manual review required.",
             review_reason="Extraction failed or incomplete. Manual review required.",
             decision_reason="Extraction failed or incomplete. Manual review required.",
@@ -533,9 +560,11 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="REVIEW",
+            scan_status="EXTRACTION_FAILED",
             extraction_status="FAILED",
             extraction_confidence="LOW",
             extraction_error_message="Saved PDF file data is missing from uploaded_files",
+            extraction_error="Saved PDF file data is missing from uploaded_files",
             evaluation_reason="Extraction failed or incomplete. Manual review required.",
             review_reason="Extraction failed or incomplete. Manual review required.",
             decision_reason="Extraction failed or incomplete. Manual review required.",
@@ -549,10 +578,12 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="REVIEW",
+            scan_status="PDF_DOWNLOAD_FAILED",
             evaluation_stage="PDF_DOWNLOAD_FAILED",
             extraction_status="FAILED",
             extraction_confidence="LOW",
             extraction_error_message=pdf_validation_error,
+            pdf_error=pdf_validation_error,
             evaluation_reason="Extraction failed or incomplete. Manual review required.",
             review_reason=pdf_validation_error or "Extraction failed or incomplete. Manual review required.",
             decision_reason="Extraction failed or incomplete. Manual review required.",
@@ -567,9 +598,11 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="EXTRACTING",
+            scan_status="PDF_DOWNLOADED",
             extraction_status="IN_PROGRESS",
             extraction_confidence="LOW",
             extraction_error_message=None,
+            extraction_error=None,
         )
         tmp.write(pdf_bytes)
         tmp.flush()
@@ -587,10 +620,12 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="REVIEW",
+            scan_status="EXTRACTION_FAILED",
             evaluation_stage="EXTRACTION_FAILED",
             extraction_status="FAILED",
             extraction_confidence="LOW",
             extraction_error_message=f"{type(e).__name__}: {e}",
+            extraction_error=f"{type(e).__name__}: {e}",
             evaluation_reason="Extraction failed or incomplete. Manual review required.",
             review_reason="Extraction failed or incomplete. Manual review required.",
             decision_reason="Extraction failed or incomplete. Manual review required.",
@@ -609,6 +644,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         extraction_status=extraction_status,
         extraction_confidence=extraction_confidence,
         extraction_error_message="; ".join(extraction_issues) if extraction_issues else None,
+        extraction_error="; ".join(extraction_issues) if extraction_issues else None,
     )
 
     EXTRACTIONS_DIR.mkdir(exist_ok=True)
@@ -643,6 +679,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             status="REVIEW",
+            scan_status="EXTRACTION_FAILED",
             evaluation_stage="EXTRACTION_LOW_CONFIDENCE",
             evaluation_score=None,
             evaluation_reason=extraction_review_reason,
@@ -660,6 +697,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         database.update_gem_candidate(
             candidate_id,
             evaluation_stage="KEYWORD_FIT_APPROVED",
+            scan_status="FOUND",
             keyword_pre_score=keyword_eval["keyword_pre_score"],
             keyword_fit_score=keyword_eval.get("keyword_fit_score"),
             keyword_fit_decision=keyword_eval.get("keyword_fit_decision"),
@@ -680,6 +718,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
             database.update_gem_candidate(
                 candidate_id,
                 status="REVIEW" if keyword_eval.get("matched_brands") and keyword_eval.get("matched_products") else "REJECTED",
+                scan_status="BELOW_APPROVAL_SCORE" if keyword_eval.get("matched_brands") and keyword_eval.get("matched_products") else "PRE_EVALUATION_FAILED",
                 evaluation_stage="KEYWORD_FIT_REVIEW" if keyword_eval.get("matched_brands") and keyword_eval.get("matched_products") else "KEYWORD_FIT_REJECTED",
                 evaluation_score=keyword_eval["keyword_pre_score"],
                 evaluation_reason=keyword_eval.get("keyword_fit_reason") or keyword_eval["keyword_evaluation_reason"],
@@ -695,6 +734,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
             database.update_gem_candidate(
                 candidate_id,
                 status="REVIEW",
+                scan_status="BELOW_APPROVAL_SCORE",
                 evaluation_stage="KEYWORD_FIT_REVIEW",
                 evaluation_score=keyword_eval["keyword_pre_score"],
                 evaluation_reason=keyword_eval.get("keyword_fit_reason") or keyword_eval["keyword_evaluation_reason"],
@@ -706,7 +746,20 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
             return "REVIEW"
 
     database.update_gem_candidate(candidate_id, status="EVALUATING", evaluation_stage="FULL_EVALUATION")
-    evaluation = evaluate_gem_candidate(tender, capability, candidate.get("bid_end_date"), tender_text=tender_text)
+    try:
+        evaluation = evaluate_gem_candidate(tender, capability, candidate.get("bid_end_date"), tender_text=tender_text)
+    except Exception as e:
+        database.update_gem_candidate(
+            candidate_id,
+            status="REVIEW",
+            scan_status="EVALUATION_FAILED",
+            evaluation_stage="EVALUATION_FAILED",
+            evaluation_reason=f"{type(e).__name__}: {e}",
+            review_reason="Full evaluation failed. Manual review required.",
+            decision_reason="Full evaluation failed. Manual review required.",
+        )
+        print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: full evaluation failed ({type(e).__name__}: {e})")
+        return "EVALUATION_FAILED"
     merged_eval_json.update(evaluation["evaluation_json"] or {})
     database.save_gem_tender_evaluation(
         candidate_id, evaluation["score"], evaluation["rating_label"],
@@ -722,6 +775,7 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
     database.update_gem_candidate(
         candidate_id,
         evaluation_score=evaluation["score"],
+        scan_status="APPROVED" if evaluation["eligibility_status"] == "APPROVED" else "BELOW_APPROVAL_SCORE" if evaluation["eligibility_status"] == "REVIEW" else "PRE_EVALUATION_FAILED",
         evaluation_reason=evaluation["reason"],
         evaluation_confidence=(evaluation.get("evaluation_json") or {}).get("confidence") or (evaluation.get("evaluation_json") or {}).get("evaluation_confidence") or "MEDIUM",
         decision_reason=(evaluation.get("evaluation_json") or {}).get("decision_reason") or evaluation["reason"],
@@ -737,7 +791,11 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
         duplicate = database.find_tender_duplicate(candidate["gem_bid_no"], tender.get("tender_number"))
         if duplicate:
             database.update_gem_candidate(
-                candidate_id, status="APPROVED", tender_id=duplicate["id"],
+                candidate_id,
+                status="SENT_TO_ALL_TENDERS",
+                scan_status="DUPLICATE",
+                tender_id=duplicate["id"],
+                duplicate_reason="GeM bid number already exists in All Tenders.",
                 evaluation_reason=(evaluation["reason"] or "") + " (already exists in All Tenders)",
             )
         else:
@@ -745,15 +803,15 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
                 {k: v for k, v in tender.items() if k not in ("boq_items", "required_documents")},
                 tender["boq_items"], tender["required_documents"],
             )
-            database.update_gem_candidate(candidate_id, status="APPROVED", tender_id=tender_id)
+            database.update_gem_candidate(candidate_id, status="SENT_TO_ALL_TENDERS", scan_status="SENT_TO_ALL_TENDERS", tender_id=tender_id)
         print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: approved score={evaluation['score']}")
         return "APPROVED"
     elif evaluation["eligibility_status"] == "REVIEW":
-        database.update_gem_candidate(candidate_id, status="REVIEW")
+        database.update_gem_candidate(candidate_id, status="REVIEW", scan_status="BELOW_APPROVAL_SCORE")
         print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: review score={evaluation['score']}")
         return "REVIEW"
     else:
-        database.update_gem_candidate(candidate_id, status="REJECTED")
+        database.update_gem_candidate(candidate_id, status="REJECTED", scan_status="REJECTED")
         print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: rejected score={evaluation['score']} reason={evaluation['reason'][:220]}")
         return "REJECTED"
 
@@ -788,7 +846,16 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
             candidate = database.get_gem_candidate(candidate_id)
             if not candidate:
                 continue
-            if candidate.get("status") in ("APPROVED", "REJECTED"):
+            if str(candidate.get("scan_status") or "").upper() == "DUPLICATE" and str(candidate.get("status") or "").upper() in {"REVIEW", "REJECTED", "SENT_TO_ALL_TENDERS", "APPROVED"}:
+                continue
+            if candidate.get("tender_id"):
+                database.update_gem_candidate(
+                    candidate_id,
+                    scan_status="DUPLICATE",
+                    duplicate_reason=candidate.get("duplicate_reason") or "GeM bid number already exists in All Tenders.",
+                )
+                continue
+            if candidate.get("status") in ("SENT_TO_ALL_TENDERS", "APPROVED", "REJECTED"):
                 continue
             if candidate.get("pdf_file_id"):
                 ready_candidate_ids.append(candidate_id)
@@ -803,6 +870,7 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                 database.update_gem_candidate(
                     candidate_id,
                     status=prefilter["status"],
+                    scan_status="BELOW_APPROVAL_SCORE" if prefilter["status"] == "REVIEW" else "PRE_EVALUATION_FAILED",
                     evaluation_stage="LISTING_PREFILTER",
                     keyword_pre_score=prefilter["score"],
                     keyword_fit_score=prefilter["score"],
@@ -818,9 +886,12 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                     keyword_evaluation_reason=prefilter["reason"],
                     requires_full_evaluation=False,
                     evaluation_score=prefilter["score"],
+                    skip_reason=prefilter["reason"],
                     evaluation_reason=prefilter["reason"],
                     evaluation_json={"listing_prefilter": prefilter["evaluation_json"]},
                 )
+                if prefilter["status"] == "REVIEW":
+                    counters["below_score_count"] += 1
                 print(
                     f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: "
                     f"stopped before PDF download ({prefilter['status']})"
@@ -831,15 +902,20 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
             if not pdf_url:
                 database.update_gem_candidate(
                     candidate_id,
-                    status="ERROR",
+                    status="REVIEW",
+                    scan_status="PDF_DOWNLOAD_FAILED",
                     evaluation_reason="Missing GeM PDF URL on candidate row",
+                    pdf_error="Missing GeM PDF URL on candidate row",
+                    review_reason="Missing GeM PDF URL on candidate row",
                 )
+                counters["pdf_failed_count"] += 1
                 print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: missing PDF URL")
                 continue
 
             database.update_gem_candidate(
                 candidate_id,
                 status="DOWNLOADING_PDF",
+                scan_status="FOUND",
                 evaluation_stage="DOWNLOADING_PDF",
                 evaluation_reason=None,
             )
@@ -851,14 +927,17 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                 database.update_gem_candidate(
                     candidate_id,
                     status="REVIEW",
+                    scan_status="PDF_DOWNLOAD_FAILED",
                     evaluation_stage="PDF_DOWNLOAD_FAILED",
                     extraction_status="FAILED",
                     extraction_confidence="LOW",
                     extraction_error_message=f"PDF download failed: {download_error}",
+                    pdf_error=f"PDF download failed: {download_error}",
                     evaluation_reason="Extraction failed or incomplete. Manual review required.",
                     review_reason=f"PDF download failed: {download_error}",
                     decision_reason="Extraction failed or incomplete. Manual review required.",
                 )
+                counters["pdf_failed_count"] += 1
                 print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: PDF download failed ({download_error})")
                 continue
 
@@ -876,9 +955,11 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                 candidate_id,
                 pdf_file_id=file_id,
                 status="PDF_DOWNLOADED",
+                scan_status="PDF_DOWNLOADED",
                 evaluation_stage="PDF_DOWNLOADED",
                 extraction_status="PENDING",
                 extraction_confidence="LOW",
+                pdf_error=None,
             )
             ready_candidate_ids.append(candidate_id)
             print(f"[gem_watcher] candidate {candidate_id} {candidate.get('gem_bid_no')}: PDF saved ({len(pdf_bytes)} bytes)")
@@ -888,7 +969,15 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
         except Exception as e:
             error_messages.append(f"candidate {candidate_id}: {e}")
             try:
-                database.update_gem_candidate(candidate_id, status="ERROR", evaluation_reason=str(e))
+                database.update_gem_candidate(
+                    candidate_id,
+                    status="REVIEW",
+                    scan_status="PDF_DOWNLOAD_FAILED",
+                    evaluation_reason=str(e),
+                    pdf_error=str(e),
+                    review_reason="PDF download or preparation failed. Manual review required.",
+                )
+                counters["pdf_failed_count"] += 1
             except Exception:
                 pass
 
@@ -912,19 +1001,38 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                 candidate_id = future_map[future]
                 try:
                     outcome = future.result()
+                    latest_candidate = database.get_gem_candidate(candidate_id) or {}
+                    latest_scan_status = str(latest_candidate.get("scan_status") or "").upper()
                     if outcome == "APPROVED":
                         counters["approved_count"] += 1
                     elif outcome == "REVIEW":
                         counters["review_count"] += 1
                     elif outcome == "REJECTED":
                         counters["rejected_count"] += 1
+                    elif outcome == "EVALUATION_FAILED":
+                        counters["review_count"] += 1
+                    if latest_scan_status == "BELOW_APPROVAL_SCORE":
+                        counters["below_score_count"] += 1
+                    elif latest_scan_status == "EXTRACTION_FAILED":
+                        counters["extraction_failed_count"] += 1
+                    elif latest_scan_status == "PDF_DOWNLOAD_FAILED":
+                        counters["pdf_failed_count"] += 1
+                    elif latest_scan_status == "EVALUATION_FAILED":
+                        counters["evaluation_failed_count"] += 1
                     if run_id is not None:
                         step = SCAN_STEPS["RUNNING_KEYWORD_EVALUATION"] if outcome in {"REVIEW", "REJECTED"} else SCAN_STEPS["SAVING_TENDERS"]
                         _log_scan_step(run_id, step, counters=counters)
                 except Exception as e:
                     error_messages.append(f"candidate {candidate_id}: {e}")
                     try:
-                        database.update_gem_candidate(candidate_id, status="ERROR", evaluation_reason=str(e))
+                        database.update_gem_candidate(
+                            candidate_id,
+                            status="REVIEW",
+                            scan_status="EVALUATION_FAILED",
+                            evaluation_reason=str(e),
+                            review_reason="Full evaluation failed. Manual review required.",
+                        )
+                        counters["evaluation_failed_count"] += 1
                     except Exception:
                         pass
 
@@ -935,6 +1043,11 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                         database.update_gem_scan_run(
                             run_id,
                             approved_count=counters["approved_count"],
+                            duplicates_count=counters["duplicates_count"],
+                            below_score_count=counters["below_score_count"],
+                            pdf_failed_count=counters["pdf_failed_count"],
+                            extraction_failed_count=counters["extraction_failed_count"],
+                            evaluation_failed_count=counters["evaluation_failed_count"],
                             review_count=counters["review_count"],
                             rejected_count=counters["rejected_count"],
                         )
@@ -942,22 +1055,35 @@ def _process_new_candidates(page, candidate_ids, counters, error_messages, run_i
                         pass
 
 
-def start_scan(scan_target_date):
+def _resolve_keywords(keyword=None):
+    """Either a single ad-hoc keyword typed in the search box (one-shot, not
+    persisted) or the saved active keywords from the DB."""
+    if keyword and str(keyword).strip():
+        return [{"id": None, "keyword": str(keyword).strip()}]
+    return database.list_gem_keywords(active_only=True)
+
+
+def start_scan(scan_target_date, keyword=None):
     """Validate input and create the scan_run row synchronously, so the caller
     (the HTTP endpoint) gets a run_id to poll immediately. The actual browser
-    work happens in execute_scan(), meant to be run in a background task."""
+    work happens in execute_scan(), meant to be run in a background task.
+
+    `keyword`, if given, runs a one-shot ad-hoc search for just that keyword
+    (no need to add it to the saved keyword list first)."""
     if isinstance(scan_target_date, str):
         scan_target_date = datetime.strptime(scan_target_date, "%Y-%m-%d").date()
     if scan_target_date > date.today():
         raise ValueError("scan_target_date cannot be in the future")
     if database.is_gem_scan_running():
         raise RuntimeError("A scan is already running")
-    keywords = database.list_gem_keywords(active_only=True)
+    keywords = _resolve_keywords(keyword)
+    if not keywords:
+        raise ValueError("No keyword to scan — type a keyword or activate at least one saved keyword.")
     run_id = database.create_gem_scan_run(scan_target_date, len(keywords))
     return run_id, scan_target_date
 
 
-def execute_scan(run_id: int, scan_target_date):
+def execute_scan(run_id: int, scan_target_date, keyword=None):
     if not _scan_lock.acquire(blocking=False):
         database.update_gem_scan_run(
             run_id,
@@ -968,8 +1094,19 @@ def execute_scan(run_id: int, scan_target_date):
         )
         return run_id
 
-    counters = {"total_found": 0, "new_found": 0, "skipped_wrong_start_date": 0,
-                "approved_count": 0, "review_count": 0, "rejected_count": 0}
+    counters = {
+        "total_found": 0,
+        "new_found": 0,
+        "duplicates_count": 0,
+        "below_score_count": 0,
+        "pdf_failed_count": 0,
+        "extraction_failed_count": 0,
+        "evaluation_failed_count": 0,
+        "skipped_wrong_start_date": 0,
+        "approved_count": 0,
+        "review_count": 0,
+        "rejected_count": 0,
+    }
     error_messages = []
     keyword_failures = []
     status = "FAILED"
@@ -978,7 +1115,7 @@ def execute_scan(run_id: int, scan_target_date):
 
     try:
         _log_scan_step(run_id, SCAN_STEPS["STARTED"], scan_target_date, counters=counters)
-        keywords = database.list_gem_keywords(active_only=True)
+        keywords = _resolve_keywords(keyword)
 
         def _run_with_browser(page, csrf_token):
             new_candidate_ids = []
@@ -1002,7 +1139,7 @@ def execute_scan(run_id: int, scan_target_date):
                         _log_scan_step(run_id, SCAN_STEPS["READING_RESULTS"], scan_target_date, keyword=keyword, counters=counters)
                         matches = _search_keyword_matches(page, keyword, csrf, scan_target_date, counters)
                     for parsed in matches:
-                        candidate_id = database.upsert_gem_candidate(
+                        candidate_meta = database.upsert_gem_candidate(
                             parsed["gem_bid_no"], keyword,
                             {
                                 "title": parsed.get("title"),
@@ -1016,11 +1153,26 @@ def execute_scan(run_id: int, scan_target_date):
                             },
                             scan_run_id=run_id,
                         )
+                        candidate_id = candidate_meta["id"]
+                        scan_status = "NEW" if candidate_meta["is_new"] else "DUPLICATE"
+                        duplicate_reason = None
+                        if candidate_meta["is_duplicate"]:
+                            duplicate_reason = "GeM bid number was already captured in an earlier scan."
+                            counters["duplicates_count"] += 1
+                        else:
+                            counters["new_found"] += 1
+                        database.update_gem_candidate(
+                            candidate_id,
+                            scan_status=scan_status,
+                            duplicate_reason=duplicate_reason,
+                            skip_reason=parsed.get("skip_reason"),
+                        )
                         new_candidate_ids.append(candidate_id)
-                    database.touch_gem_keyword_checked(kw_row["id"])
+                    if kw_row.get("id") is not None:
+                        database.touch_gem_keyword_checked(kw_row["id"])
                     print(
                         f"[gem_watcher] keyword={keyword} target_date={scan_target_date} "
-                        f"found={counters['total_found']} new={len(set(new_candidate_ids))}"
+                        f"found={counters['total_found']} new={counters['new_found']} duplicates={counters['duplicates_count']}"
                     )
                 except GemBlockedError as e:
                     message = f"{keyword}: {e}"
@@ -1034,7 +1186,7 @@ def execute_scan(run_id: int, scan_target_date):
                     print(f"[gem_watcher] keyword failed: {message}")
                     print(traceback.format_exc())
                 time.sleep(KEYWORD_DELAY_SECONDS)
-            return new_candidate_ids
+            return list(dict.fromkeys(new_candidate_ids))
 
         from playwright.sync_api import sync_playwright
         with sync_playwright() as pw:
@@ -1072,13 +1224,17 @@ def execute_scan(run_id: int, scan_target_date):
                     csrf = _capture_csrf_with_retry(page, run_id=run_id, scan_target_date=scan_target_date, retries=2)
 
                     new_candidate_ids = _run_with_browser(page, csrf)
-                    counters["new_found"] = len(set(new_candidate_ids))
                     database.update_gem_scan_run(
                         run_id,
                         current_step=SCAN_STEPS["SAVING_TENDERS"],
                         total_found=counters["total_found"],
                         new_found=counters["new_found"],
+                        duplicates_count=counters["duplicates_count"],
                         skipped_wrong_start_date=counters["skipped_wrong_start_date"],
+                        below_score_count=counters["below_score_count"],
+                        pdf_failed_count=counters["pdf_failed_count"],
+                        extraction_failed_count=counters["extraction_failed_count"],
+                        evaluation_failed_count=counters["evaluation_failed_count"],
                         review_count=counters["review_count"],
                     )
                     _log_scan_step(run_id, SCAN_STEPS["DOWNLOADING_DOCUMENTS"], scan_target_date, counters=counters)
@@ -1144,7 +1300,12 @@ def execute_scan(run_id: int, scan_target_date):
         current_step=current_step,
         total_found=counters["total_found"],
         new_found=counters["new_found"],
+        duplicates_count=counters["duplicates_count"],
         skipped_wrong_start_date=counters["skipped_wrong_start_date"],
+        below_score_count=counters["below_score_count"],
+        pdf_failed_count=counters["pdf_failed_count"],
+        extraction_failed_count=counters["extraction_failed_count"],
+        evaluation_failed_count=counters["evaluation_failed_count"],
         approved_count=counters["approved_count"],
         review_count=counters["review_count"],
         rejected_count=counters["rejected_count"],

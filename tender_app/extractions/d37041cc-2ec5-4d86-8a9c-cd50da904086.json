@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7684443",
+    "date": "22-06-2026",
+    "bid_end_datetime": "10-07-2026 16:00:00",
+    "bid_opening_datetime": "10-07-2026 16:30:00",
+    "department_name": "Nmdc Limited",
+    "organization_name": "Nmdc Limited",
+    "office_name_location": "Kirandul Complex",
+    "total_quantity": "72",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "2100000667",
+      "item_description": "HYDRAULIC JACK 100T WITH PUMP",
+      "quantity": "36"
+    },
+    {
+      "part_number": "2100000668",
+      "item_description": "HYDRAULIC JACK 50T WITH PUMP",
+      "quantity": "36"
+    }
+  ],
+  "required_documents": [
+    "complete technical specification in your company letter head mentioning the make",
+    "complete acceptance of all terms and conditions as per the attached ATC doc",
+    "valid Authorized Dealership Certificate"
+  ]
+}

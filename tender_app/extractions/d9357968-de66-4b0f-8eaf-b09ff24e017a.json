@@ -1,0 +1,39 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7682307",
+    "date": "19-06-2026",
+    "bid_end_datetime": "29-06-2026 17:00:00",
+    "bid_opening_datetime": "29-06-2026 17:30:00",
+    "department_name": "Indian Oil Corporation Limited",
+    "organization_name": "Indian Oil Corporation Limited",
+    "office_name_location": "Iocl Mathura Refinery",
+    "total_quantity": "5",
+    "make": "E/P POSITIONER, SIEMENS, SIPART, PS2-5210",
+    "tender_approx_value": "7",
+    "item_category": "E/P POSITIONER, SIEMENS, SIPART, PS2-5210",
+    "primary_product": "E/P POSITIONER, SIEMENS, SIPART, PS2-5210",
+    "delivery_period": "of quantity shall commence from the last date of original"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "E/P POSITIONER, SIEMENS, SIPART, PS2-5210",
+      "quantity": "5"
+    }
+  ],
+  "required_documents": [
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)",
+    "Pre-Qualification Criteria proof (auth cert OR PO+COC)",
+    "Warranty certificate (at delivery)",
+    "Annexure-F payment document",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "emd": {},
+  "technical_specifications": [],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

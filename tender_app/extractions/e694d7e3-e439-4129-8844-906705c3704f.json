@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7695963",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 16:00:00",
+    "bid_opening_datetime": "02-07-2026 16:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "59",
+    "make": "SONALIKA NK INDICATOR ASSY , GEN SET 15 KVA NK OIL",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "SONALIKA NK INDICATOR ASSY , GEN SET 15 KVA NK OIL",
+      "quantity": "59"
+    }
+  ],
+  "required_documents": [
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

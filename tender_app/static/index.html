@@ -6522,7 +6522,6 @@ function setWorkflowScanRunningUI(running, runId = null) {
       stopBtn.disabled = false;
     }
   } else {
-    setWorkflowActiveScanRunId(null);
     if (runBtn) runBtn.disabled = false;
     if (stopBtn) {
       stopBtn.style.display = 'none';
@@ -6600,10 +6599,19 @@ function updateWorkflowManualEvaluation(data) {
 
 function workflowNormalizedStatus(candidate) {
   const status = String(candidate?.status || '').toUpperCase();
-  if (status === 'APPROVED') return 'APPROVED';
+  if (status === 'APPROVED' || status === 'SENT_TO_ALL_TENDERS') return 'APPROVED';
   if (status === 'REVIEW') return 'REVIEW';
   if (status === 'REJECTED' || status === 'ERROR') return 'REJECTED';
   return 'PENDING_APPROVAL';
+}
+
+function workflowDisplayStatus(candidate) {
+  const scanStatus = String(candidate?.scan_status || '').toUpperCase();
+  if (scanStatus) return scanStatus;
+  const status = String(candidate?.status || '').toUpperCase();
+  if (status === 'SENT_TO_ALL_TENDERS') return 'SENT_TO_ALL_TENDERS';
+  if (status) return status;
+  return 'FOUND';
 }
 
 function workflowRecommendation(candidate) {
@@ -6626,28 +6634,58 @@ function workflowDecisionLabel(status) {
   return 'Pending Approval';
 }
 
+function workflowPipelineLabel(status) {
+  const labels = {
+    FOUND: 'Found',
+    NEW: 'New',
+    DUPLICATE: 'Duplicate',
+    PRE_EVALUATION_FAILED: 'Pre-Evaluation Failed',
+    BELOW_APPROVAL_SCORE: 'Below Approval Score',
+    PDF_DOWNLOADED: 'PDF Downloaded',
+    PDF_DOWNLOAD_FAILED: 'PDF Download Failed',
+    EXTRACTION_FAILED: 'Extraction Failed',
+    EVALUATION_FAILED: 'Evaluation Failed',
+    APPROVED: 'Approved',
+    REVIEW: 'Review',
+    REJECTED: 'Rejected',
+    SENT_TO_ALL_TENDERS: 'Sent To All Tenders',
+  };
+  return labels[status] || status.replace(/_/g, ' ');
+}
+
 function workflowSourceBadge(source) {
   return source === 'Manual Upload' ? 'badge-info' : 'badge-slate';
 }
 
 function workflowStatusBadge(status) {
-  return status === 'APPROVED'
+  return status === 'APPROVED' || status === 'SENT_TO_ALL_TENDERS'
     ? 'badge-success'
-    : status === 'REVIEW'
+    : status === 'REVIEW' || status === 'BELOW_APPROVAL_SCORE'
       ? 'badge-warning'
-      : status === 'REJECTED'
+      : status === 'REJECTED' || status === 'PRE_EVALUATION_FAILED' || status === 'PDF_DOWNLOAD_FAILED' || status === 'EXTRACTION_FAILED' || status === 'EVALUATION_FAILED'
         ? 'badge-danger'
         : 'badge-slate';
 }
 
 function workflowReason(candidate) {
-  return candidate?.decision_reason
+  return candidate?.skip_reason
+    || candidate?.duplicate_reason
+    || candidate?.pdf_error
+    || candidate?.extraction_error
+    || candidate?.decision_reason
     || candidate?.review_reason
     || candidate?.rejection_reason
     || candidate?.keyword_fit_reason
     || candidate?.keyword_evaluation_reason
     || candidate?.evaluation_reason
     || 'Awaiting evaluation details.';
+}
+
+function workflowPdfStatus(candidate) {
+  const scanStatus = workflowDisplayStatus(candidate);
+  if (scanStatus === 'PDF_DOWNLOAD_FAILED') return candidate?.pdf_error || 'PDF download failed';
+  if (candidate?.pdf_file_id) return 'PDF downloaded';
+  return 'PDF pending';
 }
 
 function workflowRenderList(values) {
@@ -6870,8 +6908,8 @@ function ensureUnifiedWorkflowUI() {
         <div class="card" style="margin-bottom:18px">
           <div class="workflow-results-bar">
               <div>
-              <div class="workflow-results-bar-title">Current Session Results</div>
-              <div class="workflow-results-bar-sub">Only tenders from the current upload or latest GeM scan in this session are shown here. Full saved history is available in Extracted &amp; Evaluated.</div>
+              <div class="workflow-results-bar-title">Found Tender Results</div>
+              <div class="workflow-results-bar-sub">Every tender found in the latest GeM scan stays visible here with its exact pipeline status, score, PDF state, and reason. Nothing found by the scan is silently hidden.</div>
               </div>
             <div class="workflow-chip-row">
               <button class="workflow-filter-chip active" data-workflow-filter="ALL" onclick="setWorkflowCandidateFilter('ALL')">All</button>
@@ -6900,15 +6938,19 @@ function ensureUnifiedWorkflowUI() {
                     <th>Status</th>
                     <th>Found</th>
                     <th>New</th>
-                    <th>Approved</th>
+                    <th>Duplicates</th>
                     <th>Review</th>
                     <th>Rejected</th>
+                    <th>Below Score</th>
+                    <th>PDF Failed</th>
+                    <th>Extraction Failed</th>
+                    <th>Approved</th>
                     <th>Error</th>
                     <th>View Results</th>
                   </tr>
                 </thead>
                 <tbody id="workflowScanHistoryBody">
-                  <tr><td colspan="10" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>
+                  <tr><td colspan="13" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -7063,7 +7105,7 @@ async function loadWorkflowCandidates() {
 async function loadWorkflowScanRuns() {
   const tbody = document.getElementById('workflowScanHistoryBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="13" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>';
   try {
     const [runRes, keywordRes] = await Promise.all([
       fetch('/api/gem-watcher/scan-runs'),
@@ -7073,7 +7115,7 @@ async function loadWorkflowScanRuns() {
     const keywords = await keywordRes.json();
     const keywordText = (keywords || []).filter(k => k.is_active).map(k => k.keyword).join(', ') || 'Active keywords';
     if (!Array.isArray(runs) || !runs.length) {
-      tbody.innerHTML = '<tr><td colspan="10" class="workflow-inline-note">No scan history yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="13" class="workflow-inline-note">No scan history yet.</td></tr>';
       return;
     }
     tbody.innerHTML = runs.slice(0, 8).map(run => `
@@ -7083,19 +7125,23 @@ async function loadWorkflowScanRuns() {
         <td><span class="badge ${run.status === 'COMPLETED' ? 'badge-success' : run.status === 'FAILED' ? 'badge-danger' : run.status === 'PARTIAL_FAILED' ? 'badge-warning' : 'badge-slate'}">${esc(run.status || '—')}</span></td>
         <td>${esc(run.total_found ?? 0)}</td>
         <td>${esc(run.new_found ?? 0)}</td>
-        <td>${esc(run.approved_count ?? 0)}</td>
+        <td>${esc(run.duplicates_count ?? 0)}</td>
         <td>${esc(run.review_count ?? 0)}</td>
         <td>${esc(run.rejected_count ?? 0)}</td>
+        <td>${esc(run.below_score_count ?? 0)}</td>
+        <td>${esc(run.pdf_failed_count ?? 0)}</td>
+        <td>${esc(run.extraction_failed_count ?? 0)}</td>
+        <td>${esc(run.approved_count ?? 0)}</td>
         <td>${run.error_message ? `<button class="btn btn-outline btn-xs" onclick="toggleWorkflowRunError(${run.id})">View Error</button>` : `<span style="color:var(--slate-400)">—</span>`}</td>
-        <td><button class="btn btn-outline btn-xs" onclick="focusWorkflowResults()">View Results</button></td>
+        <td><button class="btn btn-outline btn-xs" onclick="focusWorkflowResults(${run.id})">View Results</button></td>
       </tr>
       ${run.error_message ? `
       <tr id="workflowRunError-${run.id}" style="display:none">
-        <td colspan="10" style="color:var(--red-600);font-size:12px;padding-top:0">${esc(run.error_message)}</td>
+        <td colspan="13" style="color:var(--red-600);font-size:12px;padding-top:0">${esc(run.error_message)}</td>
       </tr>` : ''}
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red-600)">Failed to load scan history: ${esc(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13" style="color:var(--red-600)">Failed to load scan history: ${esc(err.message)}</td></tr>`;
   }
 }
 
@@ -7105,10 +7151,26 @@ function toggleWorkflowRunError(runId) {
   row.style.display = row.style.display === 'none' ? '' : 'none';
 }
 
-function focusWorkflowResults() {
+function focusWorkflowResults(runId = null) {
+  if (runId) setWorkflowActiveScanRunId(runId);
   setWorkflowCandidateFilter('ALL');
+  loadWorkflowCandidates();
   const section = document.getElementById('workflowUnifiedSection');
   if (section?.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function workflowRunBreakdown(run) {
+  return [
+    `Found: ${run?.total_found ?? 0}`,
+    `New: ${run?.new_found ?? 0}`,
+    `Duplicates: ${run?.duplicates_count ?? 0}`,
+    `Review: ${run?.review_count ?? 0}`,
+    `Rejected: ${run?.rejected_count ?? 0}`,
+    `Below Score: ${run?.below_score_count ?? 0}`,
+    `PDF Failed: ${run?.pdf_failed_count ?? 0}`,
+    `Extraction Failed: ${run?.extraction_failed_count ?? 0}`,
+    `Approved: ${run?.approved_count ?? 0}`,
+  ].join(' | ');
 }
 
 async function pollWorkflowScanRun(runId) {
@@ -7124,16 +7186,16 @@ async function pollWorkflowScanRun(runId) {
         if (run.status === 'FAILED' || run.status === 'BLOCKED') {
           setWorkflowScanStatus(`Scan failed: ${run.error_message || 'unknown error'}`, 'error');
         } else if (run.status === 'PARTIAL_FAILED') {
-          setWorkflowScanStatus(`Scan partially completed: found ${run.total_found || 0}, review ${run.review_count || 0}, rejected ${run.rejected_count || 0}.`, 'info');
+          setWorkflowScanStatus(`Scan partially completed. ${workflowRunBreakdown(run)}`, 'info');
         } else if (run.status === 'CANCELLED' || run.status === 'CANCELLED_BY_USER') {
-          setWorkflowScanStatus(`Scan stopped: found ${run.total_found || 0}, new ${run.new_found || 0}.`, 'info');
+          setWorkflowScanStatus(`Scan stopped. ${workflowRunBreakdown(run)}`, 'info');
         } else {
-          setWorkflowScanStatus(`Scan completed: found ${run.total_found || 0}, new ${run.new_found || 0}, approved ${run.approved_count || 0}.`, 'success');
+          setWorkflowScanStatus(`Scan completed. ${workflowRunBreakdown(run)}`, 'success');
         }
         loadWorkflowCandidates();
         loadWorkflowScanRuns();
       } else {
-        setWorkflowScanStatus(`Scanning GeM... step ${run.current_step || 'RUNNING'} | found ${run.total_found || 0} | new ${run.new_found || 0}`, 'info');
+        setWorkflowScanStatus(`Scanning GeM... step ${run.current_step || 'RUNNING'} | ${workflowRunBreakdown(run)}`, 'info');
       }
     } catch (_) {
       clearInterval(workflowScanPollTimer);
@@ -7159,19 +7221,25 @@ async function loadUnifiedWorkflow() {
 
 async function runGemScanFromUpload() {
   const dateInput = document.getElementById('uploadScanDate');
-  const scanDate = dateInput?.value;
+  let scanDate = dateInput?.value;
   if (!scanDate) {
-    toast('Please pick a target date', 'error');
-    return;
+    // Default to today (IST) so a quick keyword search "just works".
+    scanDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    if (dateInput) dateInput.value = scanDate;
   }
+  // One-shot search: if a keyword is typed in the box, scan just that keyword
+  // (no need to Add Keyword first). Otherwise use the saved/selected keywords.
+  const typedKeyword = (document.getElementById('workflowKeywordInput')?.value || '').trim();
   setWorkflowScanRunningUI(true);
   try {
-    await syncWorkflowKeywordSelection();
-    setWorkflowScanStatus('Starting GeM auto scan...', 'info');
+    if (!typedKeyword) await syncWorkflowKeywordSelection();
+    setWorkflowScanStatus(typedKeyword ? `Searching GeM for "${typedKeyword}"...` : 'Starting GeM auto scan...', 'info');
+    const body = { scan_target_date: scanDate };
+    if (typedKeyword) body.keyword = typedKeyword;
     const res = await fetch('/api/gem-watcher/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scan_target_date: scanDate }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.detail || 'Could not start scan');
@@ -7316,6 +7384,7 @@ function workflowHasMeaningfulList(values) {
 
 workflowCandidateRow = function(candidate) {
   const status = workflowNormalizedStatus(candidate);
+  const pipelineStatus = workflowDisplayStatus(candidate);
   const recommendation = workflowRecommendation(candidate);
   const source = candidate?.source || 'GeM Auto';
   const isManual = source === 'Manual Upload';
@@ -7356,19 +7425,23 @@ workflowCandidateRow = function(candidate) {
   const itemCategory = candidate?.item_category || candidate?.department || '—';
   const bidNo = candidate?.gem_bid_no || '—';
   const tenderNo = candidate?.tender_number || '—';
-  const pdfCell = pdfHref
-    ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">View PDF</a>`
-    : `<span style="color:var(--slate-400)">—</span>`;
+  const startDate = candidate?.bid_start_date ? String(candidate.bid_start_date).slice(0, 10) : '—';
+  const endDate = candidate?.bid_end_date ? String(candidate.bid_end_date).slice(0, 10) : '—';
+  const pdfCell = `
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+      <span class="badge ${workflowStatusBadge(pipelineStatus)}">${esc(workflowPdfStatus(candidate))}</span>
+      ${pdfHref ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">View PDF</a>` : ''}
+    </div>
+  `;
   const actions = `
     <div class="workflow-action-stack">
-      ${pdfHref ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">PDF</a>` : ''}
-      ${isManual ? `<button class="btn btn-outline btn-xs" onclick="showView('review')">Open Review</button>` : ''}
-      ${!isManual ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${candidate.id})">Approve</button>` : ''}
-      ${!isManual ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${candidate.id})">Review</button>` : ''}
+      ${!isManual ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${candidate.id})">Approve & Send</button>` : ''}
+      ${!isManual ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${candidate.id})">Move to Review</button>` : ''}
       ${!isManual ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${candidate.id})">Reject</button>` : ''}
-      ${!isManual && candidate?.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="deleteGemCandidate(${candidate.id})">Delete</button>` : ''}
+      ${!isManual && candidate?.status !== 'SENT_TO_ALL_TENDERS' ? `<button class="btn btn-outline btn-xs" onclick="deleteGemCandidate(${candidate.id})">Delete</button>` : ''}
+      ${pdfHref ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">Download/View PDF</a>` : ''}
       ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${candidate.id})">Re-Extract</button>` : ''}
-      ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${candidate.id})">Re-Evaluate</button>` : ''}
+      ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${candidate.id})">Re-Run Evaluation</button>` : ''}
     </div>
   `;
   const concernsMarkup = Array.isArray(concerns) && concerns.length && typeof concerns[0] === 'object'
@@ -7422,6 +7495,7 @@ workflowCandidateRow = function(candidate) {
       <td>
         <div class="workflow-inline-stack">
           <span class="badge ${workflowSourceBadge(source)}">${esc(source)}</span>
+          <span class="badge ${workflowStatusBadge(pipelineStatus)}">${esc(workflowPipelineLabel(pipelineStatus))}</span>
           <span class="badge ${workflowStatusBadge(status)}">${esc(workflowDecisionLabel(status))}</span>
         </div>
       </td>
@@ -7430,21 +7504,35 @@ workflowCandidateRow = function(candidate) {
         <div class="workflow-title-sub">GeM Bid: ${esc(bidNo)} | Tender No: ${esc(tenderNo)}</div>
       </td>
       <td>${esc(buyer)}</td>
-      <td>${esc(itemCategory)}</td>
-      <td>${esc(matchedKeyword)}</td>
-      <td>${esc(matchedBrand)}</td>
-      <td>${esc(matchedProduct)}</td>
-      <td>${scoreMarkup}</td>
-      <td><span class="badge ${recommendation.badge}">${esc(recommendation.label)}</span></td>
+      <td><div>${esc(itemCategory)}</div><div class="workflow-title-sub">Matched: ${esc(matchedKeyword)}</div></td>
+      <td>${esc(startDate)}</td>
+      <td>${esc(endDate)}</td>
+      <td>${keywordScore != null ? esc(`${keywordScore}/10`) : '—'}</td>
+      <td>${finalScore != null ? esc(`${finalScore}/10`) : '—'}</td>
+      <td><span class="badge ${workflowStatusBadge(pipelineStatus)}">${esc(workflowPipelineLabel(pipelineStatus))}</span></td>
       <td>${pdfCell}</td>
+      <td>${esc(reviewSummary)}</td>
+      <td>${esc(matchedKeyword)}</td>
       <td>${actions}</td>
     </tr>
     <tr class="workflow-detail-row">
-      <td colspan="11">
+      <td colspan="13">
         <div class="workflow-detail-grid">
           <div class="workflow-detail-card span-12">
             <div class="workflow-detail-card-title">Main Reason</div>
             <div class="workflow-detail-card-maintext">${esc(reviewSummary)}</div>
+          </div>
+          <div class="workflow-detail-card span-4">
+            <div class="workflow-detail-card-title">Matched Brand</div>
+            <div class="workflow-detail-card-maintext">${esc(matchedBrand || '—')}</div>
+          </div>
+          <div class="workflow-detail-card span-4">
+            <div class="workflow-detail-card-title">Matched Product</div>
+            <div class="workflow-detail-card-maintext">${esc(matchedProduct || '—')}</div>
+          </div>
+          <div class="workflow-detail-card span-4">
+            <div class="workflow-detail-card-title">Recommendation</div>
+            <div class="workflow-detail-card-maintext">${esc(recommendation.label)}</div>
           </div>
           ${detailCards.join('')}
         </div>
@@ -7486,16 +7574,18 @@ loadWorkflowCandidates = async function() {
       <table class="workflow-table">
         <thead>
           <tr>
-            <th>Source / Status</th>
+            <th>Source / Decision</th>
             <th>Tender</th>
             <th>Buyer</th>
-            <th>Category</th>
+            <th>Category / Keyword</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Pre-Score</th>
+            <th>Final Score</th>
+            <th>Pipeline Status</th>
+            <th>PDF Status</th>
+            <th>Reason</th>
             <th>Keyword</th>
-            <th>Brand</th>
-            <th>Product</th>
-            <th>Scores</th>
-            <th>Recommendation</th>
-            <th>PDF</th>
             <th>Actions</th>
           </tr>
         </thead>

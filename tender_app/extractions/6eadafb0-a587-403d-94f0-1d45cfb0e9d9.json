@@ -1,0 +1,94 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7698133",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "2233",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Nipple Grease Conical Head Straight",
+      "quantity": "1485"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fog Light Assy",
+      "quantity": "61"
+    },
+    {
+      "part_number": null,
+      "item_description": "Universal Joint",
+      "quantity": "58"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tail Lamp Rh Bulb",
+      "quantity": "93"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steering Hydraulic Oil Filter",
+      "quantity": "27"
+    },
+    {
+      "part_number": null,
+      "item_description": "Control Valve",
+      "quantity": "73"
+    },
+    {
+      "part_number": null,
+      "item_description": "Advance Warning Triangle",
+      "quantity": "94"
+    },
+    {
+      "part_number": null,
+      "item_description": "Latch Assy Door Lh",
+      "quantity": "118"
+    },
+    {
+      "part_number": null,
+      "item_description": "Glass Front Door Rh",
+      "quantity": "58"
+    },
+    {
+      "part_number": null,
+      "item_description": "Roof Marker Lamp Rh",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "Head Lamp Rh",
+      "quantity": "66"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate duly certified by Bank",
+    "Authorisation Form / Certificate with OEM/Original Service Provider details",
+    "NON DISCLOSURE DECLARATION CERTIFICATE",
+    "ISO 9001 certificate",
+    "Bid security declaration certificate",
+    "A certificate of acceptance of terms & conditions",
+    "Certificate of a Chamber of Commerce (Commerce and Industry) or other competent authority",
+    "A Certificate (to be obtained from OEM in case of Resellers/Traders/Auth Business dealer) stating that items supplied would be genuine",
+    "NABL Test Report",
+    "ISI/BIS Confirmation Certificate",
+    "DGQA certification or comparable quality assurance credentials"
+  ]
+}

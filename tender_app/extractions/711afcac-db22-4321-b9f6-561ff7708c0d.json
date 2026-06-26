@@ -1,0 +1,38 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7561850",
+    "date": "19-06-2026",
+    "bid_end_datetime": "10-07-2026 14:00:00",
+    "bid_opening_datetime": "10-07-2026 14:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Nuclear Power Corporation Of India Limited",
+    "office_name_location": "Kakrapar Gujarat Site",
+    "total_quantity": "5309",
+    "make": "1 Siemens make shutter lifter part no 8PU15880DS010AA0",
+    "tender_approx_value": "10",
+    "item_category": "Siemens make Cage nut part NO 4 03 01049 101 , 24 Siemens make Door fixing screw, washer and nut part no 4 16 02828 001 , 25 Siemens make DP gasket for Siemens make LT panels Foam Gasket , 26 Siemens make Rubber Profile Door Edge for Siemens make LT panels IP PROFILE Gasket , 27 Siemens make Rubber Profile for Instrument Plate for Siemens make LT panels IP PROFILE Gasket , 28 Siemens make Hinge Pin for Siemens make LT panels part No 3 03 15441 001A , 29 Siemens make Hinge socket for Siemens make LT panels part no 4 03 08053 001B , 30 Siemens make Vertical trough assembly complete with Cu bus bars for SIEMENS make LT Panels 60X6 sq mm for 8PU S1 5 type panel , 31 Siemens make RYB Copper Busbars for 8PU S1 5 type panel 60X6 sqmm , 32 Siemens make Vertical trough assembly complete with Cu bus bars , 33 Siemens make RYB Copper Busbars for 8PU S1 5 type panel 50X6 sq mm , 34 Siemens make DP Channel for 8PU part No 8PU154160271001 , 35 Siemens make Blanking plate part No 8PU1540309628001 , 36 Siemens make Support for drive shaft part No 8PU15880DI020AA0 , 37 Siemens make nylon rivet part no 8PU154030807002 1 set of 500 nos , 38 Siemens make Control bus clamp MS clamp part No 8PU1541600133001 , 39 Siemens make Control bus clamp 3 way , 40 Siemens make Control bus clamp 1 way , 41 Siemens make Control Bus bar support part no 8PU1541602132001 , 42 Siemens make New Neutral Bus Bar support part no 8PU15000NBBS0AA0 , 43 Siemens make Main Bus bar support at the joints part no 8PU15000MBBS0AA0 , 44 Siemens make SIEPAN 8PU lock and key assembly part no 8PU150000LKA0AA0 , 45 Siemens make Main Horizontal Bus bar support Single part no 8PU1500MHBBS0AA0 , 46 Siemens make Door sealing frame part no 3WX3686 0JA00 , 47 Siemens make 9 way plug assembly N Drawout component cat no 8PU15880DT020AA0 , 48 Siemens make Earthing Spring for trolley part no 8PU15880DE010AA0 , 49 Siemens make Main Busbar, Aluminum 1X1X80X10 mm, Length 560 mm , 50 Siemens make Main Busbar, Aluminum 1X1X80X10 mm, Length 1700 mm , 51 Siemens make Main Busbar, Aluminum 1X1X80X10 mm, Length 2550 mm , 52 Siemens make Neutral Busbar, Aluminum 1X1X50X10 mm, Length 560 mm , 53 Siemens make Neutral Busbar, Aluminum 1X1X50X10 mm, Length 1700 mm , 54 Siemens make Neutral Busbar, Aluminum 1X1X50X10 mm, Length 2550 mm , 55 Siemens make Earth Busbar, Aluminum 1X50X10 mm, Length 560 mm , 56 Siemens make Earth Busbar, Aluminum 1X50X10 mm, Length 1700 mm , 57 Siemens make Earth Busbar, Aluminum 1X50X10 mm, Length 2550 mm , 58 Siemens make Main Busbar, Aluminum 1X1X200X10 mm, Length 850 mm , 59 Siemens make Main Busbar, Aluminum 1X1X200X10 mm, Length 2550 mm , 60 Siemens make Neutral Busbar, Aluminum 1X1X60X10 mm, Length 850 mm , 61 Siemens make Neutral Busbar, Aluminum 1X1X60X10 mm, Length 2550 mm , 62 Siemens make Earth Busbar, Aluminum 1X50X10 mm, Length 850 mm , 63 Siemens make Main Busbar, Aluminum 1X1X100X10 mm, Length 560 mm , 64 Siemens make Main Busbar, Aluminum 1X1X100X10 mm, Length 2550 mm , 65 Siemens make Neutral Busbar, Aluminum 1X1X50X10 mm, Length 560 mm , 66 Siemens make Neutral Busbar, Aluminum 1X1X50X10 mm, Length 2550 mm , 67 Siemens make Earth Busbar, Aluminum 1X50X10 mm, Length 560 mm , 68 Siemens make Earth Busbar, Aluminum 1X50X10 2",
+    "primary_product": "1 Siemens make shutter lifter part no 8PU15880DS010AA0",
+    "delivery_period": "."
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Siemens make Control bus clamp MS clamp part No",
+      "quantity": "5309"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "One Bid Per Bidder declaration (Annexure-II)",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "Annexure-F payment document",
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "Experience"
+  ],
+  "emd": {},
+  "technical_specifications": [],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

@@ -1,0 +1,32 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7663497",
+    "date": "15-06-2026",
+    "bid_end_datetime": "06-07-2026 09:00:00",
+    "bid_opening_datetime": "06-07-2026 09:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Indo Tibetan Border Police (itbp)",
+    "office_name_location": "31bn",
+    "total_quantity": "486514",
+    "make": "Potato Fresh",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": ", Tomato , Mushroom , Ridge Gourd , Safal Matar , Banana ,",
+      "quantity": "486514"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "MSME",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

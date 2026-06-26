@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7649994",
+    "date": "11-06-2026",
+    "bid_end_datetime": "22-06-2026 16:00:00",
+    "bid_opening_datetime": "22-06-2026 16:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10110009-heep, Haridwar",
+    "total_quantity": "16",
+    "make": "01-701 , W97045001266 SIGNAL OUTPUT CONTROL BOX",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "01-701 , W97045001266 SIGNAL OUTPUT CONTROL BOX, Proximity Switch, Test Bench",
+      "quantity": "16"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "MSME",
+    "Experience",
+    "MII",
+    "Make in India",
+    "Local Content"
+  ],
+  "extraction_mode": "local_fallback"
+}

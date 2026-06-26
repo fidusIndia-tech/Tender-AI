@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7639307",
+    "date": "18-06-2026",
+    "bid_end_datetime": "11-07-2026 14:00:00",
+    "bid_opening_datetime": "11-07-2026 14:30:00",
+    "department_name": "Department Of Fertilizers",
+    "organization_name": "National Fertilizers Limited (nfl)",
+    "office_name_location": "Vijaipur",
+    "total_quantity": "2",
+    "make": "PREAC",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "HH16-100/600-RC-57-CB-PRE S-N/CP",
+      "item_description": "PREAC Hydraulic Cylinders FOR DD DAMPERS OF HRU-3.",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

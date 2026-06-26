@@ -1,0 +1,74 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7663994",
+    "date": "18-06-2026",
+    "bid_end_datetime": "06-07-2026 10:00:00",
+    "bid_opening_datetime": "06-07-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "2",
+    "make": "JCB",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hiring of Special Purpose Mining or Earth Moving Machines and Cranes (Shift Based) - As Per Buyer's Requirement; Crane, Lilabari; Hydraulic Crane, Capacity 40 Ton",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Crane, Tezpur; Hydraulic Crane, Capacity 40 Ton",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Crane, ALG Ziro; Hydraulic Crane, Capacity 40 Ton",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Crane, Tezpur; Truck Mounted Crane, Capacity 23 Ton",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Crane, Tezpur; Hydraulic Crane, Capacity 25 Ton",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Earth Moving Equipment, Lilabari; JCB",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Earth Moving Equipment, Donypolo; JCB",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Earth Moving Equipment, Rupa; JCB",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Earth Moving Equipment, Tezpur; JCB",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Earth Moving Equipment, ALG Ziro; JCB",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

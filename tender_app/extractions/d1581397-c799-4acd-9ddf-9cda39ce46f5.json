@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7664372",
+    "date": "22-06-2026",
+    "bid_end_datetime": "13-07-2026 13:00:00",
+    "bid_opening_datetime": "13-07-2026 13:30:00",
+    "department_name": "Thdc India Limited",
+    "organization_name": "Thdc India Limited",
+    "office_name_location": "Thdc India Limited Tehri Garhwal Uttrakhand",
+    "total_quantity": "5580",
+    "make": "Gear Oil",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Gear Oil",
+      "quantity": "5580"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Bank",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

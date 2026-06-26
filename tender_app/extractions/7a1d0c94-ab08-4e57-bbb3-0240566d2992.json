@@ -1,0 +1,104 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7692260",
+    "date": "22-06-2026",
+    "bid_end_datetime": "07-07-2026 20:00:00",
+    "bid_opening_datetime": "07-07-2026 20:30:00",
+    "department_name": "Energy Department Uttar Pradesh",
+    "organization_name": "Uttar Pradesh Rajya Vidyut Utpadan Nigam Limited",
+    "office_name_location": "Lucknow",
+    "total_quantity": "17248",
+    "make": "SERVO",
+    "tender_approx_value": "2518970"
+  },
+  "items": [
+    {
+      "part_number": "ANTIWEAR HYDRAULIC OIL HLP 32",
+      "item_description": "Antiwear Hydraulic Oil Hlp 32",
+      "quantity": "3150"
+    },
+    {
+      "part_number": "2306_SERVO PRIME 68",
+      "item_description": "2306_servo Prime 68",
+      "quantity": "1890"
+    },
+    {
+      "part_number": "2310 Grease MP-2",
+      "item_description": "2310 Grease Mp-2",
+      "quantity": "182"
+    },
+    {
+      "part_number": "Grease 3",
+      "item_description": "Grease 3",
+      "quantity": "182"
+    },
+    {
+      "part_number": "GEAR OIL 680",
+      "item_description": "Gear Oil 680",
+      "quantity": "1050"
+    },
+    {
+      "part_number": "HYDRAULIC AND CIRCULATING OIL 46",
+      "item_description": "Hydraulic And Circulating Oil 46",
+      "quantity": "1260"
+    },
+    {
+      "part_number": "2310 GREASE EP2",
+      "item_description": "2310 Grease Ep2",
+      "quantity": "1456"
+    },
+    {
+      "part_number": "GEAR OIL 320",
+      "item_description": "Gear Oil 320",
+      "quantity": "4200"
+    },
+    {
+      "part_number": "SERVO COAT 140",
+      "item_description": "Servo Coat 140",
+      "quantity": "728"
+    },
+    {
+      "part_number": "HYDRAULIC AND CIRCULATING OIL 32",
+      "item_description": "Hydraulic And Circulating Oil 32",
+      "quantity": "630"
+    },
+    {
+      "part_number": "2302 Hydraulic And Circulating Oil 68",
+      "item_description": "2302 Hydraulic And Circulating Oil 68",
+      "quantity": "1680"
+    },
+    {
+      "part_number": "2305_HP OIL RR 813",
+      "item_description": "2305_hp Oil Rr 813",
+      "quantity": "630"
+    },
+    {
+      "part_number": "Compressor Oil 150",
+      "item_description": "Compressor Oil 150",
+      "quantity": "210"
+    },
+    {
+      "part_number": "2302",
+      "item_description": "HYDRAULIC AND CIRCULATING OIL 68",
+      "quantity": "630"
+    },
+    {
+      "part_number": "2305_HP",
+      "item_description": "OIL RR 813",
+      "quantity": "1680"
+    },
+    {
+      "part_number": null,
+      "item_description": "COMPRESSOR OIL 150",
+      "quantity": "630"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "210"
+    }
+  ],
+  "required_documents": [
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

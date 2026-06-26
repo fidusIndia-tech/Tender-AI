@@ -1,0 +1,29 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7663976",
+    "date": "22-06-2026",
+    "bid_end_datetime": "14-07-2026 15:00:00",
+    "bid_opening_datetime": "14-07-2026 15:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Mazagon Dock Shipbuilders Limited",
+    "office_name_location": "***********",
+    "total_quantity": "115",
+    "make": "connection , AIP Adaptor for copper technology Ruch",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "connection , AIP Adaptor for copper technology Ruch",
+      "quantity": "115"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

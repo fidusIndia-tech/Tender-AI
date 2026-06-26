@@ -1,0 +1,29 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7575381",
+    "date": "22-06-2026",
+    "bid_end_datetime": "13-07-2026 13:00:00",
+    "bid_opening_datetime": "13-07-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Hqids",
+    "office_name_location": "***********",
+    "total_quantity": "2450",
+    "make": "CONDUCTIVITY SENSOR , ER6150B-101200901001",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "CONDUCTIVITY SENSOR , ER6150B-101200901001",
+      "quantity": "2450"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7615903",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 11:00:00",
+    "bid_opening_datetime": "29-06-2026 11:30:00",
+    "department_name": "Coal India Limited",
+    "organization_name": "Mahanadi Coalfields Limited",
+    "office_name_location": "Mcl Sambalpur Odisha",
+    "total_quantity": "12166",
+    "make": "Industrial Grease (V2) Conforming to IS 7623 (Q3) , Antiwear",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Industrial Grease (V2) Conforming to IS 7623 (Q3) , Antiwear",
+      "quantity": "12166"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7695501",
+    "date": "22-06-2026",
+    "bid_end_datetime": "03-07-2026 10:00:00",
+    "bid_opening_datetime": "03-07-2026 10:30:00",
+    "department_name": "Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "1",
+    "make": "Hydraulic Gear Pump (Q3)",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Gear Pump (Q3)",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

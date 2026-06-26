@@ -1,0 +1,62 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7708359",
+    "date": "24-06-2026",
+    "bid_end_datetime": "06-07-2026 09:00:00",
+    "bid_opening_datetime": "06-07-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "11",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC AGGREGATE HA 25-3V PUMP",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "TIE ROD",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "TAPPER ROLLER BRG",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "COMBI SWITCH MS HARNESS",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "WIPER ARM PANTOGRAPH TYPE",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "ASSY WIPER ARM",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "SPEEDOMETER RATIO 1 0 80",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "ASSY OIL FILTER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": []
+}

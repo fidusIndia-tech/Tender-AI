@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7694909",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 14:00:00",
+    "bid_opening_datetime": "02-07-2026 14:30:00",
+    "department_name": "Indian Railways",
+    "organization_name": "West Central Railway",
+    "office_name_location": "West Central Railway",
+    "total_quantity": "60",
+    "make": "Conforming to IS 8654 (Q3)",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Conforming to IS 8654 (Q3)",
+      "quantity": "60"
+    }
+  ],
+  "required_documents": [
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

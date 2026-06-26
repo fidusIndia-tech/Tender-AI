@@ -1,0 +1,88 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7681048",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 14:00:00",
+    "bid_opening_datetime": "29-06-2026 14:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "35",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Power Adopter 19 point 5 Volt 45 Watt",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hand Tools",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Stabilizer 10 KVA",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Load Balancer Multi WAN Wired Single Band 1000 Mbps VPN Router",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "3 Ton Hydraulic Jack",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "25 mm Gearbox Trolley",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pressure pump 3 Piston",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "1 HP Motor",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "8 mm Table Glass 6 ft x 29 inch brown",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "8 mm Table Glass 4 ft 6 inch x 2 ft 6 inch Transparent",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "8 mm Table Glass 7 ft 11 inch x 4 ft transparent",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "In out tray 12 mm brown",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "RJ 45 Blocker pkt contains 10 pcs",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Annual Turnover"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7642068",
+    "date": "25-06-2026",
+    "bid_end_datetime": "16-07-2026 10:00:00",
+    "bid_opening_datetime": "16-07-2026 10:30:00",
+    "department_name": "Department Of Defence Research & Development",
+    "organization_name": "Office Of Dg (aero)",
+    "office_name_location": null,
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Actuator Test Set For Primary Hydraulic Actuators",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": []
+}

@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7682872",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 18:00:00",
+    "bid_opening_datetime": "02-07-2026 18:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "806",
+    "make": "CONTROL CABLE , SWITCH LOCK IGNITION , PISTON FOR",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "CONTROL CABLE , SWITCH LOCK IGNITION , PISTON FOR",
+      "quantity": "806"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

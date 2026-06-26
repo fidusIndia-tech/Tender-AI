@@ -1,0 +1,63 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7676099",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 09:00:00",
+    "bid_opening_datetime": "29-06-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "33",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Speed Chain",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Disk Break Lever",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Unknown Item",
+      "quantity": "3"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate duly certified by Bank",
+    "Detailed Design Drawings approved from buyer",
+    "Material Test Certificate",
+    "ISO 9001 certification",
+    "BIS licence, type test certificate, approval certificates",
+    "Central Excise, Sales Tax, CST, GST, Udyam Adhaar and income Tax PAN",
+    "Self-certificate in court affidavit",
+    "Original product brochure/ catalogue",
+    "Data sheet of the product offered",
+    "Signed and stamped TEC documents",
+    "Technical literature of items quoted",
+    "OEM Certificate or Authorised Dealership Certificate",
+    "Proof of item supply order of similar item",
+    "ISO 9001 certified",
+    "Technical catalogue",
+    "Tender Condition Acceptance Certificate",
+    "Non discloser certificate",
+    "60% of the past performance",
+    "Bid security declaration by MSME",
+    "Certificate regarding non black list",
+    "Signed and stamped pages by authorised person"
+  ]
+}

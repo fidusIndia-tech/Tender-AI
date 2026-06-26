@@ -1,0 +1,121 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7652034",
+    "date": "11-06-2026",
+    "bid_end_datetime": "25-06-2026 15:00:00",
+    "bid_opening_datetime": "25-06-2026 15:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "709",
+    "make": "TADIRAN",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "LV1WZT-3 TD 50-07-204ZTD50-07-204Z-A",
+      "item_description": "HYDRAULIC CYLINDER",
+      "quantity": "24"
+    },
+    {
+      "part_number": "Z1R90 MISC-TADIRAN-20569203040",
+      "item_description": "AUDIO MODULE",
+      "quantity": "50"
+    },
+    {
+      "part_number": "Z6R72 6110-001177",
+      "item_description": "DISTRUBUTION BOX KR 175 IC",
+      "quantity": "6"
+    },
+    {
+      "part_number": "Z1R90 MISC-VK3-608-010 OR DYYU-002-003",
+      "item_description": "UNIT MTZ WITH 1.2 CORD",
+      "quantity": "234"
+    },
+    {
+      "part_number": "Z1R90 MISC-TU16-523-583-80",
+      "item_description": "RELAY RNE-22-24V",
+      "quantity": "17"
+    },
+    {
+      "part_number": "N1R90 1005720350434",
+      "item_description": "SEMI AUTOMATIC GEAR CAM2A46M-02-11",
+      "quantity": "30"
+    },
+    {
+      "part_number": "N1R90 1015-012766",
+      "item_description": "2A46M-CB-01-2CB EVACUATOR CHAMBER BARREL ASSY",
+      "quantity": "3"
+    },
+    {
+      "part_number": "LV1R90 175-35-578",
+      "item_description": "BOLT",
+      "quantity": "345"
+    },
+    {
+      "part_number": "LV2ICVS",
+      "item_description": "8465-002927 701-77-SB104 Bag Hand Grenade NFP",
+      "quantity": "117"
+    },
+    {
+      "part_number": "Z6R90",
+      "item_description": "EDM14-000TU Electric Motor EDM-14",
+      "quantity": "21"
+    },
+    {
+      "part_number": "Z1/R90",
+      "item_description": "MISC-TADIRAN-20569203040 AUDIO MODULE",
+      "quantity": "50"
+    },
+    {
+      "part_number": "10235138",
+      "item_description": "Z1/R90 MISC-VK3-608-010 OR DYYU-002-003 UNIT MTZ WITH 1.2 CORD",
+      "quantity": "234"
+    },
+    {
+      "part_number": "10235617",
+      "item_description": "Z1/R90 MISC-TU16-523-583-80 RELAY RNE-22-24V",
+      "quantity": "17"
+    },
+    {
+      "part_number": "10234046",
+      "item_description": "N1/R90 1005720350434 SEMI AUTOMATIC GEAR CAM(2A46M-02-11)",
+      "quantity": "30"
+    },
+    {
+      "part_number": "10514360",
+      "item_description": "N1/R90 1015-012766 (2A46M-CB-01-2CB) EVACUATOR CHAMBER (BARREL ASSY)",
+      "quantity": "3"
+    },
+    {
+      "part_number": "10256957",
+      "item_description": "LV1/R90 175-35-578 BOLT",
+      "quantity": "345"
+    },
+    {
+      "part_number": "10243739",
+      "item_description": "LV2/ICVS 8465-002927(701-77-SB104) Bag Hand Grenade (NFP VIDE P/1823547)",
+      "quantity": "117"
+    },
+    {
+      "part_number": "10232037",
+      "item_description": "Z6/R90 EDM14-000TU Electric Motor EDM-14",
+      "quantity": "21"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank.",
+    "NON DISCLOSURE DECLARATION CERTIFICATE (On Bidder Letter Head)"
+  ]
+}

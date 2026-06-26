@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7694562",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 16:00:00",
+    "bid_opening_datetime": "02-07-2026 16:30:00",
+    "department_name": "Railways Public Sector Undertakings",
+    "organization_name": "Container Corporation Of India Limited",
+    "office_name_location": "Corporate Office",
+    "total_quantity": "4830",
+    "make": "Conforming to IS 11656 (Q2)",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Conforming to IS 11656 (Q2)",
+      "quantity": "4830"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

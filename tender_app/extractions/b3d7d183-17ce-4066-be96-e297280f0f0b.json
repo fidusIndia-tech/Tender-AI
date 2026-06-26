@@ -1,0 +1,84 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7676260",
+    "date": "22-06-2026",
+    "bid_end_datetime": "03-07-2026 19:00:00",
+    "bid_opening_datetime": "03-07-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "7356",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "XLPE Cable For Working Voltage Up To And Including 1.1 KV Marked To IS 7098 (Part 1)",
+      "quantity": "744"
+    },
+    {
+      "part_number": null,
+      "item_description": "Moulded Case Circuit Breakers (MCCB) Conforming To IS/IEC 60947 (Part 2)",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "Door Lock 7 Lever",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC Insulated, Stranded Copper Cable, 01 Core X 2.5 Sqmm,ISI",
+      "quantity": "151"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC Insulated, Stranded Copper Cable, 01 Core X 6 Sqmm, ISI",
+      "quantity": "2523"
+    },
+    {
+      "part_number": null,
+      "item_description": "MCB, SPN 32 Amp",
+      "quantity": "1137"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Door Closer Aluminium Diecast Body Universal Type",
+      "quantity": "167"
+    },
+    {
+      "part_number": null,
+      "item_description": "Kitchen Sink Stainless Steel Size 24x18x8 Inch, ISI Marked",
+      "quantity": "57"
+    },
+    {
+      "part_number": null,
+      "item_description": "Kitchen Sink Stainless Steel Size 36x18x8 Inch With Drain Board ISI Marked",
+      "quantity": "23"
+    },
+    {
+      "part_number": null,
+      "item_description": "MCB, TPN 63A, ISI",
+      "quantity": "18"
+    },
+    {
+      "part_number": null,
+      "item_description": "Unknown Description",
+      "quantity": "92"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate duly certified by Bank"
+  ]
+}

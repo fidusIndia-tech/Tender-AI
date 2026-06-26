@@ -1,0 +1,200 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7709963",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 13:00:00",
+    "bid_opening_datetime": "06-07-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "53",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Speedo Meter Cable",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Transfer Case 4x4 Pneumatic Valve Assy",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Vehicle Speedo Sensor Housing",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Speedo Sensor Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Clutch Plate Assy 15 Inches",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Silencer Joint",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steering Supporting Arm Assy",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Water Pump Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Head Gasket Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Filter Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steering Support Arm Assy MPVY",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Gear Shifting Rod Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Front Wind Shield BP Glass",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Steering Pressure Hydraulic Pipe 32 Mm",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Radiator Hose Upper And Lower End",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Suspension Rubber Kit",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hand Brake Cable",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Master Cylinder Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Clutch Plate Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Release Bearing Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pressure Plate Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Brake Shoe Pad Front",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Brake Shoe Pad Rear",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "AC Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tie Rod End",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Suspension Bush Kit",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Side View Mirror",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rear Suspension Torsion Bar Linkage Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Self Solenoid Switch",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Head Light Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Indicator Light Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

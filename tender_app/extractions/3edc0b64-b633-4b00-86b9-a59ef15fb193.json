@@ -1,0 +1,24 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7431118",
+    "date": "10-04-2026",
+    "bid_end_datetime": "20-04-2026 17:00:00",
+    "bid_opening_datetime": "20-04-2026 17:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Yantra India Limited",
+    "office_name_location": null,
+    "total_quantity": "2",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC OIL CHILLER 3000 KCAL/HR/3.480KW(1.00 TR), COOLING CAPACITY, PUMP OIL FLOW 16.21 LPM, OIL",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Bidder Turnover,Certificate (Requested in ATC)"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7694604",
+    "date": "22-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Chennai Petroleum Corporation Limited",
+    "organization_name": "Chennai Petroleum Corporation Limited",
+    "office_name_location": "Chennai",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "CPCLD26222 - Hydraulics study for pipelines associated with propylene and propane tanker facility at CPCL",
+      "quantity": "Project / Lumpsum Based"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)"
+  ]
+}

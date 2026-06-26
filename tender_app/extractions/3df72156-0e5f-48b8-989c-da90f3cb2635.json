@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7696647",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 11:00:00",
+    "bid_opening_datetime": "06-07-2026 11:30:00",
+    "department_name": "Steel Authority Of India Limited",
+    "organization_name": "Rourkela Steel Plant",
+    "office_name_location": "Materials Management Purchase",
+    "total_quantity": "4",
+    "make": "OSCAR",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "66310001000626",
+      "item_description": "CYLINDER, HYDRAULIC, DWN: OE/6063, OSCAR",
+      "quantity": "3"
+    },
+    {
+      "part_number": "66310001000627",
+      "item_description": "CYLINDER, SINGLE ACTING RAM, OE/6064, OSCAR",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

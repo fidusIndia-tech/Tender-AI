@@ -1,0 +1,25 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7700881",
+    "date": "23-06-2026",
+    "bid_end_datetime": "08-07-2026 10:00:00",
+    "bid_opening_datetime": "08-07-2026 10:30:00",
+    "department_name": "Indian Railways",
+    "organization_name": "North Eastern Railway",
+    "office_name_location": "Office Of The Principal Chief Material Manager Ner",
+    "total_quantity": "8",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jacks for Automobiles Conforming to IS 4552 (Part 2) (Q3)",
+      "quantity": "8"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate"
+  ]
+}

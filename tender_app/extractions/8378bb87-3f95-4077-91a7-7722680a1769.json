@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7635585",
+    "date": "09-06-2026",
+    "bid_end_datetime": "25-06-2026 18:00:00",
+    "bid_opening_datetime": "25-06-2026 18:30:00",
+    "department_name": "Energy Department Uttar Pradesh",
+    "organization_name": "(uprvunl) Lucknow",
+    "office_name_location": "Lucknow",
+    "total_quantity": "2117",
+    "make": "flange end , CRC contact cleaner 300 ml cane , Neoprene",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "flange end , CRC contact cleaner 300 ml cane , Neoprene",
+      "quantity": "2117"
+    }
+  ],
+  "required_documents": [
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

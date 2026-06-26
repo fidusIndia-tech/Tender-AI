@@ -1,0 +1,119 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7700125",
+    "date": "23-06-2026",
+    "bid_end_datetime": "03-07-2026 20:00:00",
+    "bid_opening_datetime": "03-07-2026 20:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "59",
+    "make": "BEML",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "MUD Filter Cloth Type",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Engine Oil Filter",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Filter",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Element Inner",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Element Outer",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Screen Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Steering Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Water Separator",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Baby Filter",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "19mm Benzo Bolt",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "17mm Benzo Bolt",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "13mm Benzo Bolt",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Inertia Brake",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack Seal Kit",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Recoil Seal Kit",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Sprocket Wheel O Ring",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

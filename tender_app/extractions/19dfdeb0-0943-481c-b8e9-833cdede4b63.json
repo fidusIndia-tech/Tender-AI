@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7607555",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 19:00:00",
+    "bid_opening_datetime": "02-07-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Air Force",
+    "office_name_location": "***********",
+    "total_quantity": null,
+    "make": "Systems/Equipments (Version 2) - DEFENCE; HYDRAULIC",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Systems/Equipments (Version 2) - DEFENCE; HYDRAULIC",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

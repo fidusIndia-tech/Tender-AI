@@ -9,3 +9,10 @@ build/
 .next/
 uploads/
 
+
+.git_diff_export.txt
+.tmp-upload-date/
+uvicorn-*.log
+*.log
+tender_app/extractions/
+tender_app/debug.log

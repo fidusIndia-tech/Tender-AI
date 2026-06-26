@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7679453",
+    "date": "18-06-2026",
+    "bid_end_datetime": "03-07-2026 12:00:00",
+    "bid_opening_datetime": "03-07-2026 12:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Munitions India Limited",
+    "office_name_location": "***********",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Supply & Installation of Hydraulic Single Mast Goods Lift for Lifting of Raw Materials form Ground Floor to First Floor In BLDG RW1 (RX/434) Should Be A s per specification No. Rx/086/Hydraulic Lift-RDX/08, Dt. 15.07.2025",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)",
+    "Additional Doc 4 (Requested in ATC)"
+  ]
+}

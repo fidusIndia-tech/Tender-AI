@@ -1,0 +1,36 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7672712",
+    "date": "17-06-2026",
+    "bid_end_datetime": "08-07-2026 13:00:00",
+    "bid_opening_datetime": "08-07-2026 13:30:00",
+    "department_name": "Bharat Petroleum Corporation Ltd",
+    "organization_name": "Bharat Petroleum Corporation Ltd",
+    "office_name_location": "Gonda",
+    "total_quantity": "10",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Supply Of Hydraulic Swing Ladders (steps Config. ) Including Installation, Testing & Commissioning",
+      "quantity": "10"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)",
+    "Additional Doc 4 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Tender document",
+    "General conditions of contract"
+  ]
+}

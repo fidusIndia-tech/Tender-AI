@@ -1,0 +1,72 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7683450",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 20:00:00",
+    "bid_opening_datetime": "29-06-2026 20:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "14",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "AIR FILTER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC PIPE",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "HOOD LATCH ASSY",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "FLY WHEEL HOUSING FLT",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "HOSE PIPE AIR",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "REVERSE FUEL PIPE",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "ENGINE OIL FILTER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "SILENCER ASSY",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "FUEL PIPE LONG",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "HOOD SHOCKER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "CLUTCH RELEASE BEARING",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": []
+}

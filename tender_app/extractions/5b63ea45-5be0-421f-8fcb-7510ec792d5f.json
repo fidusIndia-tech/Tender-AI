@@ -1,0 +1,42 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7693630",
+    "date": "25-06-2026",
+    "bid_end_datetime": "16-07-2026 14:00:00",
+    "bid_opening_datetime": "16-07-2026 14:30:00",
+    "department_name": "Department Of Fertilizers",
+    "organization_name": "Rashtriya Chemicals And Fertilizers Limited (rcf)",
+    "office_name_location": "Trombay Unit",
+    "total_quantity": "3",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "300127388",
+      "item_description": "HYDRAULIC HAND PUMP, 2 SPEED, SINGLE ACT.",
+      "quantity": "1"
+    },
+    {
+      "part_number": "300127389",
+      "item_description": "HYDRAULIC JACK 5 T CYLINDRICAL",
+      "quantity": "1"
+    },
+    {
+      "part_number": "300127391",
+      "item_description": "HYDRAULIC JACK 15 T CYLINDRICAL",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)",
+    "FORMAT – I - Vendor Updation Form",
+    "FORMAT - II - Declaration of Local Content as per Make in India policy by Govt. Of India",
+    "Integrity Pact",
+    "EMD submission acknowledge receipt or valid document for EMD exemption as per GEM GTC",
+    "MSE Udyam registration certificate",
+    "FORMAT - V - Declaration of Status of Debarment Listing/Blacklisting/Holiday Listing",
+    "FORMAT - VI - Undertaking about Common Directors/Partners/ Interest in Other Associated Units/ Companies"
+  ]
+}

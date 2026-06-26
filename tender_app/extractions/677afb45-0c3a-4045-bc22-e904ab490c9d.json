@@ -1,0 +1,41 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678109",
+    "date": "17-06-2026",
+    "bid_end_datetime": "29-06-2026 09:00:00",
+    "bid_opening_datetime": "29-06-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "4",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "FUEL FILTER PAPER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "FUEL FILTER CLOTH",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC FILTER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "OIL FILTER",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover"
+  ]
+}

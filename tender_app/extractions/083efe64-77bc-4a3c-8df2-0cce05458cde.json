@@ -1,0 +1,73 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7703132",
+    "date": "23-06-2026",
+    "bid_end_datetime": "15-07-2026 14:00:00",
+    "bid_opening_datetime": "15-07-2026 14:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Assam Rifles",
+    "office_name_location": "Hq Dgar",
+    "total_quantity": "145",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Gear Box Jack Floor Type",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hyd Jack Trolley Type 20 Ton",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Jack 2 Ton For Gear Box",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cordless Impact Wrench",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "Speed Impact Drill Machine",
+      "quantity": "71"
+    },
+    {
+      "part_number": null,
+      "item_description": "Engine Stand",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "14"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1",
+    "Specification Document",
+    "BOQ Detail Document",
+    "Material Test Certificate",
+    "GST Registration Certificate",
+    "Annual Turnover of Firm",
+    "Updated UDYAM Registration Certificate",
+    "Trading License for Product",
+    "Financial Stability Certificate of Firm",
+    "Authorised Dealer/ Distributor Certificate",
+    "Govt/NABL Accredited Lab report",
+    "ISO Certificate",
+    "Bid Declaration Certificate",
+    "Documents/Certificate as asked in bid to be bid specific or similar"
+  ]
+}

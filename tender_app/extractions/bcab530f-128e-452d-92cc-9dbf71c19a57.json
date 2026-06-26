@@ -1,0 +1,139 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7708451",
+    "date": "24-06-2026",
+    "bid_end_datetime": "14-07-2026 10:00:00",
+    "bid_opening_datetime": "14-07-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "1511",
+    "make": "Tata, Jindal, Bhushan, JK, Ultratech, Ambuja, Asian, Somany, Kajaria, Philips, Bajaj, Havells, Anchor, Finolex, Polycab, Plaza, Godrej, Samrat, Plantex, Voltas, Usha, Blue Star",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Binding Wire as approved sample",
+      "quantity": null
+    },
+    {
+      "part_number": null,
+      "item_description": "CGI Sheet 08 Ft Make Colon Tata Slash Jindal Slash Bhushan Close Bracket",
+      "quantity": "66"
+    },
+    {
+      "part_number": null,
+      "item_description": "CGI Sheet 12 Ft Make Colon Tata Slash Jindal Slash Bhushan Close Bracket",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "PBS Roll Of 3m X 25m As Approved Sample",
+      "quantity": "66"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cement Bag Open Bracket Make Colon JK Slash Ultratech Slash Ambuja Close Bracket",
+      "quantity": "28"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tile 2 Ft X 2 Ft Open Bracket Make Colon Asian Slash Somany Slash Kajaria Close Bracket",
+      "quantity": "260"
+    },
+    {
+      "part_number": null,
+      "item_description": "CGI Sheet 7 Ft Make Colon Tata Slash Jindal Slash Bhushan Close Bracket",
+      "quantity": "368"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED Bulb 23 W Open Bracket Make Colon Philips Slash Bajaj Slash Havells Slash Anchor Close Bracket",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "0 Point 5 Black Screw As Approved Sample",
+      "quantity": "140"
+    },
+    {
+      "part_number": null,
+      "item_description": "Geyser 10 Ltr As Approved Sample",
+      "quantity": "200"
+    },
+    {
+      "part_number": null,
+      "item_description": "Wire Mesh Open Bracket 4 Ft X 100 Ft Close Bracket Open Bracket Make Colon TATA Slash Jindal Steel Close Bracket",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Acrylic Sheet 8 Ft X 4 Ft As Approved Sample",
+      "quantity": "11"
+    },
+    {
+      "part_number": null,
+      "item_description": "Acrylic Sheet 6 Ft X 4 Ft As Approved Sample",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "Mattress 6 Ftx 3 Ft X 75 Mm Per Approved Sample",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "Cable 10 Sqmm 2 Core Aluminium Open Bracket Make Colon Finolex Slash Havells Slash Polycab Slash Plaza Close Bracket",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Door Closer Open Bracket Make Colon Godrej Slash Samrat Slash Plantex Close Bracket",
+      "quantity": "21"
+    },
+    {
+      "part_number": null,
+      "item_description": "Self Tapping Screw 1 Point 5 Inch As Per Approved Sample",
+      "quantity": "9"
+    },
+    {
+      "part_number": null,
+      "item_description": "Self Tapping Screw 3 Inch As Approved Sample",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Balli 10 Ft As Approved Sample",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Water Dispensar Open Bracket Make Colon Voltas Slash Usha Slash Blue Star Close Bracket",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Linoleum Sheet As Approved Sample",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "5"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

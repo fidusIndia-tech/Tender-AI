@@ -1,0 +1,38 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7682099",
+    "date": "19-06-2026",
+    "bid_end_datetime": "09-07-2026 17:00:00",
+    "bid_opening_datetime": "09-07-2026 17:30:00",
+    "department_name": "Ai Engineering Services Limited",
+    "organization_name": "Ai Engineering Services Limited",
+    "office_name_location": "Ai Engineering Services Limited",
+    "total_quantity": null,
+    "make": "Custom Bid for Services - ONE TIME SERVICING OF SIEMENS MAKES AIR CIRCUIT BREAKERS INSTALLED AT 11 KV SUB STATION",
+    "tender_approx_value": "3",
+    "item_category": "Custom Bid for Services - ONE TIME SERVICING OF SIEMENS MAKES AIR CIRCUIT BREAKERS INSTALLED AT 11 KV SUB STATION",
+    "primary_product": "MAKES AIR CIRCUIT BREAKERS INSTALLED AT 11 KV SUB",
+    "delivery_period": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "MAKES AIR CIRCUIT BREAKERS INSTALLED AT 11 KV SUB",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "GST",
+    "PAN",
+    "MSME",
+    "Authorization",
+    "Experience"
+  ],
+  "emd": {},
+  "technical_specifications": [],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

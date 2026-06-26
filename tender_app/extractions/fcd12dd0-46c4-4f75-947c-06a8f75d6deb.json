@@ -1,0 +1,451 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7639174",
+    "date": "09-06-2026",
+    "bid_end_datetime": "19-06-2026 11:00:00",
+    "bid_opening_datetime": "19-06-2026 11:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "431",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Set Outer And Inner",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Ignition Key Switch",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Centre Joint Seal Kit",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Filter Hydraulic",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Suction Assy",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Strainer",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Grease Nipple",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter Element",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Water Separator",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Engine Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bucket Teeth",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bucket Teeth Locking Pin",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Lock Washer",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Charging Nipple",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Front Movable Window Assy",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "Glass Lower",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Sprocket",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bucket Distance Piece",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Pipe Line 19MM",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Feed Pump",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Tank Strainer",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Battery 12V, 70AH",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Vibrator Hydraulic Hose",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bucket Locking Pin",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tooth",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pin",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Retainer",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Element Oil EG",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Element Fuel EG",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Element HD Air Breather",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Con Filter Outer",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Con Filter Inner",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Filter Outer",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Filter Inner",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Element",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Door Upper Glass",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Rock Breaker Hyd Pipe Bracket",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tooth Tip",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pin Locking",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Washer",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Oil Filter Element Hydraulic",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Servo Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Return Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Glass Right Side",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Assembly Front Screen Front Glass",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Front Wheel Tube",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Tooth Bucket",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bolt Plough 3 Oblique 4 Inch UNF X 70mm",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "Nut 3 Oblique 4 Inch",
+      "quantity": "32"
+    },
+    {
+      "part_number": null,
+      "item_description": "King Post Seal Kit",
+      "quantity": "32"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Stainer Suction",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Return",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Element Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Element",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Sedimentor",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Element",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Thermostate Element",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Filter Oil",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Stabilizer Base Seal",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Drill Bit 6 Feet",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Drill Bit 8 Feet",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Drill Bit 10 Feet",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Right Side Joy Stick Complete Assy",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "Locking Pin",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Ignition Key Set",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Inner",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Air Filter Outer",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter Primary",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Filter Secondary",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Brake Cylinder Kit",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Parking Brake Cable",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Anabond Big 85Grms",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "M Seal 90Grms",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Thread Tape 8MX12MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Terminal Battery",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bty Lid",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "Grease Nipple All Size",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "Insulation Tape 20Mtrs",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Benjo Washer 17mm Copper",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "Benjo Washer 19mm Copper",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

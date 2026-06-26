@@ -1,0 +1,44 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7663604",
+    "date": "17-06-2026",
+    "bid_end_datetime": "08-07-2026 13:00:00",
+    "bid_opening_datetime": "08-07-2026 13:30:00",
+    "department_name": "Gail India Limited",
+    "organization_name": "Gail India Limited",
+    "office_name_location": "Rajahmundry",
+    "total_quantity": "18",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "3699990591",
+      "item_description": "PLASTIC PALLET",
+      "quantity": "15"
+    },
+    {
+      "part_number": "3614950011",
+      "item_description": "HAND PALLET TRUCK",
+      "quantity": "1"
+    },
+    {
+      "part_number": "3614959221",
+      "item_description": "HYDRAULIC HIGH LIFT PALLET TRUCK",
+      "quantity": "1"
+    },
+    {
+      "part_number": "8185688011",
+      "item_description": "WEIGHING SCALE ELECTRONIC",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

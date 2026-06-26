@@ -1,0 +1,42 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7671735",
+    "date": "17-06-2026",
+    "bid_end_datetime": "08-07-2026 16:00:00",
+    "bid_opening_datetime": "08-07-2026 16:30:00",
+    "department_name": "Materials Management",
+    "organization_name": "Nlc India Limited",
+    "office_name_location": "Materials Management",
+    "total_quantity": "7",
+    "make": "BEML",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "761PH02528",
+      "item_description": "HYDRAULIC PUMP FOR BEML-BD30W",
+      "quantity": "1"
+    },
+    {
+      "part_number": "761PH02569",
+      "item_description": "STEERING PUMP FOR BEML-BD30W",
+      "quantity": "1"
+    },
+    {
+      "part_number": "761PS02014",
+      "item_description": "ELEMENT HYDRAULIC TANK",
+      "quantity": "1"
+    },
+    {
+      "part_number": "41Z 9900472",
+      "item_description": "ENGINE MAIN KIT",
+      "quantity": "2"
+    },
+    {
+      "part_number": "51Z 7185551",
+      "item_description": "ENGINE SHUT OFF SWITCH DOZER BD-30W",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": []
+}

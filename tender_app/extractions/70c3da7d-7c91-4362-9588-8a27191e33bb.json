@@ -1,0 +1,47 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7697669",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "201",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "Compress or- 4102",
+      "item_description": "MT SPARES TWO (2)",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "COLD START PILOT KIT THREE (3)",
+      "quantity": "129"
+    },
+    {
+      "part_number": null,
+      "item_description": "ASSY FUEL HEATER",
+      "quantity": "33"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC JACK 30t FOUR (4)",
+      "quantity": "22"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Specification Document",
+    "BOQ Detail Document"
+  ]
+}

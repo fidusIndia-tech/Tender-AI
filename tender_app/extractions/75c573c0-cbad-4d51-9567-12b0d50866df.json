@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7661065",
+    "date": "18-06-2026",
+    "bid_end_datetime": "09-07-2026 18:00:00",
+    "bid_opening_datetime": "09-07-2026 18:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Munitions India Limited",
+    "office_name_location": null,
+    "total_quantity": "4440",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "OIL HYDRAULIC MINERAL OIL TYPE TO SPECN IS-3098-1983",
+      "quantity": "4440"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "MSE certificate (URC)",
+    "self-certification undertaking that none of his/her relative is working in the unit",
+    "Model ECS Mandate Format",
+    "MSDS of subject item"
+  ]
+}

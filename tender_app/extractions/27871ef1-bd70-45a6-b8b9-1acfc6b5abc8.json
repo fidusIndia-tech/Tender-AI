@@ -1,0 +1,83 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7708819",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 09:00:00",
+    "bid_opening_datetime": "06-07-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "16",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HEAD LAMP ASSY",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PUSH SWITCH FOR SUMP HEATER",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "PACK RECTIFIRE",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "ISOLATOR SWITCH",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "SOLENOID SWITCH",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "RAM HYDRAULIC",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "MOUNT RESITIENT RUBBER",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "LAMP ASSY COMBINATION",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "BRUSH GEAR ASSY",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "OIL SEAL FOR CRANK",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "STEERING LOCK",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Specification Document",
+    "BOQ Detail Document"
+  ]
+}

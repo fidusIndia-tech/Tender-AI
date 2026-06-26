@@ -1,0 +1,88 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7659888",
+    "date": "12-06-2026",
+    "bid_end_datetime": "23-06-2026 09:00:00",
+    "bid_opening_datetime": "23-06-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "26",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Supply Pump",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Head",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "T D Piston",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Supporting Plate",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pressure Relief Valve",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Roller",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pin",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Roller Ring",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "T D Piston Gasket",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Nozzle",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Solenoid",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document",
+    "GST Certificate",
+    "OEM certificate",
+    "Seller provide a sample at our unit location as per our requirement of items"
+  ]
+}

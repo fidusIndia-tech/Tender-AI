@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7575616",
+    "date": "22-06-2026",
+    "bid_end_datetime": "15-07-2026 15:00:00",
+    "bid_opening_datetime": "15-07-2026 15:30:00",
+    "department_name": "Indian Railways",
+    "organization_name": "Northern Railway",
+    "office_name_location": "Northern Railway",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "AMC of Fire Extinguisher- hydraulic pressure testing, repair, refilling and testing of Fire Extinguisher type CO2 gas cartridge ABC type and ABC Dry Chemical powder stored pressure type N2 at EMU Car Shed, Ghaziabad",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)"
+  ]
+}

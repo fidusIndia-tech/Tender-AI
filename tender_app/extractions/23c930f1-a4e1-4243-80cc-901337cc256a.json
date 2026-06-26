@@ -1,0 +1,49 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7496423",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 12:00:00",
+    "bid_opening_datetime": "27-06-2026 12:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": "***********",
+    "total_quantity": "18",
+    "make": null,
+    "tender_approx_value": "21181"
+  },
+  "items": [
+    {
+      "part_number": "GA12",
+      "item_description": "Mounting Pad with Nut",
+      "quantity": "12"
+    },
+    {
+      "part_number": "OC05",
+      "item_description": "Assy Fan",
+      "quantity": "1"
+    },
+    {
+      "part_number": "OC08",
+      "item_description": "Fan Belt",
+      "quantity": "1"
+    },
+    {
+      "part_number": "NK",
+      "item_description": "Hydraulic Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "NK Fuel Filter 500 Ml",
+      "item_description": null,
+      "quantity": "2"
+    },
+    {
+      "part_number": "QWT06 O Ring Oil Tank",
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Past Performance,Bidder Turnover,Certificate"
+  ]
+}

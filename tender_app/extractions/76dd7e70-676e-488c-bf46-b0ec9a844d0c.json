@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7530121",
+    "date": "20-05-2026",
+    "bid_end_datetime": "10-06-2026 11:00:00",
+    "bid_opening_datetime": "10-06-2026 11:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Nuclear Power Corporation Of India Limited",
+    "office_name_location": "Tamilnadu",
+    "total_quantity": "80",
+    "make": "L450, Rod of 450 mm length, Make - IFM Model - E43204 , LR",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "L450, Rod of 450 mm length, Make - IFM Model - E43204 , LR",
+      "quantity": "80"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

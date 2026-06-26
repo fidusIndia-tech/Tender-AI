@@ -1,0 +1,285 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7710381",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 13:00:00",
+    "bid_opening_datetime": "06-07-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "97",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "6667352",
+      "item_description": "Fuel Filter Cartridge",
+      "quantity": "2"
+    },
+    {
+      "part_number": "6675517",
+      "item_description": "Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": "6683101",
+      "item_description": "Hydraulic Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Fuel Line NK",
+      "quantity": "2"
+    },
+    {
+      "part_number": "6673536",
+      "item_description": "Parking Switch",
+      "quantity": "1"
+    },
+    {
+      "part_number": "LF9080",
+      "item_description": "Engine Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "FS 36230",
+      "item_description": "Oil Water Separator",
+      "quantity": "2"
+    },
+    {
+      "part_number": "4324102412",
+      "item_description": "Air Dryer",
+      "quantity": "1"
+    },
+    {
+      "part_number": "332 Y6631",
+      "item_description": "Rock Breaker Hose",
+      "quantity": "1"
+    },
+    {
+      "part_number": "320 04618",
+      "item_description": "Thermo Stat",
+      "quantity": "8"
+    },
+    {
+      "part_number": "320 08547",
+      "item_description": "Fan Belt",
+      "quantity": "2"
+    },
+    {
+      "part_number": "581 18063",
+      "item_description": "Txn Filter",
+      "quantity": "3"
+    },
+    {
+      "part_number": "320 A7088",
+      "item_description": "Fuel Filter",
+      "quantity": "3"
+    },
+    {
+      "part_number": "550 42394",
+      "item_description": "Spider Bearing Kit",
+      "quantity": "3"
+    },
+    {
+      "part_number": "320 07394",
+      "item_description": "Fuel Filter",
+      "quantity": "5"
+    },
+    {
+      "part_number": "701 Y1372",
+      "item_description": "Ignation",
+      "quantity": "2"
+    },
+    {
+      "part_number": "332 Y352",
+      "item_description": "Throttle Cable",
+      "quantity": "2"
+    },
+    {
+      "part_number": "320 A7088",
+      "item_description": "Fuel Cut Of Sensor",
+      "quantity": "3"
+    },
+    {
+      "part_number": "BD 50 Self Starter Nk",
+      "item_description": "BD 50 Self Starter Nk",
+      "quantity": "1"
+    },
+    {
+      "part_number": "581 18063",
+      "item_description": "Filter JCB Syncro Shuttle",
+      "quantity": "2"
+    },
+    {
+      "part_number": "40 302847",
+      "item_description": "Bonet Stay",
+      "quantity": "3"
+    },
+    {
+      "part_number": "826 10895",
+      "item_description": "Lock Assy",
+      "quantity": "1"
+    },
+    {
+      "part_number": "40 302844",
+      "item_description": "Spring LH",
+      "quantity": "1"
+    },
+    {
+      "part_number": "40 302843",
+      "item_description": "Spring RH",
+      "quantity": "1"
+    },
+    {
+      "part_number": "40 302822",
+      "item_description": "Bty Cover",
+      "quantity": "1"
+    },
+    {
+      "part_number": "40 302821",
+      "item_description": "J Bolt With Nut Wing And Washer",
+      "quantity": "1"
+    },
+    {
+      "part_number": "814 10177",
+      "item_description": "Spring Extension",
+      "quantity": "4"
+    },
+    {
+      "part_number": "40 302254",
+      "item_description": "Hose Top",
+      "quantity": "2"
+    },
+    {
+      "part_number": "302252",
+      "item_description": "Hose Washer Pump",
+      "quantity": "2"
+    },
+    {
+      "part_number": "302253",
+      "item_description": "Hose Bottom Radiator",
+      "quantity": "2"
+    },
+    {
+      "part_number": "05363",
+      "item_description": "Tube Connected",
+      "quantity": "2"
+    },
+    {
+      "part_number": "92102",
+      "item_description": "Hyd Hose 110 PH",
+      "quantity": "2"
+    },
+    {
+      "part_number": "92102 A",
+      "item_description": "Hyd Hose 110 PH",
+      "quantity": "3"
+    },
+    {
+      "part_number": "92095A",
+      "item_description": "Hyd Hose 110 PH",
+      "quantity": "2"
+    },
+    {
+      "part_number": "50",
+      "item_description": "Universal Joint Assy Bd",
+      "quantity": "2"
+    },
+    {
+      "part_number": "41Z7180369",
+      "item_description": "Fuel Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "30Z5180495",
+      "item_description": "Engine Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": "110HS91608",
+      "item_description": "Hydraulic Oil Filter",
+      "quantity": "2"
+    },
+    {
+      "part_number": "10Z1200436",
+      "item_description": "Air Cleaner Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "CHS01710085",
+      "item_description": "Clutch Seal",
+      "quantity": "2"
+    },
+    {
+      "part_number": "110 HC 02075",
+      "item_description": "Hydraulic Piston Seal",
+      "quantity": "2"
+    },
+    {
+      "part_number": "110 MC 91136",
+      "item_description": "Seal Oil",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ChS07 10085",
+      "item_description": "Main Clutch Seal",
+      "quantity": "2"
+    },
+    {
+      "part_number": "11 Z 7180235",
+      "item_description": "Seal Pre Filter Baby Filter Type",
+      "quantity": "2"
+    },
+    {
+      "part_number": "30 Z 7180369",
+      "item_description": "Fuel Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "30 Z 7180495",
+      "item_description": "Lub Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "30 Z 1280296",
+      "item_description": "Air Cleaner Inner And Outer",
+      "quantity": "1"
+    },
+    {
+      "part_number": "113 PS 03018",
+      "item_description": "Txn And Steering Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": "113 HS 03011",
+      "item_description": "Hydraulic Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Centrifugal Oil Filter",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank."
+  ]
+}

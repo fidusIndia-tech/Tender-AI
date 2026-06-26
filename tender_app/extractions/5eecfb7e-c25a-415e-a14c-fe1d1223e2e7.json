@@ -1,0 +1,25 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7655259",
+    "date": "18-06-2026",
+    "bid_end_datetime": "18-07-2026 14:00:00",
+    "bid_opening_datetime": "18-07-2026 14:30:00",
+    "department_name": "Department Of Atomic Energy",
+    "organization_name": "Directorate Of Purchase And Stores",
+    "office_name_location": "Directorate Of Purchase And Stores",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Supply, Installation, testing and Commissioning of Variable rack angle Hydraulic Shearing Machine",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

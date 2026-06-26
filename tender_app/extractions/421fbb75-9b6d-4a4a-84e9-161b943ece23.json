@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7697501",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 19:00:00",
+    "bid_opening_datetime": "02-07-2026 19:30:00",
+    "department_name": "Coal India Limited",
+    "organization_name": "Western Coalfields Limited",
+    "office_name_location": "Wcl Nagpur Maharashtra",
+    "total_quantity": "4",
+    "make": "undercarriage assly on beml make BE300 Hydraulic",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "undercarriage assly on beml make BE300 Hydraulic",
+      "quantity": "4"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

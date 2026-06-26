@@ -1,0 +1,30 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7694456",
+    "date": "22-06-2026",
+    "bid_end_datetime": "02-07-2026 18:00:00",
+    "bid_opening_datetime": "02-07-2026 18:30:00",
+    "department_name": "Nmdc Steel Limited",
+    "organization_name": "Nmdc Steel Limited",
+    "office_name_location": "Nmdc Iron Steel Plant Jagdalpur Bastar Cg 494001",
+    "total_quantity": "27",
+    "make": "34728 , 1600674672 PUMP FRDU VICK PVM01 SEAL KIT 02-",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "34728 , 1600674672 PUMP FRDU VICK PVM01 SEAL KIT 02-",
+      "quantity": "27"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

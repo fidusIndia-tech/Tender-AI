@@ -1,0 +1,85 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7678826",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 10:00:00",
+    "bid_opening_datetime": "29-06-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "24",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "Nozzle Dop 140S 435 4369",
+      "item_description": "Nozzle Dop 140S 435 4369",
+      "quantity": "12"
+    },
+    {
+      "part_number": "Clutch Cyl",
+      "item_description": "Clutch Cyl",
+      "quantity": "12"
+    },
+    {
+      "part_number": "Circuit Breaker",
+      "item_description": "Circuit Breaker",
+      "quantity": "1"
+    },
+    {
+      "part_number": "Servo Steering Cylinder RV 78 26310 02",
+      "item_description": "Servo Steering Cylinder RV 78 26310 02",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Aggregate HA 25 3V Pump",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Battery Cut Off Switch",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Assy Universal Joint",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Drive Assy",
+      "quantity": "2"
+    },
+    {
+      "part_number": "Speedometer 131 411 099 005",
+      "item_description": "Speedometer",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Pinion",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Regulator Assy RH",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Regulator Assy LH",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

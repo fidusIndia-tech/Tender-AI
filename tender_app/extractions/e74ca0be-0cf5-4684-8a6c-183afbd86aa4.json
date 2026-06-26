@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7488253",
+    "date": "29-04-2026",
+    "bid_end_datetime": "09-05-2026 17:00:00",
+    "bid_opening_datetime": "09-05-2026 17:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10090001-edn Bangalore",
+    "total_quantity": null,
+    "make": "Cabling, termination, wiring and illumination",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Cabling, termination, wiring and illumination",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

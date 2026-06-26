@@ -1,0 +1,29 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7604359",
+    "date": "05-06-2026",
+    "bid_end_datetime": "12-06-2026 19:00:00",
+    "bid_opening_datetime": "12-06-2026 19:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": null,
+    "total_quantity": "3",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Hiring Of Earth Moving Equipments, Material Handling Equipments And Cranes (per Hour Basis) - As Per Buyer's Requirement; Earth Moving Equipment; Tracked Hydraulic Excavators",
+      "quantity": "3"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)"
+  ]
+}

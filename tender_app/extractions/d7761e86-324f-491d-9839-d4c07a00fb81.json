@@ -1,0 +1,47 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7677917",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 19:00:00",
+    "bid_opening_datetime": "27-06-2026 19:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "22",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "29371",
+      "item_description": "Line Shoe Assy Trailing RH Bill",
+      "quantity": "1"
+    },
+    {
+      "part_number": "29371",
+      "item_description": "Line Shoe Assy Trailing LH Bill",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Kit Pad Assy Front",
+      "quantity": "4"
+    },
+    {
+      "part_number": "150200002.004",
+      "item_description": "Parts Kit Hydraulic Pump",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Assy Hood Balancer Pravi",
+      "quantity": null
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)"
+  ]
+}

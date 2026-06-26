@@ -1,0 +1,36 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7565893",
+    "date": "15-06-2026",
+    "bid_end_datetime": "06-07-2026 10:00:00",
+    "bid_opening_datetime": "06-07-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "185320",
+    "make": "Arvi",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Sopnge Gourd , Turnips , Apple Red Golden Delicious , Apple",
+      "quantity": "185320"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "MSE: Udyam cert + manufacturer declaration (if claiming)",
+    "MSME",
+    "Bank",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

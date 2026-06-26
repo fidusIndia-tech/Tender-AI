@@ -1,0 +1,31 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7687849",
+    "date": "19-06-2026",
+    "bid_end_datetime": "29-06-2026 18:00:00",
+    "bid_opening_datetime": "29-06-2026 18:30:00",
+    "department_name": "Department Of Defence Production",
+    "organization_name": "Advanced Weapons And Equipment India Limited",
+    "office_name_location": "***********",
+    "total_quantity": "8",
+    "make": "SET OF FOLLOWING IFM SENSOR WITH ACCESSORIES FOR (OFC M/C NO. 8461) AS PER LONG ITEM DESCRIPTION A",
+    "tender_approx_value": "6"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "(OFC M/C NO. 8461) AS PER LONG ITEM DESCRIPTION , SET",
+      "quantity": "8"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)",
+    "Warranty certificate (at delivery)",
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "Experience"
+  ],
+  "extraction_mode": "deterministic_gem+local_fallback"
+}

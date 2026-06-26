@@ -1,0 +1,1046 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7615219",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 15:00:00",
+    "bid_opening_datetime": "06-07-2026 15:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "9284",
+    "make": "ALUMINIUM",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM ALDROP OR SLIDING BOLT 200MM",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM SLIDING DOOR BOLT 250MM",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM ALDROP OR SLIDING BOLT 300MM",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS TOWER BOLT 100 MM",
+      "quantity": "25"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS TOWER BOLT 150 MM",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS TOWER BOLT 200 MM",
+      "quantity": "11"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS BOW HANDLE 150 MM",
+      "quantity": "32"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM CURTAIN ROD 20MM DIA OF 3.66 MTRS LONG",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM CURTAIN ROD 25 MM",
+      "quantity": "35"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM CURTAIN BRACKET 20 MM",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM CURTAIN BRACKET FANCY TYPE 25 MM",
+      "quantity": "21"
+    },
+    {
+      "part_number": null,
+      "item_description": "CI BRACKET FOR WASH HAND BAISN 500 MM LONG 5 MM THICK",
+      "quantity": "105"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM FLOOR DOOR STOPPER 150MM SINGLE",
+      "quantity": "25"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM HYDRAULIC DOOR CLOSER 6INCH 150 MM RIGHT",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM HASP AND STAPLE 75MM",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM HASP AND STAPLE 100MM",
+      "quantity": "36"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM BUTT HINGES 75 MM",
+      "quantity": "27"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS HINGES BUTT 100 MM",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS HINGES BUTT 125 MM",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS HINGES BUTT 50 MM",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS HINGES BUTT 75 MM",
+      "quantity": "19"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS HINGES BUTT 50 MM",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS HINGES BUTT 75 MM",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS HINGES BUTT 100 MM",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS HINGES BUTT 125 MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS HINGES BUTT 150 MM",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "MILDSTEEL HELICAL DOOR SPRING 100MM",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "MILDSTEEL HELICAL DOOR SPRING 150MM",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "MILD STEEL HALICAL DOOR SPRING 200MM",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "MILDSTEEL PIANO TYPE BUTT HINGES 20OR30MMX6FEET",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABINET MIRROR 450 X 350 MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABINET MIRROR 400 X 500 MM",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "CORNER GLASS SHELF",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS SHELVES FOR BATH ROOM",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP TOILET PAPER HOLDER",
+      "quantity": "9"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP TOILET PAPER HOLDER WITH FLAP",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP TOWEL RAIL 600MM",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP TOWEL RACK 600MM 3 ROD TYPE",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP TOWEL RING",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "SOAP DISH TRAY GLASS",
+      "quantity": "24"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP SOAP DISH TRAY",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP WASTE COUPLING FOR WHB 32MM",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP WASTE COUPLING 40 MM DIA FOR KITCHEN SINK",
+      "quantity": "37"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP WASTE COUPLING 90 MM DIA FOR KITCHEN SINK",
+      "quantity": "31"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WASTE COUPLING 50 MM",
+      "quantity": "23"
+    },
+    {
+      "part_number": null,
+      "item_description": "MORTICE LOCK 100 MM AND KEY",
+      "quantity": "22"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP OVER HEAD SHOWER 80 MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "CP OVER HEAD SHOWER 120 MM",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "EWC SEAT COVER WITH HINGES",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "EWC WITH P TRAP ISI MARKED",
+      "quantity": "9"
+    },
+    {
+      "part_number": null,
+      "item_description": "EWC WITH S TRAP ISI MARKED",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC LOW LEVEL FLUSHING SYSTEM 10 LTRS CAP",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "WASH HAND BASIN CERAMIC TYPE SIZE LARGE 550X400MM",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "WASH HAND BASIN OF SIZE 450 X 300MM CEREAMIC TYPE",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "URINAL FLAT BACK",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "CI FLOOR DRAIN TRAP 100MM DIA",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": "CI FLOOR DRAIN TRAP 125MM DIA",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "CI FLOOR DRAIN TRAP 150MM DIA",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "STAINLESS STEEL KITCHEN SINK WITH DRAIN BOARD 37INCH X 18INCH X 8 MM THICK",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "STAINLESS STEEL KITCHEN SINK WITH OUT DRAIN BOARD 18INCH X 16INCH X 8 MM THICK",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "STAINLESS STEEL PLATE RACK OF SIZE 24INCH X INCH30INCHX10INCH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "STAINLESS STEEL PLATE RACK OF SIZE 31INCHX30INCHX10INCH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "STAINLESS STEEL PLATE RACK OF SIZE 36INCHX36INCHX10INCH",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 15MM X 200 MM",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 15MM X 250MM",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 20MM X 200MM",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 20MM X 75MM",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 25MM X 300 MM",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI BARREL NIPPLE 50 MM X 100 MM",
+      "quantity": "43"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI COUPLING 15 MM",
+      "quantity": "11"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI ELBOW 50MM",
+      "quantity": "17"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI ELBOW 80 MM",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI ELBOW REDUCER 15MM X 25MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI ELBOW REDUCER 15MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI ELBOW REDUCER 20MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI END SOCKET 15MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI SOCKET REDUCING 15MM X 25MM",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI SOCKET REDUCING 15MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI SOCKET REDUCING 20MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 15MM X 20MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 15MM X 25MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 15MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 25MM X 20MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 20MM X 40MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 20MM X 50MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI TEE REDUCER 25MM X 50MM",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 15MM BORE",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 20MM BORE",
+      "quantity": "80"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 25 MM BORE",
+      "quantity": "80"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 40 MM BORE",
+      "quantity": "24"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 50 MM BORE",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI PIPE MED GRADE ISI MARKED 80 MM BORE",
+      "quantity": "18"
+    },
+    {
+      "part_number": null,
+      "item_description": "GI WIRE MESH ROLL 15M X 0.9MOR10 MESH",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "SODA ASH",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "SODIUM HYPOCHLORITE",
+      "quantity": "170"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUM SULPHATE",
+      "quantity": "365"
+    },
+    {
+      "part_number": null,
+      "item_description": "CRYSTAL COPPER SULPHATE",
+      "quantity": "269"
+    },
+    {
+      "part_number": null,
+      "item_description": "COPPER SULPHATE",
+      "quantity": "68"
+    },
+    {
+      "part_number": null,
+      "item_description": "CYNOR ORTHO TOLIDINE HYDROCHLORIDE LR",
+      "quantity": "52"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUMINIUM POTASSIUM SULPHATE",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "ALUM POWDER FERRIC GRADE 4",
+      "quantity": "412"
+    },
+    {
+      "part_number": null,
+      "item_description": "BLEACHING POWDER",
+      "quantity": "28"
+    },
+    {
+      "part_number": null,
+      "item_description": "PHENOLPHTHALEIN INDICATOR",
+      "quantity": "291"
+    },
+    {
+      "part_number": null,
+      "item_description": "POLY ALUMINIUM CHLORIDE",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "POTASSIUM SULPHATE POWDER CLARY",
+      "quantity": "124"
+    },
+    {
+      "part_number": null,
+      "item_description": "PUTTY FOR WINDOW FRAME",
+      "quantity": "47"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PLAIN 4FEETX4FEETX4 MM",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PLAIN 4FEETX3FEETX 3MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PLAIN 4FEETX 3FEETX4MM",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PLAIN 4FEETX3FEETX 5MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PANE FROSTED 4FEETX3FEETX3MM THICK",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PANE FROSTED 4FEETX3FEETX4MM THICK",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "GLASS PRINTED 4FEETX3FEETX4MM THICK",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "ABS CONVEX MIRROR",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "POLY PROPYLENE SPEED BREAKER 335 X 450 X 75",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "SPEED BREAKER RUBBER 500 MM",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "ABS ROAD DELINEATOR 701 TO 750 CYLINDRICAL MOAVABLE",
+      "quantity": "40"
+    },
+    {
+      "part_number": null,
+      "item_description": "MS ROAD DELIENATOR ROUND BODY",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "LOOKING MIRROR 600 X 450X6 MM WITH ALUMINIUM FRAME",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "SS CONNECTION PIPE 15 MM X 600 MM",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15 X 300MM WITH BRASS UNION AT ENDS",
+      "quantity": "17"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15 MM X 450MM WITH BRASS UNION AT BOTH ENDS",
+      "quantity": "154"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15MM X 600 MM WITH BRASS UNION ON BOTH ENDS HOT WATER",
+      "quantity": "90"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15MM X 600 MM WITH BRASS UNION ON BOTH ENDS",
+      "quantity": "92"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15 MM X 750 MM SUITABLE FOR HOT WATER WITH BRASS UNION AT BOTH ENDS",
+      "quantity": "92"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONNECTION 15 MM X 750 MM SUITABLE FOR WITH BRASS UNION AT BOTH ENDS",
+      "quantity": "58"
+    },
+    {
+      "part_number": null,
+      "item_description": "CANE PLASTIC 2 MM HALF ROUND",
+      "quantity": "55"
+    },
+    {
+      "part_number": null,
+      "item_description": "CANE PLASTIC 4 MM HALF ROUND",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR BEND 75 MM",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR BEND 110 MM",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR ELBOW 40 MM DIA",
+      "quantity": "16"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR ELBOW 50 MM DIA",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR ELBOW 75 MM DIA",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR ELBOW 110 MM DIA",
+      "quantity": "17"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WASTE PIPE 32 MM DIA AND 750MM FOR WBH",
+      "quantity": "47"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR PIPE 40 MM DIA",
+      "quantity": "201"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR PIPE 50 MM DIA",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR PIPE 75 MM DIA",
+      "quantity": "27"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC SWR PIPE 110 MM DIA",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WASTE PIPE 32MM DIA 800MM LONG SUITABLE FOR SINK",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WASTE PIPE 40MM DIA AND 750MM LONG SUITABLE FOR URINAL",
+      "quantity": "237"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC FLOAT VALVE 15 MM WITH ALUM ROD",
+      "quantity": "209"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC FLOAT VALVE 20 MM WITH ALUM ROD",
+      "quantity": "43"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC FLOAT VALVE 25 MM WITH ALUM ROD",
+      "quantity": "37"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC ELBOW 40 MM",
+      "quantity": "18"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC ELBOW 50MM",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC ELBOW 100MM",
+      "quantity": "33"
+    },
+    {
+      "part_number": null,
+      "item_description": "WATER PROOFING AND DAMP PROOFING BITUMEN",
+      "quantity": "37"
+    },
+    {
+      "part_number": null,
+      "item_description": "BITUMEN EMULSION FOR ROAD",
+      "quantity": "14"
+    },
+    {
+      "part_number": null,
+      "item_description": "BITUMENT POTHOLE PATCHING MIX READYMADE",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "TARPAULIN ROLL BITUMEN 4FEET X 10 MTR",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WATER STORAGE TANK TRIPLE LAYER OF 500 LTRS",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WATER STORAGE TANK TRIPLE LAYER OF 1000 LTRS",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC WATER STORAGE TANK OF 2000 LTRS",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "CEMENT WHITE 1KG PACK",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "CEMENT OPC 50 KG BAG 43 GRADE HDPE BAG",
+      "quantity": "43"
+    },
+    {
+      "part_number": null,
+      "item_description": "NYLON BRUSH OF SIZE 700 X 100 X 40 MM",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "PAINT BRUSH 75MM WIDTH",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "MODULAR BELL PUSH SWITCH 6A",
+      "quantity": "13"
+    },
+    {
+      "part_number": null,
+      "item_description": "FUSE WIRE 70 AMPS",
+      "quantity": "15"
+    },
+    {
+      "part_number": null,
+      "item_description": "FUSE WIRE 100 AMPS",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "HEATING ELEMENT 1500 WATTS",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": "HEATING ELEMENT 2000 WATTS",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED LAMP 7 WATT",
+      "quantity": "12"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED RECESSED PANNEL LIGHT 1FEET X 1FEET X 22 W",
+      "quantity": "190"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED DOWNLIGHT RECESS TYPE LUMINARIE 2FEET X 2FEET X 18W",
+      "quantity": "11"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED HIGHBAY LIGHT 250 W",
+      "quantity": "6"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED HIGHBAY LIGHT 300 W",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED FLOOD LIGHT 140 W",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED GARDEN LIGHT 10 W",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED GARDEN LIGHT 12 W",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "LED GARDEN LIGHT 15 W",
+      "quantity": "3"
+    },
+    {
+      "part_number": null,
+      "item_description": "MCB TPN 100 AMPS 4 POLE",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "MCB DB 4 WAY",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": "MCB DB 8 WAY",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CASSING CAPING 20MM WIDTH X 2 MTR",
+      "quantity": "5"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC CONDUIT PIPE 20MM DIA X 3 MTR LONG",
+      "quantity": "178"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 1 CORE 1.5 SQMM",
+      "quantity": "114"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 1 CORE 2.5 SQMM",
+      "quantity": "637"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 2 CORE 1.5 SQMM",
+      "quantity": "398"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 2 CORE 2.5 SQMM",
+      "quantity": "200"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 3 CORE 1.5 SQMM",
+      "quantity": "130"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC INSULATED COPPER CABLE 3 CORE 2.5 SQMM",
+      "quantity": "170"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABLE JOINT KIT FOR XLPE 95 SQMM X 3 CORE OUTDOOR TYPE",
+      "quantity": "90"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC TAPE INSULATION 20OR19 MM X 9 YARD",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "PVC TAPE INSULATION 25 MM",
+      "quantity": "214"
+    },
+    {
+      "part_number": null,
+      "item_description": "MODULAR SOCKET 6 AMPS 3 PIN",
+      "quantity": "125"
+    },
+    {
+      "part_number": null,
+      "item_description": "MODULAR SOCKET 16 AMPS 3 PIN",
+      "quantity": "60"
+    },
+    {
+      "part_number": null,
+      "item_description": "SWITCH SOCKET COMBINATION 15OR16 AMPS 3 PIN",
+      "quantity": "35"
+    },
+    {
+      "part_number": null,
+      "item_description": "SWITCH SOCKET COMBINATION 5OR6 AMPS 3 PIN",
+      "quantity": "65"
+    },
+    {
+      "part_number": null,
+      "item_description": "SWITCH SOCKET COMBINATION 5OR6 AMPS 5 PIN",
+      "quantity": "135"
+    },
+    {
+      "part_number": null,
+      "item_description": "SWTICH SOCKET COMBINATION 15OR16 AMPS 5OR6 PIN",
+      "quantity": "110"
+    },
+    {
+      "part_number": null,
+      "item_description": "MODULAR SWITCH 6 A 1 WAY",
+      "quantity": "115"
+    },
+    {
+      "part_number": null,
+      "item_description": "MODULAR SWITCH 16 A 1 WAY",
+      "quantity": "168"
+    },
+    {
+      "part_number": null,
+      "item_description": "MUDULAR SWITCH 6 AMPS 2 WAY",
+      "quantity": "145"
+    },
+    {
+      "part_number": null,
+      "item_description": "THERMOSTAT FOR GEYSER 10 TO 90 DEGREE",
+      "quantity": "100"
+    },
+    {
+      "part_number": null,
+      "item_description": "INDICATING LAMP FOR GEYSER",
+      "quantity": "29"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABLE LUGS 25 MM",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABLE LUGS 35 MM",
+      "quantity": "106"
+    },
+    {
+      "part_number": null,
+      "item_description": "CABLE LUGS 50 MM",
+      "quantity": "78"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "90"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Additional Doc 3 (Requested in ATC)",
+    "Additional Doc 4 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Specification Document",
+    "BOQ Detail Document",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank.",
+    "Authorisation Form /Certificate",
+    "NON DISCLOSURE DECLARATION CERTIFICATE",
+    "Financial turnover certificates",
+    "ISO 9001 certification",
+    "OEM Turn Over Criteria documents",
+    "Warranty certificates"
+  ]
+}

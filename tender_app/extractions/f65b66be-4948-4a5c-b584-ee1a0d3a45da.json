@@ -1,0 +1,27 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7673439",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 14:00:00",
+    "bid_opening_datetime": "27-06-2026 14:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10110009-heep, Haridwar",
+    "total_quantity": "12",
+    "make": "HAND PUMP HYDRAULIC",
+    "tender_approx_value": "3"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HAND PUMP HYDRAULIC",
+      "quantity": "12"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "MSME",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

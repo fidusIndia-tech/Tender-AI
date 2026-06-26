@@ -1,0 +1,46 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7683223",
+    "date": "18-06-2026",
+    "bid_end_datetime": "03-07-2026 19:00:00",
+    "bid_opening_datetime": "03-07-2026 19:30:00",
+    "department_name": "Uttar Pradesh Cooperative Sugar Factories Federation Limited",
+    "organization_name": "N/a",
+    "office_name_location": "Lucknow",
+    "total_quantity": "13",
+    "make": "EPE",
+    "tender_approx_value": "125000"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Checking and testing of hydraulic Accumulaters",
+      "quantity": "8"
+    },
+    {
+      "part_number": null,
+      "item_description": "Refilling Of Mill Hydraulic Accumulaters Cylinder Pressure Up To 2650 Ovlic 2800 Psi",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Bladder For Hydraulic Accumulator Capacity 35 Ltr EPE Make",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Gas Fill Valve NRV For Accumulaters EPE Make",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Liquid Seal Kit For Hydraulic Accumulator EPE Make",
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Additional Doc 4 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

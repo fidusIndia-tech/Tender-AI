@@ -1,0 +1,24 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7710987",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Department Of Heavy Industry",
+    "organization_name": "Bharat Heavy Electricals Limited (bhel)",
+    "office_name_location": "10110009-heep, Haridwar",
+    "total_quantity": "12",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC HOSE ASSEMBLY",
+      "quantity": "12"
+    }
+  ],
+  "required_documents": [
+    "Certificate (Requested in ATC)"
+  ]
+}

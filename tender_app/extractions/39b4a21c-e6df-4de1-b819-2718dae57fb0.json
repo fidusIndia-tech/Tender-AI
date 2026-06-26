@@ -1,0 +1,33 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7631412",
+    "date": "11-06-2026",
+    "bid_end_datetime": "22-06-2026 10:00:00",
+    "bid_opening_datetime": "22-06-2026 10:30:00",
+    "department_name": "Department Of Economic Affairs",
+    "organization_name": "(spmcil)",
+    "office_name_location": "3rd Floor Tower G World Trade Centre Nauroji Nagar",
+    "total_quantity": "494",
+    "make": "Siemens, Schneider, ABB, Omron, Festo, Keyence, Mitsubishi, Weidmuller, Eaton, Honeywell",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "auxiliar contactor , Safety Relay , Glass Fuse , HMI Panel, Proximity Sensor, PLC, Inverter, Power Supply, Valve, Sensor, Module, Socket, Power Pack",
+      "quantity": "494"
+    }
+  ],
+  "required_documents": [
+    "GST",
+    "PAN",
+    "MSME",
+    "Bank",
+    "Authorization",
+    "Experience",
+    "MII",
+    "Make in India",
+    "Local Content"
+  ],
+  "extraction_mode": "local_fallback"
+}

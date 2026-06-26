@@ -1,0 +1,28 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7673332",
+    "date": "17-06-2026",
+    "bid_end_datetime": "08-07-2026 13:00:00",
+    "bid_opening_datetime": "08-07-2026 13:30:00",
+    "department_name": "Oil India Limited",
+    "organization_name": "Oil India Limited",
+    "office_name_location": "Oil India Limited",
+    "total_quantity": "1",
+    "make": "HYDRAULIC FLOOR CRANE",
+    "tender_approx_value": "7"
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC FLOOR CRANE",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "MSME",
+    "OEM Authorization",
+    "Authorization",
+    "Experience"
+  ],
+  "extraction_mode": "local_fallback"
+}

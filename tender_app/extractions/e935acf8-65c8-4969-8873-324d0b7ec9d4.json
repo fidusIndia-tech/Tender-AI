@@ -1,0 +1,40 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7669583",
+    "date": "22-06-2026",
+    "bid_end_datetime": "07-07-2026 13:00:00",
+    "bid_opening_datetime": "07-07-2026 13:30:00",
+    "department_name": "Department Of Higher Education",
+    "organization_name": "National Institute Of Technology (nit)",
+    "office_name_location": "Raipur",
+    "total_quantity": "2",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Milling Machine as per IS 6893, IS 8614, IS 9474 (Q2)",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Horizontal Surface Grinders (Q3)",
+      "quantity": "1"
+    },
+    {
+      "part_number": null,
+      "item_description": "Hydraulic Horizontal Surface Grinders",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

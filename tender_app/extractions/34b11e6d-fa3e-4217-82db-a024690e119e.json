@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7708492",
+    "date": "25-06-2026",
+    "bid_end_datetime": "02-07-2026 10:00:00",
+    "bid_opening_datetime": "02-07-2026 10:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Air Force",
+    "office_name_location": "null",
+    "total_quantity": "1",
+    "make": "null",
+    "tender_approx_value": "null"
+  },
+  "items": [
+    {
+      "part_number": "null",
+      "item_description": "Repair of Hydraulic Servicing Trolley Universal",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)"
+  ]
+}

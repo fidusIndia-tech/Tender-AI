@@ -207,6 +207,11 @@ def init_db():
                 total_found INTEGER DEFAULT 0,
                 new_found INTEGER DEFAULT 0,
                 skipped_wrong_start_date INTEGER DEFAULT 0,
+                duplicates_count INTEGER DEFAULT 0,
+                below_score_count INTEGER DEFAULT 0,
+                pdf_failed_count INTEGER DEFAULT 0,
+                extraction_failed_count INTEGER DEFAULT 0,
+                evaluation_failed_count INTEGER DEFAULT 0,
                 approved_count INTEGER DEFAULT 0,
                 review_count INTEGER DEFAULT 0,
                 rejected_count INTEGER DEFAULT 0,
@@ -231,9 +236,14 @@ def init_db():
                 pdf_url TEXT,
                 pdf_file_id TEXT,
                 tender_id INTEGER REFERENCES tenders(id),
+                scan_status TEXT,
                 extraction_status TEXT,
                 extraction_confidence TEXT,
                 extraction_error_message TEXT,
+                skip_reason TEXT,
+                duplicate_reason TEXT,
+                pdf_error TEXT,
+                extraction_error TEXT,
                 evaluation_confidence TEXT,
                 decision_reason TEXT,
                 review_reason TEXT,
@@ -287,12 +297,22 @@ def init_db():
             pass
         for ddl in [
             "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0",
+            "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS duplicates_count INTEGER DEFAULT 0",
+            "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS below_score_count INTEGER DEFAULT 0",
+            "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS pdf_failed_count INTEGER DEFAULT 0",
+            "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS extraction_failed_count INTEGER DEFAULT 0",
+            "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS evaluation_failed_count INTEGER DEFAULT 0",
             "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS current_step TEXT",
             "ALTER TABLE gem_scan_runs ADD COLUMN IF NOT EXISTS error_stack TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS matched_brands TEXT[] DEFAULT '{}'",
+            "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS scan_status TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS extraction_status TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS extraction_confidence TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS extraction_error_message TEXT",
+            "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS skip_reason TEXT",
+            "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS duplicate_reason TEXT",
+            "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS pdf_error TEXT",
+            "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS extraction_error TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS evaluation_confidence TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS decision_reason TEXT",
             "ALTER TABLE gem_candidate_tenders ADD COLUMN IF NOT EXISTS review_reason TEXT",
@@ -682,15 +702,15 @@ def update_tender_participation_status(tender_id, status):
     return filed_date
 
 
-def find_tender_duplicate(gem_bidding_number, tender_number):
-    """Return existing tender if gem_bidding_number AND tender_number both match."""
-    if not gem_bidding_number and not tender_number:
+def find_tender_duplicate(gem_bidding_number, tender_number=None):
+    """Return existing tender if the GeM bidding number already exists."""
+    if not gem_bidding_number:
         return None
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT id FROM tenders WHERE gem_bidding_number=%s AND tender_number=%s LIMIT 1",
-            (gem_bidding_number, tender_number),
+            "SELECT id FROM tenders WHERE gem_bidding_number=%s LIMIT 1",
+            (gem_bidding_number,),
         )
         row = cur.fetchone()
     conn.close()
@@ -1191,17 +1211,28 @@ def list_gem_keywords(active_only: bool = False):
     return [dict(r) for r in rows]
 
 
-def create_gem_keyword(keyword: str) -> int:
+def create_gem_keyword(keyword: str) -> dict:
+    """Idempotent: if the keyword already exists (case-insensitive), return it
+    and make sure it's active, instead of raising a duplicate-key error."""
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO gem_keywords (keyword) VALUES (%s) RETURNING id",
-            (keyword,),
-        )
+        cur.execute("SELECT id, is_active FROM gem_keywords WHERE LOWER(keyword) = LOWER(%s)", (keyword,))
+        existing = cur.fetchone()
+        if existing:
+            keyword_id, is_active = existing
+            if not is_active:
+                cur.execute(
+                    "UPDATE gem_keywords SET is_active=TRUE, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                    (keyword_id,),
+                )
+            conn.commit()
+            conn.close()
+            return {"id": keyword_id, "already_existed": True}
+        cur.execute("INSERT INTO gem_keywords (keyword) VALUES (%s) RETURNING id", (keyword,))
         keyword_id = cur.fetchone()[0]
     conn.commit()
     conn.close()
-    return keyword_id
+    return {"id": keyword_id, "already_existed": False}
 
 
 def update_gem_keyword(keyword_id: int, keyword=None, is_active=None):
@@ -1341,14 +1372,22 @@ def is_gem_scan_running() -> bool:
 
 # ── GeM Tender Watcher: Candidate Tenders ───────────────────────────────────────
 
-def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id: int | None = None) -> int:
+def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id: int | None = None) -> dict:
     """Insert a new candidate, or — if gem_bid_no already exists — merge the
     searched keyword into matched_keywords. For stale/unprocessed rows (no PDF
     saved yet), also refresh the latest GeM metadata/URLs so a re-scan can
     recover from earlier partial failures without disturbing already-processed
     tenders."""
     conn = get_db()
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, status, tender_id, pdf_file_id, scan_status
+               FROM gem_candidate_tenders
+               WHERE gem_bid_no=%s
+               LIMIT 1""",
+            (gem_bid_no,),
+        )
+        existing = cur.fetchone()
         cur.execute(
             """INSERT INTO gem_candidate_tenders (
                    gem_bid_no, matched_keywords, title, organisation, department,
@@ -1537,10 +1576,18 @@ def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id:
                 data.get("gem_detail_url"), data.get("pdf_url"), scan_run_id,
             ),
         )
-        candidate_id = cur.fetchone()[0]
+        candidate_id = cur.fetchone()["id"]
     conn.commit()
     conn.close()
-    return candidate_id
+    return {
+        "id": candidate_id,
+        "is_new": existing is None,
+        "is_duplicate": existing is not None,
+        "existing_status": existing.get("status") if existing else None,
+        "existing_tender_id": existing.get("tender_id") if existing else None,
+        "existing_pdf_file_id": existing.get("pdf_file_id") if existing else None,
+        "existing_scan_status": existing.get("scan_status") if existing else None,
+    }
 
 
 def get_gem_candidate(candidate_id: int):

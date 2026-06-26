@@ -1,0 +1,38 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7692911",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 12:00:00",
+    "bid_opening_datetime": "06-07-2026 12:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "51",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "Push Rod Hydraulic Master Cyl",
+      "quantity": "7"
+    },
+    {
+      "part_number": null,
+      "item_description": "Socket Brake Parking",
+      "quantity": "4"
+    },
+    {
+      "part_number": null,
+      "item_description": "Universal Joint",
+      "quantity": "7"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "OEM Annual Turnover",
+    "Compliance of BoQ specification and supporting document"
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7668293",
+    "date": "25-06-2026",
+    "bid_end_datetime": "10-07-2026 13:00:00",
+    "bid_opening_datetime": "10-07-2026 13:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": "***********",
+    "total_quantity": "2508",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "10127376",
+      "item_description": "Mast Unit Telescopic 11.4m",
+      "quantity": "34"
+    },
+    {
+      "part_number": "10543301",
+      "item_description": "Spool Plastic With Punched Tape 50 Mtrs",
+      "quantity": "937"
+    },
+    {
+      "part_number": "10522675",
+      "item_description": "Jack Hydraulic Hand",
+      "quantity": "30"
+    },
+    {
+      "part_number": "10308619",
+      "item_description": "Cover Water Proof Mk-i Pc 7.3 X5.5m",
+      "quantity": "254"
+    },
+    {
+      "part_number": "10383258",
+      "item_description": "Ext Fire Water Air Stored Pressure",
+      "quantity": "921"
+    },
+    {
+      "part_number": "10382361",
+      "item_description": "Ext Fire Co2 4.5 Kg Capacity Portable",
+      "quantity": "332"
+    },
+    {
+      "part_number": "10543301",
+      "item_description": "5660-000008 SPOOL PLASTIC WITH PUNCHED TAPE 50 MTRS",
+      "quantity": "34"
+    },
+    {
+      "part_number": "10522675",
+      "item_description": "5120-415477 JACK HYDRAULIC HAND",
+      "quantity": "937"
+    },
+    {
+      "part_number": "10308619",
+      "item_description": "KND-NIV-CAMP-77 COVER WATER PROOF MK-I PC 7.3 X5.5M",
+      "quantity": "30"
+    },
+    {
+      "part_number": "10383258",
+      "item_description": "4210-000582 EXT FIRE WATER AIR STORED PRESSURE",
+      "quantity": "254"
+    },
+    {
+      "part_number": "10382361",
+      "item_description": "4210-002436 EXT FIRE CO2 4.5 KG CAPACITY PORTABLE",
+      "quantity": "921"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "332"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Additional Doc 2 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate duly certified by Bank",
+    "Data Sheet of the product(s)",
+    "End User Certificate",
+    "Malicious Code Certificate",
+    "Manufacturer Authorization Form/Certificate",
+    "NON DISCLOSURE DECLARATION CERTIFICATE",
+    "ISO 9001 Certification",
+    "Material Test Certificate",
+    "NABL TEST REPORT"
+  ]
+}

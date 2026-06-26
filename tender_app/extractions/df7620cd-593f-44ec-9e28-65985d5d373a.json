@@ -1,0 +1,40 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7699838",
+    "date": "23-06-2026",
+    "bid_end_datetime": "08-07-2026 11:00:00",
+    "bid_opening_datetime": "08-07-2026 11:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "63",
+    "make": "Hydraucoil, Royco",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "MIL-PRF-6083 Hydraulic Fluid Grade",
+      "quantity": "63"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1 (Requested in ATC)",
+    "Compliance of BoQ specification and supporting document",
+    "Copy of PAN Card",
+    "Copy of GSTIN",
+    "Copy of Cancelled Cheque",
+    "Copy of EFT Mandate duly certified by Bank",
+    "Data Sheet of the product(s)",
+    "Material Test Certificate",
+    "BIS licence",
+    "Type test certificate",
+    "Approval certificates"
+  ]
+}

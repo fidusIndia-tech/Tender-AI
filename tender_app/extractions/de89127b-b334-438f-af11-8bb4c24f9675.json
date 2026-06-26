@@ -1,0 +1,24 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7682483",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 17:00:00",
+    "bid_opening_datetime": "29-06-2026 17:30:00",
+    "department_name": "Coal India Limited",
+    "organization_name": "Western Coalfields Limited",
+    "office_name_location": "Wcl Nagpur Maharashtra",
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "REMOVAL OF OLD AND FITMENT OF NEW UNDERCARRIAGE SET ON BE300 SLNO 16131 HYDRAULIC EXCAVATOR; As per scope of work",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria,Certificate (Requested in ATC)"
+  ]
+}

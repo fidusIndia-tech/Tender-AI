@@ -1,0 +1,87 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7695220",
+    "date": "22-06-2026",
+    "bid_end_datetime": "14-07-2026 17:00:00",
+    "bid_opening_datetime": "14-07-2026 17:30:00",
+    "department_name": "Central Armed Police Forces",
+    "organization_name": "Border Security Force (bsf)",
+    "office_name_location": "Shq Bsf Coochbehar",
+    "total_quantity": "315",
+    "make": "ROYAL ENFILED, TVS, MAXIMILE, MAHINDRA, TATA, JCB, FORCE, SUPERFLEET",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "ENGINE OIL 15W50 ROYAL ENFILED BULLET MC",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "ENGINE OIL 10W30 TVS APACHE MC",
+      "quantity": "10"
+    },
+    {
+      "part_number": null,
+      "item_description": "GEAR OIL EP 90",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "ENGINE OIL 15W40",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "MP 3 GREASE",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "MAXIMILE ULTRA V 4 ENGINE OIL",
+      "quantity": "50"
+    },
+    {
+      "part_number": null,
+      "item_description": "MAXIMILE ELITE DIFFERANTIAL OIL",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "TATA SAFARI DEF",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "HYDRAULIC OIL 68",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "JCB ENGINE OIL",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": "FORCE ENGINE OIL API CK 4 10W30",
+      "quantity": "30"
+    },
+    {
+      "part_number": null,
+      "item_description": "SUPERFLEET ENGINE OIL ULE DURAMAX API CK 4 10W30",
+      "quantity": "20"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "40"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)"
+  ]
+}

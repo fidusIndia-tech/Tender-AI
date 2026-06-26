@@ -1,0 +1,49 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7690654",
+    "date": "25-06-2026",
+    "bid_end_datetime": "06-07-2026 14:00:00",
+    "bid_opening_datetime": "06-07-2026 14:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Army",
+    "office_name_location": null,
+    "total_quantity": "14",
+    "make": "BHEL",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "LV1/VT-72B, SVP 1-S20/01-0",
+      "item_description": "ELECTRO HYDRAULIC SERVO VALVE",
+      "quantity": "7"
+    },
+    {
+      "part_number": "LV1/VT-72B, SVP1-S20/01-",
+      "item_description": "ELECTRO HYDRAULIC SERVO VALVE",
+      "quantity": "1"
+    },
+    {
+      "part_number": "LV1/VT-72B, SVP1-S23/01-0",
+      "item_description": "ELECTRO HYDRAULIC SERVO VALVE",
+      "quantity": "6"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria",
+    "Past Performance",
+    "Bidder Turnover",
+    "Certificate (Requested in ATC)",
+    "OEM Authorization Certificate",
+    "OEM Annual Turnover",
+    "Additional Doc 1",
+    "Copy of PAN Card.",
+    "Copy of GSTIN.",
+    "Copy of Cancelled Cheque.",
+    "Copy of EFT Mandate duly certified by Bank.",
+    "ISO 9001 certificate",
+    "MANUFACTURER AUTHORIZATION",
+    "NON DISCLOSURE DECLARATION CERTIFICATE",
+    "NABL Test report",
+    "ISI/BIS Confirmation Certificate."
+  ]
+}

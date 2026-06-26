@@ -1,0 +1,126 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7609396",
+    "date": "17-06-2026",
+    "bid_end_datetime": "27-06-2026 14:00:00",
+    "bid_opening_datetime": "27-06-2026 14:30:00",
+    "department_name": "Department Of Defence",
+    "organization_name": "Border Road Organisation",
+    "office_name_location": "***********",
+    "total_quantity": "89",
+    "make": "Bosch, Eicher",
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": "200395101715",
+      "item_description": "Fan Belt",
+      "quantity": "1"
+    },
+    {
+      "part_number": "200395101698",
+      "item_description": "Lub Oil Filter",
+      "quantity": "8"
+    },
+    {
+      "part_number": "200383420300",
+      "item_description": "Oil Filter 40701 Carraro RLBI Rear Axle Carr",
+      "quantity": "1"
+    },
+    {
+      "part_number": "922200003010",
+      "item_description": "Filter Element for Hydraulic Return Line AR",
+      "quantity": "4"
+    },
+    {
+      "part_number": "200593424000",
+      "item_description": "Fuel Filter Element Pre 48 117 04 0 00",
+      "quantity": "4"
+    },
+    {
+      "part_number": "F002H22025",
+      "item_description": "Main Fuel Filter Cartridge Bosch",
+      "quantity": "12"
+    },
+    {
+      "part_number": "S0313A030011N",
+      "item_description": "Air Filter Engine 74HP M M",
+      "quantity": "4"
+    },
+    {
+      "part_number": "922200003500",
+      "item_description": "Strainer 200 Micron",
+      "quantity": "4"
+    },
+    {
+      "part_number": "996000030526",
+      "item_description": "Tooth Cutter Kit With Bolt Nut Excavat",
+      "quantity": "8"
+    },
+    {
+      "part_number": "996000030525",
+      "item_description": "Tooth Kit With Bolt Nut Loader Bucket",
+      "quantity": "8"
+    },
+    {
+      "part_number": "IB002922",
+      "item_description": "Oil Filter Element Eicher Engine",
+      "quantity": "8"
+    },
+    {
+      "part_number": "IB002919",
+      "item_description": "Oil Filter Case O Ring Eicher Engi",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ID377754",
+      "item_description": "Filter Insert Fuel Eicher Engine",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ID3706",
+      "item_description": "Filter Spin On Fuel Water Separator",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ID301958",
+      "item_description": "Fuel Strainer Eicher Engine",
+      "quantity": "2"
+    },
+    {
+      "part_number": "101046400200",
+      "item_description": "Filter Element 018 CE 100 25",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ID332218",
+      "item_description": "Primary Element Eicher Engine",
+      "quantity": "2"
+    },
+    {
+      "part_number": "ID332219",
+      "item_description": "Secondary Element Eicher Engine",
+      "quantity": "2"
+    },
+    {
+      "part_number": "922100000200",
+      "item_description": "Hydraulic Strainer",
+      "quantity": "2"
+    },
+    {
+      "part_number": "002ABF10NSG",
+      "item_description": "Breather Assy",
+      "quantity": "2"
+    },
+    {
+      "part_number": null,
+      "item_description": null,
+      "quantity": "2"
+    }
+  ],
+  "required_documents": [
+    "OEM Authorization Certificate",
+    "Copy of GSTIN No",
+    "Copy of PAN No"
+  ]
+}

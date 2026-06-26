@@ -1,0 +1,26 @@
+{
+  "tender_information": {
+    "tender_number": "GEM/2026/B/7682820",
+    "date": "18-06-2026",
+    "bid_end_datetime": "29-06-2026 09:00:00",
+    "bid_opening_datetime": "29-06-2026 09:30:00",
+    "department_name": "Department Of Military Affairs",
+    "organization_name": "Indian Air Force",
+    "office_name_location": null,
+    "total_quantity": "1",
+    "make": null,
+    "tender_approx_value": null
+  },
+  "items": [
+    {
+      "part_number": null,
+      "item_description": "REPAIR OF HYDRAULIC SERVICING TROLLY",
+      "quantity": "1"
+    }
+  ],
+  "required_documents": [
+    "Experience Criteria, Certificate (Requested in ATC)",
+    "BUYER'S SOW WITH YOUR FIRM STAMP AND SIGNATURE FOR TECHNICAL EVALUATION",
+    "EXPERIENCES( ONLY CRAC COPY , JOB COMPLETION CERTIFICATE AND PAYMENT DETAILS"
+  ]
+}
