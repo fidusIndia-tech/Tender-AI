@@ -145,6 +145,377 @@ main { padding: 20px 24px 60px; }
   border-bottom: 1px solid var(--slate-100);
 }
 .card-header svg { color: var(--blue-600); }
+.workflow-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  gap:16px;
+  align-items:start;
+}
+.workflow-card {
+  background:#fff;
+  border:1px solid var(--slate-200);
+  border-radius:var(--radius-lg);
+  padding:18px 20px;
+  box-shadow:var(--shadow-sm);
+}
+.workflow-card h3 {
+  font-size:16px;
+  font-weight:700;
+  color:var(--slate-800);
+  margin-bottom:6px;
+}
+.workflow-card p {
+  font-size:12.5px;
+  color:var(--slate-500);
+  margin-bottom:14px;
+}
+.workflow-toolbar {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.workflow-chip-row {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.workflow-chip {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--slate-200);
+  background:#fff;
+  color:var(--slate-600);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all var(--transition);
+}
+.workflow-chip.active {
+  background:var(--blue-50);
+  border-color:var(--blue-200);
+  color:var(--blue-700);
+}
+.workflow-filter-chip {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 12px;
+  border-radius:999px;
+  border:1px solid var(--slate-200);
+  background:#fff;
+  color:var(--slate-600);
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.workflow-filter-chip.active {
+  background:var(--slate-800);
+  border-color:var(--slate-800);
+  color:#fff;
+}
+.workflow-section-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:24px 0 12px;
+}
+.workflow-section-title h3 {
+  font-size:18px;
+  font-weight:800;
+  color:var(--slate-800);
+}
+.workflow-page-hero {
+  margin:0 0 18px;
+  padding:18px 20px;
+  border:1px solid #d9e6f2;
+  border-radius:18px;
+  background:linear-gradient(135deg,#ffffff 0%,#f5faff 54%,#eef8f1 100%);
+  box-shadow:var(--shadow-sm);
+}
+.workflow-page-hero-title {
+  margin:0;
+  font-size:24px;
+  font-weight:800;
+  color:#0f172a;
+  letter-spacing:-0.02em;
+}
+.workflow-page-hero-sub {
+  margin-top:6px;
+  font-size:13px;
+  line-height:1.55;
+  color:#52637a;
+}
+.workflow-scan-card {
+  padding:0;
+  overflow:hidden;
+}
+.workflow-scan-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:18px 20px 16px;
+  border-bottom:1px solid #e6eef7;
+  background:linear-gradient(135deg,#f6fbff 0%,#ffffff 52%,#f2faf5 100%);
+}
+.workflow-scan-title {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0;
+  font-size:18px;
+  font-weight:800;
+  color:#0f172a;
+}
+.workflow-scan-title svg {
+  color:var(--cyan-700);
+}
+.workflow-scan-sub {
+  margin-top:6px;
+  font-size:12.5px;
+  line-height:1.55;
+  color:#52637a;
+  max-width:760px;
+}
+.workflow-scan-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px;
+  border:1px solid #cfe7db;
+  border-radius:999px;
+  background:#f4fbf7;
+  color:#0f766e;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
+.workflow-scan-body {
+  padding:18px 20px 20px;
+}
+.workflow-scan-grid {
+  display:grid;
+  grid-template-columns:minmax(0, 1.2fr) minmax(280px, .8fr);
+  gap:18px;
+  align-items:start;
+}
+.workflow-scan-panel {
+  border:1px solid #e7edf5;
+  border-radius:16px;
+  background:#fff;
+  padding:16px;
+}
+.workflow-scan-panel-soft {
+  background:linear-gradient(180deg,#fbfdff 0%,#f8fbfe 100%);
+}
+.workflow-scan-panel-title {
+  margin:0 0 12px;
+  font-size:12px;
+  font-weight:800;
+  color:#52637a;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.workflow-scan-actions {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.workflow-scan-actions .workflow-toolbar {
+  align-items:stretch;
+}
+.workflow-scan-actions .btn {
+  justify-content:center;
+}
+.workflow-scan-status-slot {
+  min-height:44px;
+}
+@media (max-width: 980px) {
+  .workflow-scan-grid {
+    grid-template-columns:1fr;
+  }
+}
+.workflow-results-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin:-18px -18px 16px;
+  padding:16px 18px;
+  border-bottom:1px solid #d7e5f5;
+  border-radius:16px 16px 0 0;
+  background:linear-gradient(135deg, #edf5ff 0%, #f8fbff 58%, #eef8f1 100%);
+}
+.workflow-results-bar-title {
+  margin:0;
+  font-size:20px;
+  font-weight:800;
+  color:#0f172a;
+}
+.workflow-results-bar-sub {
+  margin-top:4px;
+  font-size:12.5px;
+  line-height:1.45;
+  color:#52637a;
+}
+.workflow-table-wrap {
+  overflow:auto;
+  border:1px solid var(--slate-200);
+  border-radius:14px;
+  background:#fff;
+}
+.workflow-table {
+  width:100%;
+  min-width:1240px;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.workflow-table thead th {
+  position:sticky;
+  top:0;
+  z-index:1;
+  padding:12px 14px;
+  border-bottom:1px solid #d9e6f2;
+  background:#f8fbfe;
+  color:#52637a;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  text-align:left;
+  white-space:nowrap;
+}
+.workflow-table tbody td {
+  padding:14px;
+  border-bottom:1px solid var(--slate-100);
+  vertical-align:top;
+  font-size:12.5px;
+  color:var(--slate-700);
+}
+.workflow-table tbody tr.workflow-main-row:hover td {
+  background:#fbfdff;
+}
+.workflow-table tbody tr.workflow-detail-row td {
+  background:#f8fbfd;
+  padding:0 14px 16px;
+}
+.workflow-title-cell {
+  min-width:280px;
+}
+.workflow-title-main {
+  font-size:14px;
+  font-weight:800;
+  line-height:1.45;
+  color:#0f172a;
+}
+.workflow-title-sub {
+  margin-top:6px;
+  font-size:11.5px;
+  color:#64748b;
+  line-height:1.45;
+}
+.workflow-inline-stack {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.workflow-mini-label {
+  font-size:10.5px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:#64748b;
+}
+.workflow-detail-grid {
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:12px;
+  padding:16px 0 0;
+}
+.workflow-detail-card {
+  border:1px solid #e5eef7;
+  border-radius:12px;
+  background:#fff;
+  padding:12px;
+  min-height:110px;
+}
+.workflow-detail-card.span-12 {
+  grid-column:span 12;
+}
+.workflow-detail-card.span-6 {
+  grid-column:span 6;
+}
+.workflow-detail-card.span-4 {
+  grid-column:span 4;
+}
+.workflow-detail-card-title {
+  margin-bottom:8px;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:#52637a;
+}
+.workflow-detail-card-maintext {
+  font-size:13px;
+  line-height:1.7;
+  color:#334155;
+}
+.workflow-action-stack {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.workflow-table-empty {
+  padding:18px;
+  color:var(--slate-500);
+}
+@media (max-width: 1180px) {
+  .workflow-detail-card.span-4,
+  .workflow-detail-card.span-6 {
+    grid-column:span 12;
+  }
+}
+.workflow-meta {
+  font-size:12px;
+  color:var(--slate-500);
+}
+.workflow-collapsible {
+  background:#fff;
+  border:1px solid var(--slate-200);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.workflow-collapsible summary {
+  list-style:none;
+  cursor:pointer;
+  padding:14px 16px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--slate-700);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.workflow-collapsible summary::-webkit-details-marker { display:none; }
+.workflow-inline-note {
+  font-size:11.5px;
+  color:var(--slate-500);
+}
+.workflow-reason-list {
+  margin:8px 0 0 18px;
+  color:var(--slate-600);
+  font-size:12px;
+}
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {
@@ -174,7 +545,7 @@ main { padding: 20px 24px 60px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
 
 /* ── Forms ───────────────────────────────────────────────────────────────── */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-group.full { grid-column: 1 / -1; }
 .form-group label {
@@ -838,12 +1209,12 @@ body.col-resizing { cursor:col-resize !important; }
 }
 .doc-preview-unavailable p { margin: 0; }
 .doc-preview-unavailable .big { font-weight: 600; font-size: 15px; color: var(--slate-700); }
-.reports-shell { display:grid;grid-template-columns:minmax(380px,420px) minmax(0,1fr);gap:18px;align-items:start; }
+.reports-shell { display:grid;grid-template-columns:minmax(380px,420px) minmax(0,1fr);gap:8px;align-items:start; }
 .reports-card { background:#fff;border:1px solid var(--slate-200);border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.04); }
 .reports-card-head { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--slate-100); }
 .reports-card-head h3 { margin:0;font-size:14px;color:var(--slate-800);font-weight:700; }
 .reports-card-body { padding:16px; }
-.reports-filter-stack { display:flex;flex-direction:column;gap:18px; }
+.reports-filter-stack { display:flex;flex-direction:column;gap:8px; }
 .reports-selectbox { position:relative; width:100%; }
 .reports-select-trigger {
   width:100%;
@@ -971,27 +1342,47 @@ body.col-resizing { cursor:col-resize !important; }
 
   <div class="nav-item active" id="nav-upload" onclick="showView('upload')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-    Upload
+    Upload &amp; Evaluate
+  </div>
+  <div class="nav-item" id="nav-gem-candidates" onclick="showView('gem-candidates')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5M3.75 9.75h16.5M3.75 14.25h16.5M3.75 18.75h16.5"/></svg>
+    Extracted &amp; Evaluated
   </div>
   <div class="nav-item" id="nav-list" onclick="showView('list')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
     All Tenders
   </div>
-  <div class="nav-item" id="nav-portals" onclick="openPortalsModal()">
+  <div class="nav-item" id="nav-portals" onclick="openPortalsModal()" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/></svg>
     Gov Portals
   </div>
   <div class="nav-item" id="nav-library" onclick="showView('library')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
-    Doc Library
+    Document Library
   </div>
   <div class="nav-item" id="nav-profile" onclick="showView('profile')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
-    Profile
+    Company Profile
   </div>
   <div class="nav-item" id="nav-reports" onclick="showView('reports')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v17.25A.75.75 0 004.5 21h15.75M7.5 16.5v-3.75m4.5 3.75V9.75m4.5 6.75V6"/></svg>
     Reports
+  </div>
+  <div class="nav-item" id="nav-gem-watcher" onclick="showView('gem-watcher')" style="display:none">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    GeM Watcher
+  </div>
+  <div class="nav-item" id="nav-gem-candidates-legacy" onclick="showView('gem-candidates')" style="display:none">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.286z"/></svg>
+    GeM Tenders
+  </div>
+  <div class="nav-item" id="nav-gem-review-candidates" onclick="showView('gem-review-candidates')" style="display:none">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+    Review Tenders
+  </div>
+  <div class="nav-item" id="nav-gem-rejected-candidates" onclick="showView('gem-rejected-candidates')" style="display:none">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    Rejected Tenders
   </div>
 
   <div style="flex:1"></div>
@@ -1030,7 +1421,11 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- UPLOAD VIEW                                                             -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="view active" id="view-upload">
-  <div style="max-width:620px;margin:0 auto;padding-top:8px">
+  <div style="max-width:1280px;margin:0 auto;padding-top:8px">
+    <div class="workflow-page-hero">
+      <div class="workflow-page-hero-title">Upload &amp; Evaluate Tenders</div>
+      <div class="workflow-page-hero-sub">Manual PDF upload and GeM auto scan now work from one page. Review extracted tenders below before approving them into All Tenders.</div>
+    </div>
 
     <!-- Upload Zone -->
     <div id="uploadZone" onclick="document.getElementById('unifiedFileInput').click()">
@@ -1075,11 +1470,61 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="upload-actions" id="uploadActions">
       <button class="btn btn-primary" id="uploadStartBtn" onclick="startUnifiedUpload()">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-        Upload All
+        Extract &amp; Evaluate
       </button>
       <button class="btn btn-outline" onclick="clearUploadQueue()">Clear</button>
     </div>
     <div class="upload-summary" id="uploadSummary"></div>
+
+    <!-- ── OR: Scan GeM automatically ──────────────────────────────────────── -->
+    <div style="display:flex;align-items:center;gap:12px;margin:26px 0 18px">
+      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--slate-400)">OR</span>
+      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
+    </div>
+
+    <div class="card" style="margin:0">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+        GeM Auto Scan
+      </div>
+      <p style="font-size:12.5px;color:var(--slate-500);margin:0 0 14px">
+        Automatically search GeM for your active keywords, evaluate matches with AI, and add strong fits (score 8–10) to All Tenders.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Target Date</label>
+          <input type="date" id="uploadScanDate">
+        </div>
+        <div class="form-group">
+          <label>Minimum Approval Score</label>
+          <input type="number" id="workflowApprovalScore" min="1" max="10" step="0.5" value="7">
+        </div>
+        <div class="form-group full">
+          <label>Keyword Multi-Select</label>
+          <div id="workflowKeywordList" class="workflow-chip-row"></div>
+        </div>
+        <div class="form-group">
+          <label>Add Keyword</label>
+          <input type="text" id="workflowKeywordInput" placeholder="e.g. Siemens">
+        </div>
+        <div class="form-group" style="align-self:flex-end">
+          <div class="workflow-toolbar">
+            <button class="btn btn-outline" type="button" onclick="saveWorkflowKeyword()">Add Keyword</button>
+            <button class="btn btn-primary" id="uploadGemRunBtn" onclick="runGemScanFromUpload()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
+              Run GeM Scan
+            </button>
+            <button class="btn btn-outline" id="uploadGemStopBtn" type="button" onclick="stopWorkflowScan()" style="display:none">
+              Stop Scan
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <a href="#" onclick="showView('gem-candidates');return false;" style="font-size:12.5px;font-weight:600;color:var(--blue-600);text-decoration:none">Open Extracted &amp; Evaluated Tenders →</a>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -1287,7 +1732,7 @@ body.col-resizing { cursor:col-resize !important; }
             <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;position:relative">
               Upload Date<span style="display:inline-block">
-                <span class="th-filter-btn active" id="uploadFilterBtn" onclick="toggleFilterMenu('upload',event)" title="Sort by upload date">
+                <span class="th-filter-btn active" id="uploadFilterBtn" onclick="toggleFilterMenu('upload',event)" title="Sort by tender upload date">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
                 </span>
                 <div class="th-filter-menu" id="uploadFilterMenu">
@@ -1656,6 +2101,117 @@ body.col-resizing { cursor:col-resize !important; }
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- GEM WATCHER VIEW                                                        -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-gem-watcher">
+  <div id="gemScanBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;"></div>
+
+  <div class="card">
+    <div class="card-header">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+      Run Scan
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Scan Start Date</label>
+        <input type="date" id="gemScanDate">
+      </div>
+      <div class="form-group" style="align-self:flex-end;display:flex;gap:8px;flex-direction:row">
+        <button class="btn btn-primary" id="gemRunScanBtn" onclick="runGemScanNow()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
+          Run Scan Now
+        </button>
+        <button class="btn btn-danger" id="gemStopScanBtn" onclick="stopGemScan()" style="display:none">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+          Stop Scan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="gemKeywordForm" style="display:none">
+    <div class="card-header">Add Keyword</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Keyword *</label><input type="text" id="gemNewKeyword" placeholder="e.g. Siemens"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-success" onclick="saveGemKeyword()">Save</button>
+      <button class="btn btn-outline" onclick="toggleGemKeywordForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Keywords</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary btn-sm" onclick="toggleGemKeywordForm()">+ Add Keyword</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Keyword</th><th>Status</th><th>Last Checked</th><th style="width:140px">Actions</th></tr></thead>
+        <tbody id="gemKeywordsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="table-card" style="margin-top:18px">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100)">
+      <span style="font-size:13px;font-weight:600;color:var(--slate-600)">Scan Logs</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Started</th><th>Target Date</th><th>Status</th><th>Step</th><th>Keywords</th>
+            <th>Found</th><th>New</th><th>Skipped (wrong date)</th><th>Approved</th><th>Review</th><th>Rejected</th><th>Error</th>
+          </tr>
+        </thead>
+        <tbody id="gemScanRunsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- GEM CANDIDATES VIEW                                                     -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-gem-candidates">
+  <div class="table-card">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
+      <span id="gemCandidatesSectionTitle" style="font-size:13px;font-weight:600;color:var(--slate-600)">Extracted &amp; Evaluated Tenders</span>
+      <div style="flex:1"></div>
+      <select id="gemCandidateStatusFilter" onchange="loadGemCandidates()" style="padding:6px 10px;border:1.5px solid var(--slate-200);border-radius:var(--radius-sm);font-size:12px">
+        <option value="">All Statuses</option>
+        <option>QUEUED</option>
+        <option>FOUND</option>
+        <option>DOWNLOADING_PDF</option>
+        <option>PDF_DOWNLOADED</option>
+        <option>EXTRACTING</option>
+        <option>KEYWORD_EVALUATING</option>
+        <option>EVALUATING</option>
+        <option>EVALUATED</option>
+        <option>REVIEW</option>
+        <option>APPROVED</option>
+        <option>REJECTED</option>
+        <option>ERROR</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Search Run</th><th>Matched Keywords</th><th>GeM Bid No</th><th>Title</th><th>Buyer</th>
+            <th>Bid End</th><th>PDF</th><th>Keyword Score</th><th>Final Score</th><th>Stage</th><th>Status</th><th>Reason</th><th style="width:280px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="gemCandidatesBody"></tbody>
+      </table>
+    </div>
+    <div id="gemCandidatesEmpty" class="empty-state" style="display:none"><p>No extracted or evaluated tenders yet</p></div>
+  </div>
+</div>
+
   </main>
 </div><!-- end #app -->
 
@@ -1786,12 +2342,16 @@ let pendingExtraction = null;
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
-  upload: 'Upload Tender',
+  upload: 'Upload & Evaluate Tenders',
+  'gem-candidates': 'Extracted & Evaluated Tenders',
   list:   'All Tenders',
   review: 'Review Tender',
   library:'Document Library',
   profile:'Company Profile',
   reports:'Reports',
+  'gem-watcher':    'GeM Tender Watcher',
+  'gem-review-candidates': 'Review Tenders',
+  'gem-rejected-candidates': 'Rejected Tenders',
 };
 const PAGE_ACTIONS = {
   upload:  '',
@@ -1800,9 +2360,14 @@ const PAGE_ACTIONS = {
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
   reports: '',
+  'gem-watcher': '',
+  'gem-candidates': '',
+  'gem-review-candidates': '',
+  'gem-rejected-candidates': '',
 };
 
 let tenderListCache = [];
+let gemCandidateListCache = [];
 let participantReportIndex = [];
 let brandReportIndex = [];
 let selectedParticipantReportName = '';
@@ -2279,32 +2844,6 @@ function toggleBidCalendar(e) {
   }
 }
 
-function toggleUploadCalendar(e) {
-  e.stopPropagation();
-  const menu = document.getElementById('uploadDateFilterMenu');
-  const isOpen = menu.classList.contains('open');
-  closeAllFilterMenus();
-  if (!isOpen) {
-    _uploadCalPickFrom = true;
-    if (uploadDateFrom) {
-      const d = new Date(uploadDateFrom + 'T00:00:00');
-      _uploadCalYear = d.getFullYear(); _uploadCalMonth = d.getMonth();
-    } else {
-      const now = new Date();
-      _uploadCalYear = now.getFullYear(); _uploadCalMonth = now.getMonth();
-    }
-    _renderUploadCalendar();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const menuW = 244;
-    let left = rect.left;
-    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
-    if (left < 8) left = 8;
-    menu.style.top  = (rect.bottom + 6) + 'px';
-    menu.style.left = left + 'px';
-    menu.classList.add('open');
-  }
-}
-
 function _renderCalendar() {
   const el = document.getElementById('calendarWidget');
   if (!el) return;
@@ -2668,7 +3207,7 @@ function _syncSortButtons() {
 document.addEventListener('click', closeAllFilterMenus);
 window.addEventListener('scroll', function(e) {
   // Don't close when scrolling inside a dropdown list
-  if (!e.target.closest('.th-filter-menu')) closeAllFilterMenus();
+  if (!(e.target instanceof Element) || !e.target.closest('.th-filter-menu')) closeAllFilterMenus();
 }, true);
 window.addEventListener('resize', closeAllFilterMenus);
 function refreshTenderList() {
@@ -2724,7 +3263,7 @@ function exportToExcel() {
   const data = rows.map(t => {
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     return {
-      'Upload Date'      : formatUploadDateTime(t.uploaded_at),
+      'Upload Date': formatUploadDateTime(t.uploaded_at),
       'GeM Bidding No.'  : t.gem_bidding_number   || '',
       'Tender Number'    : t.tender_number         || '',
       'Organisation'     : t.organization_name     || '',
@@ -3043,17 +3582,26 @@ function _renderCurrentPage() {
 }
 
 function showView(name) {
+  const gemAliases = new Set(['gem-watcher', 'gem-review-candidates', 'gem-rejected-candidates']);
+  const effectiveName = gemAliases.has(name) ? 'upload' : name;
+  const viewName = effectiveName;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('view-' + viewName).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  const ni = document.getElementById('nav-' + name);
+  const ni = document.getElementById('nav-' + effectiveName);
   if (ni) ni.classList.add('active');
-  document.getElementById('topbarTitle').textContent = PAGE_TITLES[name] || name;
-  document.getElementById('topbarActions').innerHTML = PAGE_ACTIONS[name] || '';
-  if (name === 'list')    loadTenderList();
-  if (name === 'library') loadLibrary();
-  if (name === 'profile') loadProfile();
-  if (name === 'reports') loadReports();
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[effectiveName] || effectiveName;
+  document.getElementById('topbarActions').innerHTML = PAGE_ACTIONS[effectiveName] || '';
+  if (effectiveName === 'list')    loadTenderList();
+  if (effectiveName === 'library') loadLibrary();
+  if (effectiveName === 'profile') loadProfile();
+  if (effectiveName === 'reports') loadReports();
+  if (effectiveName === 'upload') {
+    loadUnifiedWorkflow();
+  }
+  if (effectiveName === 'gem-candidates') {
+    loadGemCandidates('gem-candidates');
+  }
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -3106,7 +3654,8 @@ const EXPAND_TEXT = {
   boqLoadError: 'Failed to load BOQ items',
   boqSaveSuccess: 'BOQ items saved',
   boqSaveError: 'Save failed',
-  customSaveSuccess: 'Section saved locally',
+  customSaveSuccess: 'Section saved',
+  customSaveError: 'Failed to save section',
   resultsTitle: 'GeM Results',
   resultsOpen: 'Open GeM Results',
   resultsCopy: 'Copy Bid Number',
@@ -3141,8 +3690,8 @@ const _EXPAND_LOCAL_KEY = 'tender_expand_ui_v2';
 
 const EXPAND_SECTION_DEFS = [
   { key: 'participants', label: 'Participants', renderer: renderExpandParticipants },
-  { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
   { key: 'results', label: 'Results', renderer: renderExpandResults },
+  { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
 ];
 const EXPAND_RESERVED_KEYS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.key).toLowerCase()));
 const EXPAND_RESERVED_LABELS = new Set(EXPAND_SECTION_DEFS.map(section => String(section.label).trim().toLowerCase()));
@@ -3203,24 +3752,46 @@ function getDefaultBoqGrid() {
   return [BOQ_COLUMN_HEADERS.slice()];
 }
 
+function _normalizeExpandCustomSections(rawSections) {
+  return Array.isArray(rawSections) ? rawSections.filter(section => {
+    const key = String(section?.key || '').trim().toLowerCase();
+    const label = String(section?.label || '').trim().toLowerCase();
+    return !!key && !!label && !EXPAND_RESERVED_KEYS.has(key) && !EXPAND_RESERVED_LABELS.has(label);
+  }).map(section => ({
+    key: String(section.key).trim(),
+    label: String(section.label).trim(),
+    grid: Array.isArray(section.grid) && section.grid.length ? section.grid : getDefaultCustomGrid(),
+  })) : [];
+}
+
 function ensureExpandCustomSectionsLoaded(tenderId) {
   if (!_expandCustomSections[tenderId]) {
+    const cachedTender = tenderListCache.find(t => t.id === tenderId);
+    const dbSections = _normalizeExpandCustomSections(cachedTender?.expand_sections_json);
     const saved = getTenderExpandLocalState(tenderId).customSections;
-    const cleaned = Array.isArray(saved) ? saved.filter(section => {
-      const key = String(section?.key || '').trim().toLowerCase();
-      const label = String(section?.label || '').trim().toLowerCase();
-      return !EXPAND_RESERVED_KEYS.has(key) && !EXPAND_RESERVED_LABELS.has(label);
-    }) : [];
+    const localSections = _normalizeExpandCustomSections(saved);
+    const cleaned = dbSections.length ? dbSections : localSections;
     _expandCustomSections[tenderId] = cleaned;
-    if (Array.isArray(saved) && cleaned.length !== saved.length) {
+    if (cleaned.length) {
       setTenderExpandLocalState(tenderId, { customSections: cleaned });
     }
   }
   return _expandCustomSections[tenderId];
 }
 
-function saveExpandCustomSections(tenderId) {
-  setTenderExpandLocalState(tenderId, { customSections: ensureExpandCustomSectionsLoaded(tenderId) });
+async function saveExpandCustomSections(tenderId) {
+  const sections = _normalizeExpandCustomSections(ensureExpandCustomSectionsLoaded(tenderId));
+  setTenderExpandLocalState(tenderId, { customSections: sections });
+  const res = await fetch(`/api/tenders/${tenderId}/record-fields`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expand_sections_json: sections }),
+  });
+  if (!res.ok) {
+    throw new Error((await res.json().catch(() => ({}))).detail || EXPAND_TEXT.customSaveError);
+  }
+  const cachedTender = tenderListCache.find(t => t.id === tenderId);
+  if (cachedTender) cachedTender.expand_sections_json = sections;
 }
 
 function getExpandSections(tenderId) {
@@ -3316,7 +3887,7 @@ function addExpandHeading(tenderId) {
   const usedKeys = new Set(getExpandSections(tenderId).map(section => section.key));
   while (usedKeys.has(key)) key = `${baseKey}-${suffix++}`;
   customSections.push({ key, label, grid: getDefaultCustomGrid() });
-  saveExpandCustomSections(tenderId);
+  saveExpandCustomSections(tenderId).catch(err => toast('Error: ' + err.message, 'error'));
   const tabsBar = document.getElementById('expandTabs-' + tenderId);
   if (tabsBar) tabsBar.innerHTML = renderExpandTabs(tenderId);
   switchExpandTab(tenderId, key);
@@ -3334,12 +3905,7 @@ function renderExpandFutureSection(content) {
 function getExpandResultBidNumber(tenderId) {
   const tender = tenderListCache.find(t => t.id === tenderId);
   if (!tender) return '';
-  const gemBidNo = String(tender.gem_bidding_number || '').trim();
-  const tenderNo = String(tender.tender_number || '').trim();
-  const looksLikeGemCode = value => /^GEM\//i.test(value);
-  if (looksLikeGemCode(gemBidNo)) return gemBidNo;
-  if (looksLikeGemCode(tenderNo)) return tenderNo;
-  return gemBidNo || tenderNo;
+  return String(tender.tender_number || tender.gem_bidding_number || '').trim();
 }
 
 async function copyExpandResultBidNumber(tenderId) {
@@ -3713,10 +4279,14 @@ function expandCustomHandleKeydown(event, tenderId, sectionKey) {
   if (next) next.focus();
 }
 
-function saveExpandCustomSection(tenderId, sectionKey) {
+async function saveExpandCustomSection(tenderId, sectionKey) {
   expandCustomSyncFromDOM(tenderId, sectionKey);
-  saveExpandCustomSections(tenderId);
-  toast(EXPAND_TEXT.customSaveSuccess, 'success');
+  try {
+    await saveExpandCustomSections(tenderId);
+    toast(EXPAND_TEXT.customSaveSuccess, 'success');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
 }
 
 // ── Inline BOQ Table (row expand) ───────────────────────────────────────────
@@ -4047,6 +4617,7 @@ async function startUnifiedUpload() {
       if (res.status === 409) throw new Error(data.detail || 'This tender already exists.');
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       setQueueItemStatus(0, 'completed', null);
+      recordWorkflowManualExtraction(data, item.file);
       pendingExtraction = data; currentTenderId = null;
       setTimeout(async () => {
         clearUploadQueue();
@@ -4897,6 +5468,550 @@ function applyStatusColor(sel, value) {
   sel.setAttribute('value', value);
 }
 
+// ── GeM Tender Watcher ───────────────────────────────────────────────────────
+let gemScanPollTimer = null;
+
+function gemTodayIST() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+const GEM_STATUS_BADGE = {
+  QUEUED: 'badge-slate', FOUND: 'badge-slate', DOWNLOADING_PDF: 'badge-info',
+  PDF_DOWNLOADED: 'badge-info', EXTRACTING: 'badge-info', KEYWORD_EVALUATING: 'badge-warning', EVALUATING: 'badge-warning',
+  EVALUATED: 'badge-purple', REVIEW: 'badge-warning',
+  APPROVED: 'badge-success', REJECTED: 'badge-danger', ERROR: 'badge-danger',
+  RUNNING: 'badge-info', COMPLETED: 'badge-success', PARTIAL_FAILED: 'badge-warning', BLOCKED: 'badge-danger', FAILED: 'badge-danger',
+  CANCELLED: 'badge-warning',
+};
+
+function _gemFormatDuration(seconds) {
+  if (seconds == null || Number.isNaN(Number(seconds))) return '—';
+  const total = Math.max(0, Math.round(Number(seconds)));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
+}
+
+function _gemStatusButton(run) {
+  const clickable = ['FAILED', 'BLOCKED', 'PARTIAL_FAILED'].includes(run.status);
+  const inner = `<span class="badge ${GEM_STATUS_BADGE[run.status] || 'badge-slate'}">${esc(run.status)}</span>`;
+  if (!clickable) return inner;
+  return `<button class="btn btn-outline btn-xs" style="padding:0;border:none;background:transparent" onclick="toggleGemScanRunError(${run.id})">${inner}</button>`;
+}
+
+async function loadGemWatcher() {
+  const dateInput = document.getElementById('gemScanDate');
+  const today = gemTodayIST();
+  if (!dateInput.value) dateInput.value = today;
+  dateInput.max = today;
+  await Promise.all([loadGemKeywords(), loadGemScanRuns()]);
+  await resumeGemScanIfRunning();
+}
+
+async function resumeGemScanIfRunning() {
+  try {
+    const res = await fetch('/api/gem-watcher/scan-runs');
+    const runs = await res.json();
+    const running = runs.find(r => r.status === 'RUNNING' && !r.finished_at);
+    if (running) {
+      document.getElementById('gemRunScanBtn').disabled = true;
+      showGemScanBanner(`A scan started at ${String(running.started_at).slice(0,16).replace('T',' ')} is still running…`, 'info');
+      pollGemScanRun(running.id);
+    }
+  } catch (err) { /* non-fatal — admin can still see scan logs below */ }
+}
+
+async function loadGemKeywords() {
+  const tbody = document.getElementById('gemKeywordsBody');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const res = await fetch('/api/gem-watcher/keywords');
+    const keywords = await res.json();
+    if (!keywords.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--slate-400);padding:24px">No keywords yet</td></tr>'; return; }
+    tbody.innerHTML = keywords.map(k => `
+      <tr>
+        <td style="font-weight:600;color:var(--slate-800)">${esc(k.keyword)}</td>
+        <td><span class="badge ${k.is_active ? 'badge-success' : 'badge-slate'}">${k.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td style="color:var(--slate-400);font-size:12px">${k.last_checked_at ? String(k.last_checked_at).slice(0,16).replace('T',' ') : '—'}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-xs" onclick="toggleGemKeywordActive(${k.id}, ${!k.is_active})">${k.is_active ? 'Deactivate' : 'Activate'}</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteGemKeyword(${k.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+function toggleGemKeywordForm() {
+  const form = document.getElementById('gemKeywordForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveGemKeyword() {
+  const keyword = val('gemNewKeyword');
+  if (!keyword) { toast('Keyword is required', 'error'); return; }
+  try {
+    const res = await fetch('/api/gem-watcher/keywords', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ keyword }) });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Save failed');
+    toast('Keyword added', 'success');
+    document.getElementById('gemNewKeyword').value = '';
+    toggleGemKeywordForm();
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function toggleGemKeywordActive(id, isActive) {
+  try {
+    const res = await fetch(`/api/gem-watcher/keywords/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ is_active: isActive }) });
+    if (!res.ok) throw new Error('Update failed');
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function deleteGemKeyword(id) {
+  if (!confirm('Delete this keyword?')) return;
+  try {
+    const res = await fetch(`/api/gem-watcher/keywords/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    toast('Keyword deleted', 'success');
+    loadGemKeywords();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+function showGemScanBanner(message, kind) {
+  const el = document.getElementById('gemScanBanner');
+  const colors = {
+    info:    ['var(--cyan-100)', 'var(--cyan-700)'],
+    success: ['var(--green-100)', 'var(--green-700)'],
+    error:   ['var(--red-100)', 'var(--red-700)'],
+  }[kind] || ['var(--slate-100)', 'var(--slate-600)'];
+  el.style.background = colors[0]; el.style.color = colors[1];
+  el.textContent = message;
+  el.style.display = message ? 'block' : 'none';
+}
+
+async function runGemScanFromUpload() {
+  const dateInput = document.getElementById('uploadScanDate');
+  const scanDate = dateInput.value;
+  if (!scanDate) { toast('Please pick a scan date', 'error'); return; }
+  const btn = document.getElementById('uploadGemRunBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/gem-watcher/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ scan_target_date: scanDate }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not start scan');
+    toast('GeM scan started — opening Watcher to track progress', 'success');
+    showView('gem-watcher');  // loadGemWatcher() picks up the running scan and polls it
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+async function runGemScanNow() {
+  const scanDate = document.getElementById('gemScanDate').value;
+  if (!scanDate) { toast('Please pick a scan date', 'error'); return; }
+  const btn = document.getElementById('gemRunScanBtn');
+  btn.disabled = true;
+  showGemScanBanner('Starting scan…', 'info');
+  try {
+    const res = await fetch('/api/gem-watcher/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ scan_target_date: scanDate }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not start scan');
+    showGemScanBanner('Scan running…', 'info');
+    pollGemScanRun(data.run_id);
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    showGemScanBanner('', null);
+    btn.disabled = false;
+  }
+}
+
+let _gemRunningRunId = null;
+
+function _gemSetRunningUI(running, runId) {
+  const runBtn = document.getElementById('gemRunScanBtn');
+  const stopBtn = document.getElementById('gemStopScanBtn');
+  if (running) {
+    _gemRunningRunId = runId;
+    if (runBtn) runBtn.disabled = true;
+    if (stopBtn) { stopBtn.style.display = ''; stopBtn.disabled = false; }
+  } else {
+    _gemRunningRunId = null;
+    if (runBtn) runBtn.disabled = false;
+    if (stopBtn) stopBtn.style.display = 'none';
+  }
+}
+
+async function stopGemScan() {
+  if (!_gemRunningRunId) return;
+  if (!confirm('Stop the running scan? Tenders already evaluated are kept; the rest stay queued and you can resume by re-running the same date.')) return;
+  const stopBtn = document.getElementById('gemStopScanBtn');
+  if (stopBtn) stopBtn.disabled = true;
+  showGemScanBanner('Stopping scan…', 'info');
+  try {
+    const res = await fetch(`/api/gem-watcher/scan-runs/${_gemRunningRunId}/cancel`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Could not stop scan');
+    // pollGemScanRun keeps polling and will report the CANCELLED result.
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    if (stopBtn) stopBtn.disabled = false;
+  }
+}
+
+function pollGemScanRun(runId) {
+  clearInterval(gemScanPollTimer);
+  _gemSetRunningUI(true, runId);
+  loadGemScanRuns();  // show the RUNNING row immediately, not only after it finishes
+  gemScanPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/gem-watcher/scan-runs/${runId}`);
+      const run = await res.json();
+      loadGemScanRuns();  // keep the logs table live while the scan runs
+      if (run.finished_at) {
+        clearInterval(gemScanPollTimer);
+        _gemSetRunningUI(false);
+        if (run.status === 'BLOCKED') {
+          showGemScanBanner('GeM portal blocked this scan (captcha/anti-bot). ' + (run.error_message || ''), 'error');
+        } else if (run.status === 'FAILED') {
+          showGemScanBanner('Scan failed: ' + (run.error_message || 'unknown error'), 'error');
+        } else if (run.status === 'PARTIAL_FAILED') {
+          showGemScanBanner('Scan partially failed: ' + (run.error_message || 'some keywords failed'), 'info');
+        } else if (run.status === 'CANCELLED') {
+          showGemScanBanner(`Scan stopped — found ${run.total_found}, new ${run.new_found}, approved ${run.approved_count}, rejected ${run.rejected_count}. Re-run the same date to continue the rest.`, 'info');
+        } else {
+          showGemScanBanner(`Scan completed — found ${run.total_found}, new ${run.new_found}, approved ${run.approved_count}, rejected ${run.rejected_count}.`, 'success');
+        }
+        loadGemScanRuns();
+      }
+    } catch (err) {
+      clearInterval(gemScanPollTimer);
+      _gemSetRunningUI(false);
+    }
+  }, 4000);
+}
+
+async function loadGemScanRuns() {
+  const tbody = document.getElementById('gemScanRunsBody');
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const res = await fetch('/api/gem-watcher/scan-runs');
+    const runs = await res.json();
+    if (!runs.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:24px">No scans run yet</td></tr>'; return; }
+    tbody.innerHTML = runs.map(r => `
+      <tr>
+        <td style="color:var(--slate-400);font-size:12px">${r.started_at ? String(r.started_at).slice(0,16).replace('T',' ') : '—'}</td>
+        <td>${r.scan_target_date || '—'}</td>
+        <td>${_gemStatusButton(r)}</td>
+        <td style="white-space:nowrap">${r.current_step || 'â€”'}</td>
+        <td>${r.total_keywords ?? '—'}</td>
+        <td>${r.total_found ?? 0}</td>
+        <td>${r.new_found ?? 0}</td>
+        <td>${r.skipped_wrong_start_date ?? 0}</td>
+        <td>${r.approved_count ?? 0}</td>
+        <td>${r.review_count ?? 0}</td>
+        <td>${r.rejected_count ?? 0}</td>
+        <td>${r.error_message ? `<button class="btn btn-outline btn-xs" onclick="toggleGemScanRunError(${r.id})">View Error</button>` : `<span style="color:var(--slate-400)">${_gemFormatDuration(r.duration_seconds)}</span>`}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="12" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+function toggleGemScanRunError(runId) {
+  const row = document.getElementById(`gemScanRunError-${runId}`);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+function _gemSectionConfig(sectionName) {
+  const map = {
+    'gem-candidates': { title: 'Extracted & Evaluated Tenders', forcedStatus: '' },
+    'gem-review-candidates': { title: 'Review Tenders', forcedStatus: 'REVIEW' },
+    'gem-rejected-candidates': { title: 'Rejected Tenders', forcedStatus: 'REJECTED' },
+  };
+  return map[sectionName] || map['gem-candidates'];
+}
+
+async function loadGemCandidates(sectionName) {
+  const tbody = document.getElementById('gemCandidatesBody');
+  const empty = document.getElementById('gemCandidatesEmpty');
+  const currentSection = sectionName || document.querySelector('.nav-item.active')?.id?.replace('nav-', '') || 'gem-candidates';
+  const section = _gemSectionConfig(currentSection);
+  document.getElementById('gemCandidatesSectionTitle').textContent = section.title;
+  const filterEl = document.getElementById('gemCandidateStatusFilter');
+  if (section.forcedStatus) filterEl.value = section.forcedStatus;
+  const status = section.forcedStatus || filterEl.value;
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const url = status ? `/api/gem-candidates?status=${encodeURIComponent(status)}` : '/api/gem-candidates';
+    const res = await fetch(url);
+    const candidates = await res.json();
+    gemCandidateListCache = candidates;
+    if (!candidates.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = candidates.map(c => `
+      <tr style="vertical-align:top">
+        <td style="padding:10px 12px">${(c.matched_keywords || []).map(k => `<span class="badge badge-info">${esc(k)}</span>`).join(' ')}</td>
+        <td style="padding:10px 12px;font-weight:600;white-space:nowrap;font-size:12.5px">${esc(c.gem_bid_no)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.organisation, 2, 150)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.department, 2, 170)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.title, 2, 240)}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.quantity || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_start_date || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_end_date || '—'}</td>
+        <td style="padding:10px 12px">${c.pdf_file_id ? `<a class="btn btn-outline btn-xs" href="/files/${c.pdf_file_id}" target="_blank" rel="noopener">View</a>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.extraction_status ? `<span class="badge ${c.extraction_status === 'SUCCESS' ? 'badge-success' : c.extraction_status === 'PARTIAL' || c.extraction_status === 'IN_PROGRESS' || c.extraction_status === 'PENDING' ? 'badge-warning' : 'badge-danger'}">${esc(c.extraction_status)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.extraction_error_message, 3, 250, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;text-align:center">${c.keyword_fit_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_fit_score)}</span>` : c.keyword_pre_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_pre_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_decision ? `<span class="badge ${c.keyword_decision === 'ACCEPT_FOR_FULL_EVALUATION' ? 'badge-success' : c.keyword_decision === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${esc(c.keyword_decision)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_context_type ? `<span class="badge badge-slate">${esc(c.keyword_context_type)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_brands || []).length ? (c.matched_brands || []).map(b => `<span class="badge badge-info">${esc(b)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_products || c.matched_product_keywords || []).length ? (c.matched_products || c.matched_product_keywords || []).slice(0, 4).map(p => `<span class="badge badge-slate">${esc(p)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.evaluation_stage ? `<span class="badge badge-slate">${esc(c.evaluation_stage)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.evaluation_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.evaluation_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.decision_reason || c.review_reason || c.rejection_reason || c.keyword_fit_reason || c.keyword_evaluation_reason || c.evaluation_reason, 3, 300, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;white-space:nowrap"><span class="badge ${GEM_STATUS_BADGE[c.status] || 'badge-slate'}">${esc(c.status)}</span></td>
+        <td style="padding:10px 12px;display:flex;gap:4px;flex-wrap:wrap">
+          ${c.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${c.id})">Re-run Extraction</button>` : ''}
+          ${c.pdf_file_id && c.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${c.id})">Re-run Eval</button>` : ''}
+          ${c.status !== 'APPROVED' ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${c.id})">To All</button>` : '—'}
+          ${c.status !== 'REVIEW' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${c.id})">Review</button>` : ''}
+          ${c.status !== 'REJECTED' ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${c.id})">Reject</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="showGemCandidateExplanation(${c.id})">Why</button>
+        </td>
+      </tr>
+            <div><strong>Step:</strong> ${esc(r.current_step || 'â€”')} &nbsp; <strong>Duration:</strong> ${esc(_gemFormatDuration(r.duration_seconds))}</div>
+            <div><strong>Error:</strong> ${esc(r.error_message || 'â€”')}</div>
+            <div><strong>Stack:</strong></div>
+            <pre style="margin:0;white-space:pre-wrap;word-break:break-word;background:white;border:1px solid var(--slate-200);border-radius:8px;padding:10px;max-height:260px;overflow:auto">${esc(r.error_stack || 'No stack trace available')}</pre>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="13" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadGemScanRuns() {
+  const tbody = document.getElementById('gemScanRunsBody');
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const res = await fetch('/api/gem-watcher/scan-runs');
+    const runs = await res.json();
+    if (!runs.length) {
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--slate-400);padding:24px">No scans run yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = runs.map(r => `
+      <tr>
+        <td style="color:var(--slate-400);font-size:12px">${r.started_at ? String(r.started_at).slice(0,16).replace('T',' ') : '—'}</td>
+        <td>${r.scan_target_date || '—'}</td>
+        <td>${_gemStatusButton(r)}</td>
+        <td style="white-space:nowrap">${r.current_step || '—'}</td>
+        <td>${r.total_keywords ?? '—'}</td>
+        <td>${r.total_found ?? 0}</td>
+        <td>${r.new_found ?? 0}</td>
+        <td>${r.skipped_wrong_start_date ?? 0}</td>
+        <td>${r.approved_count ?? 0}</td>
+        <td>${r.review_count ?? 0}</td>
+        <td>${r.rejected_count ?? 0}</td>
+        <td>${r.error_message ? `<button class="btn btn-outline btn-xs" onclick="toggleGemScanRunError(${r.id})">View Error</button>` : `<span style="color:var(--slate-400)">${_gemFormatDuration(r.duration_seconds)}</span>`}</td>
+      </tr>
+      <tr id="gemScanRunError-${r.id}" style="display:none;background:var(--slate-50)">
+        <td colspan="12" style="padding:12px 14px">
+          <div style="font-size:12px;color:var(--slate-600);display:grid;gap:8px">
+            <div><strong>Step:</strong> ${esc(r.current_step || '—')} &nbsp; <strong>Duration:</strong> ${esc(_gemFormatDuration(r.duration_seconds))}</div>
+            <div><strong>Error:</strong> ${esc(r.error_message || '—')}</div>
+            <div><strong>Stack:</strong></div>
+            <pre style="margin:0;white-space:pre-wrap;word-break:break-word;background:white;border:1px solid var(--slate-200);border-radius:8px;padding:10px;max-height:260px;overflow:auto">${esc(r.error_stack || 'No stack trace available')}</pre>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="12" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadGemCandidates(sectionName) {
+  const tbody = document.getElementById('gemCandidatesBody');
+  const empty = document.getElementById('gemCandidatesEmpty');
+  const currentSection = sectionName || document.querySelector('.nav-item.active')?.id?.replace('nav-', '') || 'gem-candidates';
+  const section = _gemSectionConfig(currentSection);
+  document.getElementById('gemCandidatesSectionTitle').textContent = section.title;
+  const filterEl = document.getElementById('gemCandidateStatusFilter');
+  if (section.forcedStatus) filterEl.value = section.forcedStatus;
+  const status = section.forcedStatus || filterEl.value;
+  tbody.innerHTML = '<tr><td colspan="21" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const url = status ? `/api/gem-candidates?status=${encodeURIComponent(status)}` : '/api/gem-candidates';
+    const res = await fetch(url);
+    const candidates = await res.json();
+    gemCandidateListCache = candidates;
+    if (!candidates.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = candidates.map(c => `
+      <tr style="vertical-align:top">
+        <td style="padding:10px 12px">${(c.matched_keywords || []).map(k => `<span class="badge badge-info">${esc(k)}</span>`).join(' ')}</td>
+        <td style="padding:10px 12px;font-weight:600;white-space:nowrap;font-size:12.5px">${esc(c.gem_bid_no)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.organisation, 2, 150)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.department, 2, 170)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.title, 2, 240)}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.quantity || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_start_date || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_end_date || '—'}</td>
+        <td style="padding:10px 12px">${c.pdf_file_id ? `<a class="btn btn-outline btn-xs" href="/files/${c.pdf_file_id}" target="_blank" rel="noopener">View</a>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.keyword_fit_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_fit_score)}</span>` : c.keyword_pre_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_pre_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_decision ? `<span class="badge ${c.keyword_decision === 'ACCEPT_FOR_FULL_EVALUATION' ? 'badge-success' : c.keyword_decision === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${esc(c.keyword_decision)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_context_type ? `<span class="badge badge-slate">${esc(c.keyword_context_type)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_brands || []).length ? (c.matched_brands || []).map(b => `<span class="badge badge-info">${esc(b)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_products || c.matched_product_keywords || []).length ? (c.matched_products || c.matched_product_keywords || []).slice(0, 4).map(p => `<span class="badge badge-slate">${esc(p)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.evaluation_stage ? `<span class="badge badge-slate">${esc(c.evaluation_stage)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.evaluation_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.evaluation_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.decision_reason || c.review_reason || c.rejection_reason || c.keyword_fit_reason || c.keyword_evaluation_reason || c.evaluation_reason, 3, 300, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;white-space:nowrap"><span class="badge ${GEM_STATUS_BADGE[c.status] || 'badge-slate'}">${esc(c.status)}</span></td>
+        <td style="padding:10px 12px;display:flex;gap:4px;flex-wrap:wrap">
+          ${c.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${c.id})">Re-run Extraction</button>` : ''}
+          ${c.pdf_file_id && c.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${c.id})">Re-run Eval</button>` : ''}
+          ${c.status !== 'APPROVED' ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${c.id})">To All</button>` : '—'}
+          ${c.status !== 'REVIEW' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${c.id})">Review</button>` : ''}
+          ${c.status !== 'REJECTED' ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${c.id})">Reject</button>` : ''}
+          ${c.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="deleteGemCandidate(${c.id})">Delete</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="showGemCandidateExplanation(${c.id})">Why</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="21" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+function toggleUploadCalendar(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('uploadDateFilterMenu');
+  const isOpen = menu.classList.contains('open');
+  closeAllFilterMenus();
+  if (!isOpen) {
+    _uploadCalPickFrom = true;
+    if (uploadDateFrom) {
+      const d = new Date(uploadDateFrom + 'T00:00:00');
+      _uploadCalYear = d.getFullYear();
+      _uploadCalMonth = d.getMonth();
+    } else {
+      const now = new Date();
+      _uploadCalYear = now.getFullYear();
+      _uploadCalMonth = now.getMonth();
+    }
+    _renderUploadCalendar();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuW = 244;
+    let left = rect.left;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if (left < 8) left = 8;
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.add('open');
+  }
+}
+
+// Clamp long cell text to a few lines; full text shows on hover (title attr).
+function _gemClamp(text, lines, maxWidth, color) {
+  const safe = esc(text);
+  if (!safe) return '—';
+  const col = color ? `color:${color};` : '';
+  return `<div title="${safe}" style="display:-webkit-box;-webkit-line-clamp:${lines};-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;max-width:${maxWidth}px;font-size:12.5px;${col}">${safe}</div>`;
+}
+
+async function approveGemCandidate(id) {
+  if (!confirm('Manually approve this tender into All Tenders?')) return;
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/approve`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Approve failed');
+    toast('Tender approved into All Tenders', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+function showGemCandidateExplanation(id) {
+  const c = gemCandidateListCache.find(row => row.id === id);
+  if (!c) { toast('Tender explanation not found', 'error'); return; }
+  const raw = c.evaluation_json || {};
+  const kw = raw.keyword_pre_evaluation || {};
+  const lines = [
+    `Decision: ${raw.decision || c.status || 'N/A'}`,
+    `Score: ${c.evaluation_score ?? 'N/A'}`,
+    `Extraction Status: ${c.extraction_status || 'N/A'}`,
+    `Extraction Confidence: ${c.extraction_confidence || 'N/A'}`,
+    `Extraction Error: ${c.extraction_error_message || 'None'}`,
+    `Evaluation Confidence: ${c.evaluation_confidence || raw.evaluation_confidence || raw.confidence || 'N/A'}`,
+    `Keyword Score: ${c.keyword_fit_score ?? c.keyword_pre_score ?? 'N/A'}`,
+    `Keyword Decision: ${c.keyword_decision || 'N/A'}`,
+    `Evaluation Stage: ${c.evaluation_stage || 'N/A'}`,
+    `Business Category: ${raw.business_category || 'N/A'}`,
+    `Brand Context: ${c.keyword_context_type || raw.brand_context || kw.brand_context || 'N/A'}`,
+    `Matched Brands: ${((c.matched_brands || raw.matched_brands || []).join ? (c.matched_brands || raw.matched_brands || []).join(', ') : (c.matched_brands || raw.matched_brands || 'N/A'))}`,
+    `Matched Products: ${((c.matched_products || c.matched_product_keywords || raw.matched_products || []).join ? (c.matched_products || c.matched_product_keywords || raw.matched_products || []).join(', ') : (c.matched_products || c.matched_product_keywords || raw.matched_products || 'N/A'))}`,
+    `Negative Keywords: ${((c.negative_keywords || c.negative_keywords_found || kw.negative_keywords_found || []).join ? (c.negative_keywords || c.negative_keywords_found || kw.negative_keywords_found || []).join(', ') : (c.negative_keywords || c.negative_keywords_found || kw.negative_keywords_found || 'None'))}`,
+    `Risk Level: ${raw.risk_level || 'N/A'}`,
+    `Profit Potential: ${raw.profit_potential || 'N/A'}`,
+    `Missing Documents: ${(raw.missing_documents || []).join ? (raw.missing_documents || []).join(', ') : (raw.missing_documents || 'None')}`,
+    '',
+    `Decision Reason: ${c.decision_reason || 'N/A'}`,
+    `Review Reason: ${c.review_reason || 'N/A'}`,
+    `Rejection Reason: ${c.rejection_reason || 'N/A'}`,
+    '',
+    `Keyword Reason: ${c.keyword_fit_reason || c.keyword_evaluation_reason || 'N/A'}`,
+    `Full Eval Reason: ${c.evaluation_reason || 'N/A'}`,
+    '',
+    `Recommended Action: ${raw.recommended_action || 'N/A'}`,
+    `AI Explanation: ${raw.ai_explanation || 'N/A'}`,
+  ];
+  alert(lines.join('\n'));
+}
+
+async function moveGemCandidateToReview(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/review`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Move to review failed');
+    toast('Tender moved to Review', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function rejectGemCandidate(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/reject`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Reject failed');
+    toast('Tender moved to Rejected', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function moveGemCandidateToFullEvaluation(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/full-evaluate`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Full evaluation failed');
+    toast('Tender sent to full evaluation', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function rerunGemCandidateExtraction(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/rerun-extraction`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Re-run extraction failed');
+    toast('Tender sent for extraction re-run', 'success');
+    loadGemCandidates();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function val(id) { const el=document.getElementById(id); return el?el.value.trim()||null:null; }
 function esc(s) {
@@ -4913,7 +6028,22 @@ function toast(msg, type='success') {
   setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-showView('upload');
+(function defaultUploadScanDate() {
+  const el = document.getElementById('uploadScanDate');
+  if (el) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    el.value = today;
+    el.max = today;
+  }
+})();
+(function bootstrapInitialView() {
+  const path = window.location.pathname.replace(/\/$/, '');
+  if (path === '/gem-watcher') { showView('gem-watcher'); return; }
+  if (path === '/gem-candidates') { showView('gem-candidates'); return; }
+  if (path === '/gem-review-candidates') { showView('gem-review-candidates'); return; }
+  if (path === '/gem-rejected-candidates') { showView('gem-rejected-candidates'); return; }
+  showView('upload');
+})();
 loadStartupDeadlineReminder();
 
 // ── SSO / Auth ────────────────────────────────────────────────────────────────
@@ -4949,7 +6079,7 @@ async function signOut() {
   try {
     const res = await fetch('/api/auth/me');
     if (!res.ok) {
-      window.location.href = isLocal ? '/dev-login' : _PORTAL + '/login';
+      window.location.href = isLocal ? '/dev-login?next=' + encodeURIComponent(location.pathname) : _PORTAL + '/login';
       return;
     }
     const data = await res.json();
@@ -5303,6 +6433,1153 @@ async function deletePortal(id) {
     toast('Error: ' + err.message, 'error');
   }
 }
+
+async function loadGemCandidates(sectionName) {
+  const tbody = document.getElementById('gemCandidatesBody');
+  const empty = document.getElementById('gemCandidatesEmpty');
+  const currentSection = sectionName || document.querySelector('.nav-item.active')?.id?.replace('nav-', '') || 'gem-candidates';
+  const section = _gemSectionConfig(currentSection);
+  document.getElementById('gemCandidatesSectionTitle').textContent = section.title;
+  const filterEl = document.getElementById('gemCandidateStatusFilter');
+  if (section.forcedStatus) filterEl.value = section.forcedStatus;
+  const status = section.forcedStatus || filterEl.value;
+  tbody.innerHTML = '<tr><td colspan="21" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const url = status ? `/api/gem-candidates?status=${encodeURIComponent(status)}` : '/api/gem-candidates';
+    const res = await fetch(url);
+    const candidates = await res.json();
+    gemCandidateListCache = candidates;
+    if (!candidates.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = candidates.map(c => `
+      <tr style="vertical-align:top">
+        <td style="padding:10px 12px">${(c.matched_keywords || []).map(k => `<span class="badge badge-info">${esc(k)}</span>`).join(' ')}</td>
+        <td style="padding:10px 12px;font-weight:600;white-space:nowrap;font-size:12.5px">${esc(c.gem_bid_no)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.organisation, 2, 150)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.department, 2, 170)}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.title, 2, 240)}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.quantity || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_start_date || '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap;font-size:12.5px">${c.bid_end_date || '—'}</td>
+        <td style="padding:10px 12px">${c.pdf_file_id ? `<a class="btn btn-outline btn-xs" href="/files/${c.pdf_file_id}" target="_blank" rel="noopener">View</a>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.extraction_status ? `<span class="badge ${c.extraction_status === 'SUCCESS' ? 'badge-success' : c.extraction_status === 'PARTIAL' || c.extraction_status === 'IN_PROGRESS' || c.extraction_status === 'PENDING' ? 'badge-warning' : 'badge-danger'}">${esc(c.extraction_status)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.extraction_error_message, 3, 250, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;text-align:center">${c.keyword_fit_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_fit_score)}</span>` : c.keyword_pre_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_pre_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_decision ? `<span class="badge ${c.keyword_decision === 'ACCEPT_FOR_FULL_EVALUATION' ? 'badge-success' : c.keyword_decision === 'REVIEW' ? 'badge-warning' : 'badge-danger'}">${esc(c.keyword_decision)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.keyword_context_type ? `<span class="badge badge-slate">${esc(c.keyword_context_type)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_brands || []).length ? (c.matched_brands || []).map(b => `<span class="badge badge-info">${esc(b)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px">${(c.matched_products || c.matched_product_keywords || []).length ? (c.matched_products || c.matched_product_keywords || []).slice(0, 4).map(p => `<span class="badge badge-slate">${esc(p)}</span>`).join(' ') : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.evaluation_stage ? `<span class="badge badge-slate">${esc(c.evaluation_stage)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.evaluation_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.evaluation_score)}</span>` : '—'}</td>
+        <td style="padding:10px 12px">${_gemClamp(c.decision_reason || c.review_reason || c.rejection_reason || c.keyword_fit_reason || c.keyword_evaluation_reason || c.evaluation_reason, 3, 300, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;white-space:nowrap"><span class="badge ${GEM_STATUS_BADGE[c.status] || 'badge-slate'}">${esc(c.status)}</span></td>
+        <td style="padding:10px 12px;display:flex;gap:4px;flex-wrap:wrap">
+          ${c.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${c.id})">Re-run Extraction</button>` : ''}
+          ${c.pdf_file_id && c.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${c.id})">Re-run Eval</button>` : ''}
+          ${c.status !== 'APPROVED' ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${c.id})">To All</button>` : '—'}
+          ${c.status !== 'REVIEW' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${c.id})">Review</button>` : ''}
+          ${c.status !== 'REJECTED' ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${c.id})">Reject</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="showGemCandidateExplanation(${c.id})">Why</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="21" style="color:var(--red-600);padding:16px">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+const WORKFLOW_MANUAL_RESULTS_KEY = 'workflow_manual_results_v1';
+const WORKFLOW_ACTIVE_SCAN_RUN_KEY = 'workflow_active_scan_run_id';
+let workflowCandidateFilter = 'ALL';
+let workflowManualResultId = null;
+let workflowScanPollTimer = null;
+
+function getWorkflowActiveScanRunId() {
+  const raw = sessionStorage.getItem(WORKFLOW_ACTIVE_SCAN_RUN_KEY);
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function setWorkflowActiveScanRunId(runId) {
+  if (runId == null || runId === '') {
+    sessionStorage.removeItem(WORKFLOW_ACTIVE_SCAN_RUN_KEY);
+    return;
+  }
+  sessionStorage.setItem(WORKFLOW_ACTIVE_SCAN_RUN_KEY, String(runId));
+}
+
+function setWorkflowScanRunningUI(running, runId = null) {
+  const runBtn = document.getElementById('uploadGemRunBtn');
+  const stopBtn = document.getElementById('uploadGemStopBtn');
+  if (running) {
+    if (runId != null) setWorkflowActiveScanRunId(runId);
+    if (runBtn) runBtn.disabled = true;
+    if (stopBtn) {
+      stopBtn.style.display = '';
+      stopBtn.disabled = false;
+    }
+  } else {
+    setWorkflowActiveScanRunId(null);
+    if (runBtn) runBtn.disabled = false;
+    if (stopBtn) {
+      stopBtn.style.display = 'none';
+      stopBtn.disabled = false;
+    }
+  }
+}
+
+function readWorkflowManualResults() {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(WORKFLOW_MANUAL_RESULTS_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeWorkflowManualResults(items) {
+  try {
+    sessionStorage.setItem(WORKFLOW_MANUAL_RESULTS_KEY, JSON.stringify(items.slice(0, 20)));
+  } catch (_) {}
+}
+
+function recordWorkflowManualExtraction(data, file) {
+  const item = {
+    id: `manual-${Date.now()}`,
+    source: 'Manual Upload',
+    title: data?.tender_number || data?.gem_bidding_number || (file?.name || 'Manual PDF'),
+    tender_title: data?.tender_number || data?.gem_bidding_number || (file?.name || 'Manual PDF'),
+    gem_bid_no: data?.gem_bidding_number || '',
+    tender_number: data?.tender_number || '',
+    organisation: data?.organization_name || '',
+    department: data?.department_name || '',
+    item_category: '',
+    matched_keyword: '',
+    matched_brand: data?.make || '',
+    matched_product: '',
+    evaluation_score: null,
+    evaluation_reason: 'Uploaded and extracted. Full review opened for evaluation.',
+    decision_status: 'PENDING_APPROVAL',
+    recommendation_label: 'Pending Approval',
+    recommendation_tone: 'badge-warning',
+    pdf_href: data?.pdf_path || '',
+    created_at: new Date().toISOString(),
+    manual_review_url: 'review',
+  };
+  workflowManualResultId = item.id;
+  const items = [item, ...readWorkflowManualResults().filter(x => x.id !== item.id)];
+  writeWorkflowManualResults(items);
+}
+
+function updateWorkflowManualEvaluation(data) {
+  if (!workflowManualResultId) return;
+  const score100 = Number(data?.score);
+  const score10 = Number.isFinite(score100) ? Math.max(0, Math.min(10, Math.round((score100 / 10) * 10) / 10)) : null;
+  const decision = String(data?.decision || '').toUpperCase();
+  const items = readWorkflowManualResults().map(item => {
+    if (item.id !== workflowManualResultId) return item;
+    return {
+      ...item,
+      evaluation_score: score10,
+      evaluation_reason: data?.summary || data?.reason || 'Evaluation completed.',
+      decision_status: decision === 'BID' ? 'APPROVED' : decision === 'SKIP' ? 'REJECTED' : 'REVIEW',
+      recommendation_label: decision === 'BID' ? 'Strong Bid' : decision === 'SKIP' ? 'Do Not Bid' : 'Review Before Bid',
+      recommendation_tone: decision === 'BID' ? 'badge-success' : decision === 'SKIP' ? 'badge-danger' : 'badge-warning',
+      matched_brand: Array.isArray(data?.matched_brands) ? data.matched_brands.join(', ') : (item.matched_brand || ''),
+      matched_product: Array.isArray(data?.matched_products) ? data.matched_products.join(', ') : (item.matched_product || ''),
+      strengths: Array.isArray(data?.strengths) ? data.strengths : [],
+      risks: Array.isArray(data?.risks) ? data.risks : [],
+      checks: Array.isArray(data?.checks) ? data.checks : [],
+    };
+  });
+  writeWorkflowManualResults(items);
+}
+
+function workflowNormalizedStatus(candidate) {
+  const status = String(candidate?.status || '').toUpperCase();
+  if (status === 'APPROVED') return 'APPROVED';
+  if (status === 'REVIEW') return 'REVIEW';
+  if (status === 'REJECTED' || status === 'ERROR') return 'REJECTED';
+  return 'PENDING_APPROVAL';
+}
+
+function workflowRecommendation(candidate) {
+  const score = Number(
+    candidate?.evaluation_score ??
+    candidate?.keyword_fit_score ??
+    candidate?.keyword_pre_score ??
+    candidate?.score
+  );
+  const status = workflowNormalizedStatus(candidate);
+  if (status === 'APPROVED' || score >= 8) return { label: 'Strong Bid', badge: 'badge-success' };
+  if (status === 'REJECTED' || score < 5) return { label: 'Do Not Bid', badge: 'badge-danger' };
+  return { label: 'Review Before Bid', badge: 'badge-warning' };
+}
+
+function workflowDecisionLabel(status) {
+  if (status === 'APPROVED') return 'Approved';
+  if (status === 'REVIEW') return 'Review';
+  if (status === 'REJECTED') return 'Rejected';
+  return 'Pending Approval';
+}
+
+function workflowSourceBadge(source) {
+  return source === 'Manual Upload' ? 'badge-info' : 'badge-slate';
+}
+
+function workflowStatusBadge(status) {
+  return status === 'APPROVED'
+    ? 'badge-success'
+    : status === 'REVIEW'
+      ? 'badge-warning'
+      : status === 'REJECTED'
+        ? 'badge-danger'
+        : 'badge-slate';
+}
+
+function workflowReason(candidate) {
+  return candidate?.decision_reason
+    || candidate?.review_reason
+    || candidate?.rejection_reason
+    || candidate?.keyword_fit_reason
+    || candidate?.keyword_evaluation_reason
+    || candidate?.evaluation_reason
+    || 'Awaiting evaluation details.';
+}
+
+function workflowRenderList(values) {
+  if (!Array.isArray(values) || !values.length) return '<li>None noted.</li>';
+  return values.slice(0, 5).map(v => `<li>${esc(v)}</li>`).join('');
+}
+
+function workflowMatch(candidate, filter) {
+  if (filter === 'ALL') return true;
+  return workflowNormalizedStatus(candidate) === filter;
+}
+
+function workflowCandidateRow(candidate) {
+  const status = workflowNormalizedStatus(candidate);
+  const recommendation = workflowRecommendation(candidate);
+  const source = candidate?.source || 'GeM Auto';
+  const evaluationStage = String(candidate?.evaluation_stage || '');
+  const keywordScore = candidate?.keyword_fit_score ?? candidate?.keyword_pre_score ?? null;
+  const finalScore = (
+    isManual || evaluationStage.startsWith('FULL_')
+      ? (candidate?.evaluation_score ?? candidate?.score ?? null)
+      : null
+  );
+  const title = candidate?.title || candidate?.tender_title || candidate?.tender_number || candidate?.gem_bid_no || 'Untitled Tender';
+  const matchedKeyword = Array.isArray(candidate?.matched_keywords)
+    ? candidate.matched_keywords.join(', ')
+    : (candidate?.matched_keyword || '—');
+  const matchedBrand = Array.isArray(candidate?.matched_brands)
+    ? candidate.matched_brands.join(', ')
+    : (candidate?.matched_brand || '—');
+  const matchedProduct = Array.isArray(candidate?.matched_products || candidate?.matched_product_keywords)
+    ? (candidate.matched_products || candidate.matched_product_keywords).join(', ')
+    : (candidate?.matched_product || '—');
+  const pdfHref = candidate?.pdf_href || (candidate?.pdf_file_id ? `/files/${candidate.pdf_file_id}` : '');
+  const scoreMarkup = `
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+      ${keywordScore != null ? `<span class="badge badge-info" title="Keyword fit score">Keyword ${esc(keywordScore)}/10</span>` : ''}
+      ${finalScore != null
+        ? `<span class="badge badge-success" title="Final evaluation score">Final ${esc(finalScore)}/10</span>`
+        : (!isManual ? `<span style="font-size:12px;color:var(--slate-500)">Final pending</span>` : '')
+      }
+    </div>
+  `;
+  const scoreMarkup = `
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+      ${keywordScore != null ? `<span class="badge badge-info" title="Keyword fit score">Keyword ${esc(keywordScore)}/10</span>` : ''}
+      ${finalScore != null
+        ? `<span class="badge badge-success" title="Final evaluation score">Final ${esc(finalScore)}/10</span>`
+        : (!isManual ? `<span style="font-size:12px;color:var(--slate-500)">Final pending</span>` : '')
+      }
+    </div>
+  `;
+  const strengths = candidate?.strengths || candidate?.positive_points || [];
+  const risks = candidate?.risks || candidate?.risk_factors || [];
+  const missingDocs = candidate?.missing_documents || candidate?.missing_information || [];
+  const concerns = candidate?.eligibility_concerns || candidate?.checks || [];
+  const companyStrengths = candidate?.matched_company_strengths || candidate?.matched_strengths || [];
+  const reviewSummary = workflowReason(candidate);
+
+  return `
+    <details class="workflow-card" style="margin-bottom:14px">
+      <summary style="list-style:none;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
+          <div style="min-width:280px;flex:1">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+              <span class="badge ${workflowSourceBadge(source)}">${esc(source)}</span>
+              <span class="badge ${recommendation.badge}">${esc(recommendation.label)}</span>
+              <span class="badge ${workflowStatusBadge(status)}">${esc(workflowDecisionLabel(status))}</span>
+              ${score != null ? `<span class="badge badge-info">Score ${esc(score)}/10</span>` : ''}
+            </div>
+            <div style="font-size:16px;font-weight:700;color:var(--slate-900);margin-bottom:6px">${esc(title)}</div>
+            <div class="workflow-meta">
+              <span><strong>GeM Bid:</strong> ${esc(candidate?.gem_bid_no || '—')}</span>
+              <span><strong>Tender No:</strong> ${esc(candidate?.tender_number || '—')}</span>
+              <span><strong>Buyer:</strong> ${esc(candidate?.organisation || candidate?.organization_name || '—')}</span>
+              <span><strong>Item Category:</strong> ${esc(candidate?.item_category || candidate?.department || '—')}</span>
+            </div>
+            <div class="workflow-meta" style="margin-top:8px">
+              <span><strong>Matched Keyword:</strong> ${esc(matchedKeyword)}</span>
+              <span><strong>Matched Brand:</strong> ${esc(matchedBrand || '—')}</span>
+              <span><strong>Matched Product:</strong> ${esc(matchedProduct || '—')}</span>
+            </div>
+            <div class="workflow-inline-note" style="margin-top:10px">${esc(reviewSummary)}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            ${pdfHref ? `<a class="btn btn-outline btn-sm" href="${esc(pdfHref)}" target="_blank" rel="noopener">View PDF</a>` : ''}
+            ${isManual ? `<button class="btn btn-outline btn-sm" onclick="event.preventDefault();showView('review')">Open Review</button>` : ''}
+            ${!isManual ? `<button class="btn btn-success btn-sm" onclick="event.preventDefault();approveGemCandidate(${candidate.id})">Approve & Send to All Tenders</button>` : ''}
+            ${!isManual ? `<button class="btn btn-outline btn-sm" onclick="event.preventDefault();moveGemCandidateToReview(${candidate.id})">Move to Review</button>` : ''}
+            ${!isManual ? `<button class="btn btn-danger btn-sm" onclick="event.preventDefault();rejectGemCandidate(${candidate.id})">Reject</button>` : ''}
+            ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-sm" onclick="event.preventDefault();rerunGemCandidateExtraction(${candidate.id})">Re-run Extraction</button>` : ''}
+            ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-sm" onclick="event.preventDefault();moveGemCandidateToFullEvaluation(${candidate.id})">Re-run Evaluation</button>` : ''}
+          </div>
+        </div>
+      </summary>
+      <div style="margin-top:16px;border-top:1px solid var(--slate-200);padding-top:16px">
+        <div class="workflow-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <div>
+            <div class="workflow-section-title">Should We Bid?</div>
+            <div class="workflow-inline-note">${esc(recommendation.label)}</div>
+          </div>
+          <div>
+            <div class="workflow-section-title">Main Reason</div>
+            <div class="workflow-inline-note">${esc(reviewSummary)}</div>
+          </div>
+          <div>
+            <div class="workflow-section-title">Positive Points</div>
+            <ul class="workflow-reason-list">${workflowRenderList(strengths)}</ul>
+          </div>
+          <div>
+            <div class="workflow-section-title">Risk Factors</div>
+            <ul class="workflow-reason-list">${workflowRenderList(risks)}</ul>
+          </div>
+          <div>
+            <div class="workflow-section-title">Missing Documents</div>
+            <ul class="workflow-reason-list">${workflowRenderList(missingDocs)}</ul>
+          </div>
+          <div>
+            <div class="workflow-section-title">Eligibility Concerns</div>
+            <ul class="workflow-reason-list">${Array.isArray(concerns) && concerns.length && typeof concerns[0] === 'object'
+              ? concerns.slice(0, 5).map(c => `<li>${esc(c.name || 'Check')}: ${esc(c.detail || '')}</li>`).join('')
+              : workflowRenderList(concerns)}</ul>
+          </div>
+          <div>
+            <div class="workflow-section-title">Matched Company Strengths</div>
+            <ul class="workflow-reason-list">${workflowRenderList(companyStrengths)}</ul>
+          </div>
+          <div>
+            <div class="workflow-section-title">Final Score</div>
+            <div class="workflow-inline-note">${score != null ? `${esc(score)}/10` : 'Pending'}</div>
+          </div>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+function ensureUnifiedWorkflowUI() {
+  const uploadView = document.getElementById('view-upload');
+  if (!uploadView) return;
+
+  const legacyScanCard = document.getElementById('uploadGemRunBtn')?.closest('.card');
+  if (legacyScanCard && !legacyScanCard.classList.contains('workflow-scan-card')) {
+    legacyScanCard.classList.add('workflow-scan-card');
+    legacyScanCard.innerHTML = `
+      <div class="workflow-scan-header">
+        <div>
+          <div class="workflow-scan-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            <span>GeM Auto Scan</span>
+          </div>
+          <div class="workflow-scan-sub">
+            Automatically search GeM for your active keywords, evaluate matches with AI, and move strong industrial-fit tenders into your review flow before they reach All Tenders.
+          </div>
+        </div>
+        <div class="workflow-scan-badge">AI Watcher Active</div>
+      </div>
+      <div class="workflow-scan-body">
+        <div class="workflow-scan-grid">
+          <div class="workflow-scan-panel workflow-scan-panel-soft">
+            <div class="workflow-scan-panel-title">Scan Setup</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Target Date</label>
+                <input type="date" id="uploadScanDate">
+              </div>
+              <div class="form-group">
+                <label>Minimum Approval Score</label>
+                <input type="number" id="workflowApprovalScore" min="1" max="10" step="0.5" value="7">
+              </div>
+              <div class="form-group full">
+                <label>Keyword Multi-Select</label>
+                <div id="workflowKeywordList" class="workflow-chip-row"></div>
+              </div>
+            </div>
+          </div>
+          <div class="workflow-scan-actions">
+            <div class="workflow-scan-panel">
+              <div class="workflow-scan-panel-title">Keyword Control</div>
+              <div class="form-group" style="margin-bottom:12px">
+                <label>Add Keyword</label>
+                <input type="text" id="workflowKeywordInput" placeholder="e.g. Siemens">
+              </div>
+              <div class="workflow-toolbar">
+                <button class="btn btn-outline" type="button" onclick="saveWorkflowKeyword()">Add Keyword</button>
+                <button class="btn btn-primary" id="uploadGemRunBtn" onclick="runGemScanFromUpload()">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
+                  Run GeM Scan
+                </button>
+              </div>
+            </div>
+            <div class="workflow-scan-panel workflow-scan-status-slot">
+              <div class="workflow-scan-panel-title" style="margin-bottom:8px">Scan Status</div>
+              <div style="font-size:12.5px;color:var(--slate-500)">
+                Start a scan to fetch tenders, download matched PDFs, and push qualified results into the evaluation queue.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const link = uploadView.querySelector('a[href="#"]');
+  if (link && link.textContent.includes('Manage keywords')) {
+    link.style.display = 'none';
+  }
+
+  const orDivider = uploadView.querySelector('span');
+  if (orDivider && orDivider.textContent.trim() === 'OR') {
+    const dividerWrap = orDivider.parentElement;
+    if (dividerWrap) dividerWrap.style.display = 'none';
+  }
+
+  if (!document.getElementById('workflowScanStatus')) {
+    const gemCard = document.getElementById('uploadGemRunBtn')?.closest('.card');
+    if (gemCard) {
+      gemCard.insertAdjacentHTML('beforeend', `
+        <div id="workflowScanStatus" class="workflow-inline-note" style="margin-top:14px;display:none"></div>
+      `);
+    }
+  }
+
+  if (!document.getElementById('workflowUnifiedSection')) {
+    const host = uploadView.firstElementChild || uploadView;
+    if (!host) return;
+    host.insertAdjacentHTML('beforeend', `
+      <div id="workflowUnifiedSection" style="margin-top:28px">
+        <div class="card" style="margin-bottom:18px">
+          <div class="workflow-results-bar">
+              <div>
+              <div class="workflow-results-bar-title">Current Session Results</div>
+              <div class="workflow-results-bar-sub">Only tenders from the current upload or latest GeM scan in this session are shown here. Full saved history is available in Extracted &amp; Evaluated.</div>
+              </div>
+            <div class="workflow-chip-row">
+              <button class="workflow-filter-chip active" data-workflow-filter="ALL" onclick="setWorkflowCandidateFilter('ALL')">All</button>
+              <button class="workflow-filter-chip" data-workflow-filter="PENDING_APPROVAL" onclick="setWorkflowCandidateFilter('PENDING_APPROVAL')">Pending Approval</button>
+              <button class="workflow-filter-chip" data-workflow-filter="APPROVED" onclick="setWorkflowCandidateFilter('APPROVED')">Approved</button>
+              <button class="workflow-filter-chip" data-workflow-filter="REVIEW" onclick="setWorkflowCandidateFilter('REVIEW')">Review</button>
+              <button class="workflow-filter-chip" data-workflow-filter="REJECTED" onclick="setWorkflowCandidateFilter('REJECTED')">Rejected</button>
+            </div>
+          </div>
+          <div id="workflowCandidateCards" class="workflow-table-wrap">
+            <div class="workflow-table-empty"><span class="spinner"></span></div>
+          </div>
+        </div>
+
+        <div class="card workflow-collapsible">
+          <button type="button" class="btn btn-outline btn-sm" onclick="toggleWorkflowScanHistory()" style="margin-bottom:14px">
+            Recent GeM Scan History
+          </button>
+          <div id="workflowScanHistoryPanel" style="display:none">
+            <div style="overflow:auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Target Date</th>
+                    <th>Keywords</th>
+                    <th>Status</th>
+                    <th>Found</th>
+                    <th>New</th>
+                    <th>Approved</th>
+                    <th>Review</th>
+                    <th>Rejected</th>
+                    <th>Error</th>
+                    <th>View Results</th>
+                  </tr>
+                </thead>
+                <tbody id="workflowScanHistoryBody">
+                  <tr><td colspan="10" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+}
+
+function setWorkflowScanStatus(message, tone) {
+  const el = document.getElementById('workflowScanStatus');
+  if (!el) return;
+  el.style.display = message ? 'block' : 'none';
+  el.textContent = message || '';
+  el.style.color = tone === 'error'
+    ? 'var(--red-700)'
+    : tone === 'success'
+      ? 'var(--green-700)'
+      : 'var(--slate-600)';
+  el.style.background = tone === 'error'
+    ? 'var(--red-50)'
+    : tone === 'success'
+      ? 'var(--green-50)'
+      : 'var(--slate-50)';
+  el.style.border = '1px solid var(--slate-200)';
+  el.style.borderRadius = '12px';
+  el.style.padding = '10px 12px';
+}
+
+function setWorkflowCandidateFilter(filter) {
+  workflowCandidateFilter = filter;
+  document.querySelectorAll('[data-workflow-filter]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.workflowFilter === filter);
+  });
+  loadWorkflowCandidates();
+}
+
+function toggleWorkflowScanHistory() {
+  const panel = document.getElementById('workflowScanHistoryPanel');
+  if (!panel) return;
+  const willOpen = panel.style.display === 'none';
+  panel.style.display = willOpen ? 'block' : 'none';
+  if (willOpen) loadWorkflowScanRuns();
+}
+
+async function loadWorkflowKeywords() {
+  const wrap = document.getElementById('workflowKeywordList');
+  if (!wrap) return;
+  wrap.innerHTML = '<span class="workflow-inline-note">Loading keywords...</span>';
+  try {
+    const res = await fetch('/api/gem-watcher/keywords');
+    const keywords = await res.json();
+    if (!Array.isArray(keywords) || !keywords.length) {
+      wrap.innerHTML = '<span class="workflow-inline-note">No keywords yet. Add one to start scanning.</span>';
+      return;
+    }
+    wrap.innerHTML = keywords.map(k => `
+      <button
+        type="button"
+        class="workflow-chip${k.is_active ? ' active' : ''}"
+        data-keyword-id="${k.id}"
+        onclick="toggleWorkflowKeyword(${k.id})"
+      >${esc(k.keyword)}</button>
+    `).join('');
+  } catch (err) {
+    wrap.innerHTML = `<span class="workflow-inline-note" style="color:var(--red-600)">Failed to load keywords: ${esc(err.message)}</span>`;
+  }
+}
+
+async function saveWorkflowKeyword() {
+  const input = document.getElementById('workflowKeywordInput');
+  if (!input) return;
+  const keyword = input.value.trim();
+  if (!keyword) {
+    toast('Enter a keyword first', 'error');
+    return;
+  }
+  try {
+    const res = await fetch('/api/gem-watcher/keywords', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Could not add keyword');
+    input.value = '';
+    toast('Keyword added', 'success');
+    await loadWorkflowKeywords();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+function toggleWorkflowKeyword(id) {
+  const chip = document.querySelector(`[data-keyword-id="${id}"]`);
+  if (!chip) return;
+  chip.classList.toggle('active');
+}
+
+async function syncWorkflowKeywordSelection() {
+  const res = await fetch('/api/gem-watcher/keywords');
+  const keywords = await res.json();
+  const updates = [];
+  for (const keyword of keywords || []) {
+    const chip = document.querySelector(`[data-keyword-id="${keyword.id}"]`);
+    if (!chip) continue;
+    const shouldBeActive = chip.classList.contains('active');
+    if (!!keyword.is_active !== shouldBeActive) {
+      updates.push(fetch(`/api/gem-watcher/keywords/${keyword.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: shouldBeActive }),
+      }));
+    }
+  }
+  if (updates.length) {
+    const results = await Promise.all(updates);
+    const failed = results.find(r => !r.ok);
+    if (failed) throw new Error('Some keyword selections could not be saved');
+  }
+}
+
+async function loadWorkflowCandidates() {
+  ensureUnifiedWorkflowUI();
+  const wrap = document.getElementById('workflowCandidateCards');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></div>';
+  try {
+    const [candidateRes] = await Promise.all([
+      fetch('/api/gem-candidates'),
+    ]);
+    const candidates = await candidateRes.json();
+    gemCandidateListCache = Array.isArray(candidates) ? candidates : [];
+    const manualItems = readWorkflowManualResults();
+    const allItems = [
+      ...manualItems,
+      ...gemCandidateListCache.map(c => ({ ...c, source: 'GeM Auto' })),
+    ].sort((a, b) => String(b.created_at || b.created_at || b.bid_end_date || '').localeCompare(String(a.created_at || a.bid_end_date || '')));
+
+    const filtered = allItems.filter(item => workflowMatch(item, workflowCandidateFilter));
+    if (!filtered.length) {
+      wrap.innerHTML = '<div class="workflow-inline-note">No tenders match this filter yet.</div>';
+      return;
+    }
+    wrap.innerHTML = filtered.map(workflowCandidateRow).join('');
+  } catch (err) {
+    wrap.innerHTML = `<div class="workflow-inline-note" style="color:var(--red-600)">Failed to load workflow tenders: ${esc(err.message)}</div>`;
+  }
+}
+
+async function loadWorkflowScanRuns() {
+  const tbody = document.getElementById('workflowScanHistoryBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--slate-400);padding:16px 0"><span class="spinner"></span></td></tr>';
+  try {
+    const [runRes, keywordRes] = await Promise.all([
+      fetch('/api/gem-watcher/scan-runs'),
+      fetch('/api/gem-watcher/keywords'),
+    ]);
+    const runs = await runRes.json();
+    const keywords = await keywordRes.json();
+    const keywordText = (keywords || []).filter(k => k.is_active).map(k => k.keyword).join(', ') || 'Active keywords';
+    if (!Array.isArray(runs) || !runs.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="workflow-inline-note">No scan history yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = runs.slice(0, 8).map(run => `
+      <tr>
+        <td>${esc(run.scan_target_date || '—')}</td>
+        <td>${esc(keywordText)}</td>
+        <td><span class="badge ${run.status === 'COMPLETED' ? 'badge-success' : run.status === 'FAILED' ? 'badge-danger' : run.status === 'PARTIAL_FAILED' ? 'badge-warning' : 'badge-slate'}">${esc(run.status || '—')}</span></td>
+        <td>${esc(run.total_found ?? 0)}</td>
+        <td>${esc(run.new_found ?? 0)}</td>
+        <td>${esc(run.approved_count ?? 0)}</td>
+        <td>${esc(run.review_count ?? 0)}</td>
+        <td>${esc(run.rejected_count ?? 0)}</td>
+        <td>${run.error_message ? `<button class="btn btn-outline btn-xs" onclick="toggleWorkflowRunError(${run.id})">View Error</button>` : `<span style="color:var(--slate-400)">—</span>`}</td>
+        <td><button class="btn btn-outline btn-xs" onclick="focusWorkflowResults()">View Results</button></td>
+      </tr>
+      ${run.error_message ? `
+      <tr id="workflowRunError-${run.id}" style="display:none">
+        <td colspan="10" style="color:var(--red-600);font-size:12px;padding-top:0">${esc(run.error_message)}</td>
+      </tr>` : ''}
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red-600)">Failed to load scan history: ${esc(err.message)}</td></tr>`;
+  }
+}
+
+function toggleWorkflowRunError(runId) {
+  const row = document.getElementById(`workflowRunError-${runId}`);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+function focusWorkflowResults() {
+  setWorkflowCandidateFilter('ALL');
+  const section = document.getElementById('workflowUnifiedSection');
+  if (section?.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function pollWorkflowScanRun(runId) {
+  clearInterval(workflowScanPollTimer);
+  setWorkflowScanRunningUI(true, runId);
+  workflowScanPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/gem-watcher/scan-runs/${runId}`);
+      const run = await res.json();
+      if (run.finished_at) {
+        clearInterval(workflowScanPollTimer);
+        setWorkflowScanRunningUI(false);
+        if (run.status === 'FAILED' || run.status === 'BLOCKED') {
+          setWorkflowScanStatus(`Scan failed: ${run.error_message || 'unknown error'}`, 'error');
+        } else if (run.status === 'PARTIAL_FAILED') {
+          setWorkflowScanStatus(`Scan partially completed: found ${run.total_found || 0}, review ${run.review_count || 0}, rejected ${run.rejected_count || 0}.`, 'info');
+        } else if (run.status === 'CANCELLED' || run.status === 'CANCELLED_BY_USER') {
+          setWorkflowScanStatus(`Scan stopped: found ${run.total_found || 0}, new ${run.new_found || 0}.`, 'info');
+        } else {
+          setWorkflowScanStatus(`Scan completed: found ${run.total_found || 0}, new ${run.new_found || 0}, approved ${run.approved_count || 0}.`, 'success');
+        }
+        loadWorkflowCandidates();
+        loadWorkflowScanRuns();
+      } else {
+        setWorkflowScanStatus(`Scanning GeM... step ${run.current_step || 'RUNNING'} | found ${run.total_found || 0} | new ${run.new_found || 0}`, 'info');
+      }
+    } catch (_) {
+      clearInterval(workflowScanPollTimer);
+      setWorkflowScanRunningUI(false);
+    }
+  }, 4000);
+}
+
+async function loadUnifiedWorkflow() {
+  ensureUnifiedWorkflowUI();
+  const activeRunId = getWorkflowActiveScanRunId();
+  if (activeRunId) {
+    setWorkflowScanRunningUI(true, activeRunId);
+    pollWorkflowScanRun(activeRunId);
+  } else {
+    setWorkflowScanRunningUI(false);
+  }
+  await Promise.all([
+    loadWorkflowKeywords(),
+    loadWorkflowCandidates(),
+  ]);
+}
+
+async function runGemScanFromUpload() {
+  const dateInput = document.getElementById('uploadScanDate');
+  const scanDate = dateInput?.value;
+  if (!scanDate) {
+    toast('Please pick a target date', 'error');
+    return;
+  }
+  setWorkflowScanRunningUI(true);
+  try {
+    await syncWorkflowKeywordSelection();
+    setWorkflowScanStatus('Starting GeM auto scan...', 'info');
+    const res = await fetch('/api/gem-watcher/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scan_target_date: scanDate }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Could not start scan');
+    setWorkflowScanRunningUI(true, data.run_id);
+    toast('GeM scan started', 'success');
+    await loadWorkflowScanRuns();
+    await loadWorkflowCandidates();
+    pollWorkflowScanRun(data.run_id);
+  } catch (err) {
+    setWorkflowScanStatus('Scan failed to start: ' + err.message, 'error');
+    toast('Error: ' + err.message, 'error');
+    setWorkflowScanRunningUI(false);
+  }
+}
+
+async function stopWorkflowScan() {
+  const runId = getWorkflowActiveScanRunId();
+  if (!runId) {
+    toast('No running scan found', 'error');
+    return;
+  }
+  if (!confirm('Stop the running scan? Tenders already processed will stay saved.')) return;
+  const stopBtn = document.getElementById('uploadGemStopBtn');
+  if (stopBtn) stopBtn.disabled = true;
+  try {
+    const res = await fetch(`/api/gem-watcher/scan-runs/${runId}/cancel`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Could not stop scan');
+    setWorkflowScanStatus(data.message || 'Stop requested. Waiting for scan to halt...', 'info');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    if (stopBtn) stopBtn.disabled = false;
+  }
+}
+
+async function approveGemCandidate(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/approve`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Approve failed');
+    toast('Tender approved and moved to All Tenders', 'success');
+    await loadWorkflowCandidates();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+function showGemCandidateExplanation(id) {
+  const candidate = gemCandidateListCache.find(x => x.id === id);
+  if (!candidate) {
+    toast('Candidate not found', 'error');
+    return;
+  }
+  alert(workflowReason(candidate));
+}
+
+async function moveGemCandidateToReview(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Move to review failed');
+    toast('Tender moved to review', 'success');
+    await loadWorkflowCandidates();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function rejectGemCandidate(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Reject failed');
+    toast('Tender rejected', 'success');
+    await loadWorkflowCandidates();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function deleteGemCandidate(id) {
+  if (!confirm('Delete this extracted tender? This removes it from the extracted/evaluated queue.')) return;
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && res.status !== 204) throw new Error(data.detail || 'Delete failed');
+    toast('Tender deleted', 'success');
+    await loadWorkflowCandidates();
+    await loadGemCandidates('gem-candidates');
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function moveGemCandidateToFullEvaluation(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/full-evaluate`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Full evaluation failed');
+    toast('Full evaluation started', 'success');
+    await loadWorkflowCandidates();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function rerunGemCandidateExtraction(id) {
+  try {
+    const res = await fetch(`/api/gem-candidates/${id}/rerun-extraction`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Re-run extraction failed');
+    toast('Extraction re-run started', 'success');
+    await loadWorkflowCandidates();
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+function workflowRenderCompactList(values) {
+  if (!Array.isArray(values) || !values.length) return '<div class="workflow-inline-note">None noted.</div>';
+  return `<ul class="workflow-reason-list">${workflowRenderList(values)}</ul>`;
+}
+
+function workflowHasMeaningfulList(values) {
+  if (!Array.isArray(values)) return false;
+  return values.some(value => {
+    if (value == null) return false;
+    if (typeof value === 'object') {
+      return Object.values(value).some(part => String(part || '').trim());
+    }
+    return String(value).trim() !== '';
+  });
+}
+
+workflowCandidateRow = function(candidate) {
+  const status = workflowNormalizedStatus(candidate);
+  const recommendation = workflowRecommendation(candidate);
+  const source = candidate?.source || 'GeM Auto';
+  const isManual = source === 'Manual Upload';
+  const evaluationStage = String(candidate?.evaluation_stage || '');
+  const keywordScore = candidate?.keyword_fit_score ?? candidate?.keyword_pre_score ?? null;
+  const finalScore = (
+    isManual || evaluationStage.startsWith('FULL_')
+      ? (candidate?.evaluation_score ?? candidate?.score ?? null)
+      : null
+  );
+  const title = candidate?.title || candidate?.tender_title || candidate?.tender_number || candidate?.gem_bid_no || 'Untitled Tender';
+  const matchedKeyword = Array.isArray(candidate?.matched_keywords)
+    ? candidate.matched_keywords.join(', ')
+    : (candidate?.matched_keyword || '—');
+  const matchedBrand = Array.isArray(candidate?.matched_brands)
+    ? candidate.matched_brands.join(', ')
+    : (candidate?.matched_brand || '—');
+  const matchedProduct = Array.isArray(candidate?.matched_products || candidate?.matched_product_keywords)
+    ? (candidate.matched_products || candidate.matched_product_keywords).join(', ')
+    : (candidate?.matched_product || '—');
+  const pdfHref = candidate?.pdf_href || (candidate?.pdf_file_id ? `/files/${candidate.pdf_file_id}` : '');
+  const scoreMarkup = `
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+      ${keywordScore != null ? `<span class="badge badge-info" title="Keyword fit score">Keyword ${esc(keywordScore)}/10</span>` : ''}
+      ${finalScore != null
+        ? `<span class="badge badge-success" title="Final evaluation score">Final ${esc(finalScore)}/10</span>`
+        : (!isManual ? `<span style="font-size:12px;color:var(--slate-500)">Final pending</span>` : '')
+      }
+    </div>
+  `;
+  const strengths = candidate?.strengths || candidate?.positive_points || [];
+  const risks = candidate?.risks || candidate?.risk_factors || [];
+  const missingDocs = candidate?.missing_documents || candidate?.missing_information || [];
+  const concerns = candidate?.eligibility_concerns || candidate?.checks || [];
+  const companyStrengths = candidate?.matched_company_strengths || candidate?.matched_strengths || [];
+  const reviewSummary = workflowReason(candidate);
+  const buyer = candidate?.organisation || candidate?.organization_name || '—';
+  const itemCategory = candidate?.item_category || candidate?.department || '—';
+  const bidNo = candidate?.gem_bid_no || '—';
+  const tenderNo = candidate?.tender_number || '—';
+  const pdfCell = pdfHref
+    ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">View PDF</a>`
+    : `<span style="color:var(--slate-400)">—</span>`;
+  const actions = `
+    <div class="workflow-action-stack">
+      ${pdfHref ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">PDF</a>` : ''}
+      ${isManual ? `<button class="btn btn-outline btn-xs" onclick="showView('review')">Open Review</button>` : ''}
+      ${!isManual ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${candidate.id})">Approve</button>` : ''}
+      ${!isManual ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${candidate.id})">Review</button>` : ''}
+      ${!isManual ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${candidate.id})">Reject</button>` : ''}
+      ${!isManual && candidate?.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="deleteGemCandidate(${candidate.id})">Delete</button>` : ''}
+      ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${candidate.id})">Re-Extract</button>` : ''}
+      ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${candidate.id})">Re-Evaluate</button>` : ''}
+    </div>
+  `;
+  const concernsMarkup = Array.isArray(concerns) && concerns.length && typeof concerns[0] === 'object'
+    ? `<ul class="workflow-reason-list">${concerns.slice(0, 5).map(c => `<li>${esc(c.name || 'Check')}: ${esc(c.detail || '')}</li>`).join('')}</ul>`
+    : workflowRenderCompactList(concerns);
+  const detailCards = [];
+
+  if (workflowHasMeaningfulList(strengths)) {
+    detailCards.push(`
+      <div class="workflow-detail-card span-4">
+        <div class="workflow-detail-card-title">Positive Points</div>
+        ${workflowRenderCompactList(strengths)}
+      </div>
+    `);
+  }
+  if (workflowHasMeaningfulList(risks)) {
+    detailCards.push(`
+      <div class="workflow-detail-card span-4">
+        <div class="workflow-detail-card-title">Risk Factors</div>
+        ${workflowRenderCompactList(risks)}
+      </div>
+    `);
+  }
+  if (workflowHasMeaningfulList(missingDocs)) {
+    detailCards.push(`
+      <div class="workflow-detail-card span-4">
+        <div class="workflow-detail-card-title">Missing Documents</div>
+        ${workflowRenderCompactList(missingDocs)}
+      </div>
+    `);
+  }
+  if (workflowHasMeaningfulList(concerns)) {
+    detailCards.push(`
+      <div class="workflow-detail-card span-6">
+        <div class="workflow-detail-card-title">Eligibility Concerns</div>
+        ${concernsMarkup}
+      </div>
+    `);
+  }
+  if (workflowHasMeaningfulList(companyStrengths)) {
+    detailCards.push(`
+      <div class="workflow-detail-card span-6">
+        <div class="workflow-detail-card-title">Matched Company Strengths</div>
+        ${workflowRenderCompactList(companyStrengths)}
+      </div>
+    `);
+  }
+
+  return `
+    <tr class="workflow-main-row">
+      <td>
+        <div class="workflow-inline-stack">
+          <span class="badge ${workflowSourceBadge(source)}">${esc(source)}</span>
+          <span class="badge ${workflowStatusBadge(status)}">${esc(workflowDecisionLabel(status))}</span>
+        </div>
+      </td>
+      <td class="workflow-title-cell">
+        <div class="workflow-title-main">${esc(title)}</div>
+        <div class="workflow-title-sub">GeM Bid: ${esc(bidNo)} | Tender No: ${esc(tenderNo)}</div>
+      </td>
+      <td>${esc(buyer)}</td>
+      <td>${esc(itemCategory)}</td>
+      <td>${esc(matchedKeyword)}</td>
+      <td>${esc(matchedBrand)}</td>
+      <td>${esc(matchedProduct)}</td>
+      <td>${scoreMarkup}</td>
+      <td><span class="badge ${recommendation.badge}">${esc(recommendation.label)}</span></td>
+      <td>${pdfCell}</td>
+      <td>${actions}</td>
+    </tr>
+    <tr class="workflow-detail-row">
+      <td colspan="11">
+        <div class="workflow-detail-grid">
+          <div class="workflow-detail-card span-12">
+            <div class="workflow-detail-card-title">Main Reason</div>
+            <div class="workflow-detail-card-maintext">${esc(reviewSummary)}</div>
+          </div>
+          ${detailCards.join('')}
+        </div>
+      </td>
+    </tr>
+  `;
+};
+
+loadWorkflowCandidates = async function() {
+  ensureUnifiedWorkflowUI();
+  const wrap = document.getElementById('workflowCandidateCards');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="workflow-table-empty"><span class="spinner"></span></div>';
+  try {
+    const activeRunId = getWorkflowActiveScanRunId();
+    const candidateUrl = activeRunId
+      ? `/api/gem-candidates?run_id=${encodeURIComponent(activeRunId)}`
+      : null;
+    const candidateRes = candidateUrl
+      ? await fetch(candidateUrl)
+      : { json: async () => [] };
+    const candidates = await candidateRes.json();
+    gemCandidateListCache = Array.isArray(candidates) ? candidates : [];
+    const manualItems = readWorkflowManualResults();
+    const allItems = [
+      ...manualItems,
+      ...gemCandidateListCache.map(c => ({ ...c, source: 'GeM Auto' })),
+    ].sort((a, b) => String(b.created_at || b.bid_end_date || '').localeCompare(String(a.created_at || a.bid_end_date || '')));
+    const filtered = allItems.filter(item => workflowMatch(item, workflowCandidateFilter));
+    if (!filtered.length) {
+      wrap.innerHTML = '<div class="workflow-table-empty">Current upload or latest scan results will appear here.</div>';
+      return;
+    }
+    const activeRunLabel = activeRunId ? `Latest scan run #${activeRunId}` : 'Current manual upload session';
+    wrap.innerHTML = `
+      <div style="padding:10px 4px 14px;color:var(--slate-500);font-size:12.5px;font-weight:600">
+        ${esc(activeRunLabel)} · ${esc(filtered.length)} tender(s) visible
+      </div>
+      <table class="workflow-table">
+        <thead>
+          <tr>
+            <th>Source / Status</th>
+            <th>Tender</th>
+            <th>Buyer</th>
+            <th>Category</th>
+            <th>Keyword</th>
+            <th>Brand</th>
+            <th>Product</th>
+            <th>Scores</th>
+            <th>Recommendation</th>
+            <th>PDF</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${filtered.map(workflowCandidateRow).join('')}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    wrap.innerHTML = `<div class="workflow-table-empty" style="color:var(--red-600)">Failed to load workflow tenders: ${esc(err.message)}</div>`;
+  }
+};
+
+loadGemCandidates = async function(sectionName) {
+  const tbody = document.getElementById('gemCandidatesBody');
+  const empty = document.getElementById('gemCandidatesEmpty');
+  if (!tbody || !empty) return;
+  const currentSection = sectionName || document.querySelector('.nav-item.active')?.id?.replace('nav-', '') || 'gem-candidates';
+  const section = _gemSectionConfig(currentSection);
+  document.getElementById('gemCandidatesSectionTitle').textContent = section.title;
+  const filterEl = document.getElementById('gemCandidateStatusFilter');
+  if (section.forcedStatus) filterEl.value = section.forcedStatus;
+  const status = section.forcedStatus || filterEl.value;
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--slate-400);padding:24px"><span class="spinner"></span></td></tr>';
+  try {
+    const url = status ? `/api/gem-candidates?status=${encodeURIComponent(status)}` : '/api/gem-candidates';
+    const res = await fetch(url);
+    const candidates = await res.json();
+    gemCandidateListCache = Array.isArray(candidates) ? candidates : [];
+    if (!gemCandidateListCache.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = gemCandidateListCache.map(c => `
+      <tr style="vertical-align:top">
+        <td style="padding:10px 12px;white-space:nowrap;font-weight:700;color:var(--slate-600)">#${esc(c.scan_run_id ?? '—')}</td>
+        <td style="padding:10px 12px">${(c.matched_keywords || []).map(k => `<span class="badge badge-info">${esc(k)}</span>`).join(' ') || '—'}</td>
+        <td style="padding:10px 12px;font-weight:700;white-space:nowrap;font-size:12.5px">${esc(c.gem_bid_no || '—')}</td>
+        <td style="padding:10px 12px;min-width:260px">
+          <div style="font-weight:700;color:var(--slate-800)">${_gemClamp(c.title, 2, 260)}</div>
+          <div style="font-size:12px;color:var(--slate-500);margin-top:4px">
+            ${(c.matched_brands || []).slice(0, 3).map(b => `<span class="badge badge-info">${esc(b)}</span>`).join(' ')}
+            ${(c.matched_products || c.matched_product_keywords || []).slice(0, 2).map(p => `<span class="badge badge-slate">${esc(p)}</span>`).join(' ')}
+          </div>
+        </td>
+        <td style="padding:10px 12px;min-width:180px">
+          <div>${_gemClamp(c.organisation, 2, 180)}</div>
+          <div style="font-size:12px;color:var(--slate-500);margin-top:4px">${_gemClamp(c.department, 1, 180)}</div>
+        </td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.bid_end_date || '—'}</td>
+        <td style="padding:10px 12px">${c.pdf_file_id ? `<a class="btn btn-outline btn-xs" href="/files/${c.pdf_file_id}" target="_blank" rel="noopener">View PDF</a>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.keyword_fit_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_fit_score)}/10</span>` : c.keyword_pre_score != null ? `<span class="badge badge-info" style="font-weight:700">${esc(c.keyword_pre_score)}/10</span>` : '—'}</td>
+        <td style="padding:10px 12px;text-align:center">${c.evaluation_score != null ? `<span class="badge badge-success" style="font-weight:700">${esc(c.evaluation_score)}/10</span>` : `<span style="color:var(--slate-400)">Pending</span>`}</td>
+        <td style="padding:10px 12px;white-space:nowrap">${c.evaluation_stage ? `<span class="badge badge-slate">${esc(c.evaluation_stage)}</span>` : '—'}</td>
+        <td style="padding:10px 12px;white-space:nowrap"><span class="badge ${GEM_STATUS_BADGE[c.status] || 'badge-slate'}">${esc(c.status)}</span></td>
+        <td style="padding:10px 12px;min-width:260px">${_gemClamp(c.decision_reason || c.review_reason || c.rejection_reason || c.keyword_fit_reason || c.keyword_evaluation_reason || c.evaluation_reason || c.extraction_error_message, 3, 280, 'var(--slate-500)')}</td>
+        <td style="padding:10px 12px;display:flex;gap:4px;flex-wrap:wrap">
+          ${c.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${c.id})">Re-run Extraction</button>` : ''}
+          ${c.pdf_file_id && c.status !== 'APPROVED' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${c.id})">Re-run Eval</button>` : ''}
+          ${c.status !== 'APPROVED' ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${c.id})">To All</button>` : '—'}
+          ${c.status !== 'REVIEW' ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${c.id})">Review</button>` : ''}
+          ${c.status !== 'REJECTED' ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${c.id})">Reject</button>` : ''}
+          <button class="btn btn-outline btn-xs" onclick="showGemCandidateExplanation(${c.id})">Why</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="13" style="color:var(--red-600);padding:16px">Failed: ${esc(err.message)}</td></tr>`;
+  }
+};
+
+const _originalRenderEvaluationResult = renderEvaluationResult;
+renderEvaluationResult = function(data) {
+  updateWorkflowManualEvaluation(data);
+  _originalRenderEvaluationResult(data);
+};
 </script>
 </body>
 </html>

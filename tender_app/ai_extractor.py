@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import importlib.util
+from pathlib import Path
 import pdfplumber
 from openai import OpenAI
 
@@ -17,6 +19,18 @@ RELEVANT_KEYWORDS = [
 ]
 
 MAX_CHUNK_CHARS = 30_000  # ~7 500 tokens — well within gpt-4o limits
+CRITICAL_TENDER_FIELDS = (
+    "tender_number",
+    "date",
+    "bid_end_datetime",
+    "bid_opening_datetime",
+    "department_name",
+    "organization_name",
+    "office_name_location",
+    "total_quantity",
+)
+MIN_CRITICAL_FIELDS_FOR_LOCAL_SUCCESS = int(os.environ.get("AI_EXTRACT_MIN_CRITICAL_FIELDS", "5"))
+_GEM_EXTRACTOR_MODULE = None
 
 EXTRACTION_PROMPT = """You are a tender data extraction system for Indian Government procurement (GeM — Government e-Marketplace) bids.
 
@@ -37,7 +51,10 @@ Required JSON structure:
     "office_name_location": "string or null",
     "total_quantity": "string or null",
     "make": "string or null",
-    "tender_approx_value": "string or null"
+    "tender_approx_value": "string or null",
+    "item_category": "string or null",
+    "primary_product": "string or null",
+    "delivery_period": "string or null"
   },
   "items": [
     {
@@ -137,6 +154,81 @@ def extract_chunk(client: OpenAI, chunk_text: str) -> dict:
     return json.loads(response.choices[0].message.content)
 
 
+def _load_gem_extractor_module():
+    global _GEM_EXTRACTOR_MODULE
+    if _GEM_EXTRACTOR_MODULE is not None:
+        return _GEM_EXTRACTOR_MODULE
+
+    root = Path(__file__).resolve().parents[1]
+    extractor_path = root / "gem_tender_tool" / "extract.py"
+    if not extractor_path.exists():
+        _GEM_EXTRACTOR_MODULE = None
+        return None
+
+    spec = importlib.util.spec_from_file_location("gem_structured_extract", extractor_path)
+    if not spec or not spec.loader:
+        _GEM_EXTRACTOR_MODULE = None
+        return None
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _GEM_EXTRACTOR_MODULE = module
+    return module
+
+
+def _deterministic_gem_extract(pdf_path: str) -> dict | None:
+    module = _load_gem_extractor_module()
+    if not module or not hasattr(module, "parse_tender"):
+        return None
+
+    try:
+        parsed = module.parse_tender(pdf_path)
+    except Exception:
+        return None
+
+    tender_number = parsed.get("bid_number") or parsed.get("tender_number")
+    make = parsed.get("primary_product") or parsed.get("item_category") or parsed.get("boq_title")
+    items = []
+    for row in parsed.get("schedules") or []:
+        item_text = row.get("item") or ""
+        part_match = re.search(r"\b(?:model|order\s*code|ordercode)\s*[-: ]\s*([A-Z0-9./_-]+)", item_text, re.I)
+        items.append({
+            "part_number": part_match.group(1).strip() if part_match else None,
+            "item_description": item_text or None,
+            "quantity": row.get("quantity"),
+        })
+
+    required_documents = []
+    for doc in parsed.get("required_documents") or []:
+        label = doc.get("label") if isinstance(doc, dict) else str(doc)
+        label = (label or "").strip()
+        if label:
+            required_documents.append(label)
+
+    return {
+        "tender_information": {
+            "tender_number": tender_number,
+            "date": parsed.get("bid_dated"),
+            "bid_end_datetime": parsed.get("bid_end_datetime"),
+            "bid_opening_datetime": parsed.get("bid_opening_datetime"),
+            "department_name": parsed.get("department"),
+            "organization_name": parsed.get("organisation"),
+            "office_name_location": parsed.get("office"),
+            "total_quantity": parsed.get("total_quantity"),
+            "make": make,
+            "tender_approx_value": None,
+            "item_category": parsed.get("item_category"),
+            "primary_product": parsed.get("primary_product"),
+            "delivery_period": None,
+        },
+        "items": items,
+        "required_documents": required_documents,
+        "emd": parsed.get("emd") or {},
+        "technical_specifications": [row.get("item") for row in (parsed.get("schedules") or []) if row.get("item")][:20],
+        "extraction_mode": "deterministic_gem",
+    }
+
+
 def merge_results(results: list) -> dict:
     """
     Merge partial results from multiple chunks.
@@ -155,9 +247,14 @@ def merge_results(results: list) -> dict:
             "total_quantity": None,
             "make": None,
             "tender_approx_value": None,
+            "item_category": None,
+            "primary_product": None,
+            "delivery_period": None,
         },
         "items": [],
         "required_documents": [],
+        "emd": {},
+        "technical_specifications": [],
     }
 
     seen_items = set()
@@ -185,7 +282,94 @@ def merge_results(results: list) -> dict:
                     seen_docs.add(norm)
                     merged["required_documents"].append(doc.strip())
 
+        if not merged["emd"] and result.get("emd"):
+            merged["emd"] = result.get("emd") or {}
+        if not merged["technical_specifications"] and result.get("technical_specifications"):
+            merged["technical_specifications"] = list(result.get("technical_specifications") or [])[:20]
+
     return merged
+
+
+def _merge_prefer_first(results: list) -> dict:
+    merged = {
+        "tender_information": {
+            "tender_number": None,
+            "date": None,
+            "bid_end_datetime": None,
+            "bid_opening_datetime": None,
+            "department_name": None,
+            "organization_name": None,
+            "office_name_location": None,
+            "total_quantity": None,
+            "make": None,
+            "tender_approx_value": None,
+            "item_category": None,
+            "primary_product": None,
+            "delivery_period": None,
+        },
+        "items": [],
+        "required_documents": [],
+        "emd": {},
+        "technical_specifications": [],
+    }
+
+    seen_items = set()
+    seen_docs = set()
+    modes = []
+
+    for result in results:
+        if not result:
+            continue
+
+        mode = result.get("extraction_mode")
+        if mode:
+            modes.append(mode)
+
+        ti = result.get("tender_information") or {}
+        for key in merged["tender_information"]:
+            if merged["tender_information"][key] is None and ti.get(key):
+                merged["tender_information"][key] = ti[key]
+
+        for item in result.get("items") or []:
+            dedup_key = (
+                (item.get("part_number") or "").strip().lower(),
+                (item.get("item_description") or "").strip().lower()[:80],
+                (item.get("quantity") or "").strip().lower(),
+            )
+            if dedup_key not in seen_items:
+                seen_items.add(dedup_key)
+                merged["items"].append(item)
+
+        for doc in result.get("required_documents") or []:
+            label = doc if isinstance(doc, str) else doc.get("label")
+            label = (label or "").strip()
+            if label:
+                norm = label.lower()
+                if norm not in seen_docs:
+                    seen_docs.add(norm)
+                    merged["required_documents"].append(label)
+
+        if not merged["emd"] and result.get("emd"):
+            merged["emd"] = result.get("emd") or {}
+        if not merged["technical_specifications"] and result.get("technical_specifications"):
+            merged["technical_specifications"] = list(result.get("technical_specifications") or [])[:20]
+
+    if modes:
+        merged["extraction_mode"] = "+".join(modes)
+    return merged
+
+
+def _critical_field_count(result: dict) -> int:
+    ti = (result or {}).get("tender_information") or {}
+    return sum(1 for field in CRITICAL_TENDER_FIELDS if ti.get(field))
+
+
+def _is_local_extraction_good_enough(result: dict) -> bool:
+    if not result:
+        return False
+    return _critical_field_count(result) >= MIN_CRITICAL_FIELDS_FOR_LOCAL_SUCCESS and (
+        bool(result.get("items")) or bool(result.get("required_documents"))
+    )
 
 
 # ── Public entry point ──────────────────────────────────────────────────────
@@ -240,6 +424,12 @@ def _local_extract_from_text(text: str) -> dict:
             "total_quantity": qty,
             "make": item_category,
             "tender_approx_value": value,
+            "item_category": item_category,
+            "primary_product": item_category,
+            "delivery_period": _first_match(compact, [
+                r"Delivery\s*Period\s*[:|\-]?\s*([^\n\r|]+)",
+                r"Delivery\s*to\s*start\s*after\s*[:|\-]?\s*([^\n\r|]+)",
+            ]),
         },
         "items": [{"part_number": None, "item_description": item_category, "quantity": qty}] if item_category or qty else [],
         "required_documents": docs,
@@ -249,15 +439,27 @@ def _local_extract_from_text(text: str) -> dict:
 
 def process_pdf(pdf_path: str) -> dict:
     pages = extract_pages(pdf_path)
+    full_text = "\n\n".join(p["content"] for p in pages)
     relevant = filter_relevant_pages(pages)
     chunks = build_chunks(relevant)
+    deterministic = _deterministic_gem_extract(pdf_path)
+    local = _local_extract_from_text(full_text)
+    local_first = _merge_prefer_first([deterministic, local])
+
+    if _is_local_extraction_good_enough(local_first):
+        local_first["extraction_mode"] = local_first.get("extraction_mode") or "local_only"
+        return local_first
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key or api_key.strip() in {"", "YOUR_OPENAI_KEY_HERE"}:
-        return _local_extract_from_text("\n\n".join(p["content"] for p in pages))
+        return local_first
     client = OpenAI(api_key=api_key)
     try:
         results = [extract_chunk(client, chunk) for chunk in chunks]
-        return merge_results(results)
+        llm_merged = merge_results(results)
+        llm_merged["extraction_mode"] = "llm_full"
+        combined = _merge_prefer_first([local_first, llm_merged])
+        combined["extraction_mode"] = "hybrid_local_llm"
+        return combined
     except Exception:
-        return _local_extract_from_text("\n\n".join(p["content"] for p in pages))
+        return local_first
