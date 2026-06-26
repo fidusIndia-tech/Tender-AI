@@ -161,6 +161,16 @@ def _should_retry_with_edge(exc: Exception) -> bool:
     return os.name == "nt" and "ERR_NETWORK_ACCESS_DENIED" in message
 
 
+def _friendly_scan_error(exc: Exception) -> str:
+    message = str(exc or "")
+    if "Executable doesn't exist" in message and "playwright" in message.lower():
+        return (
+            "Playwright browser binary is missing in this environment. "
+            "Install it during deploy with: python -m playwright install --with-deps chromium"
+        )
+    return message
+
+
 def _detect_edge_executable() -> str | None:
     candidates = [
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -1275,7 +1285,7 @@ def execute_scan(run_id: int, scan_target_date, keyword=None):
         print(error_stack)
     except Exception as e:
         status = "FAILED"
-        error_messages.append(str(e))
+        error_messages.append(_friendly_scan_error(e))
         error_stack = traceback.format_exc()
         print(f"[gem_watcher] scan failed at step={current_step}: {type(e).__name__}: {e}")
         print(error_stack)

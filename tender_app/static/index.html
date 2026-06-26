@@ -1515,7 +1515,7 @@ body.col-resizing { cursor:col-resize !important; }
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
               Run GeM Scan
             </button>
-            <button class="btn btn-outline" id="uploadGemStopBtn" type="button" onclick="stopWorkflowScan()" style="display:none">
+            <button class="btn btn-outline" id="uploadGemStopBtn" type="button" onclick="stopWorkflowScan()" disabled title="No scan is running right now">
               Stop Scan
             </button>
           </div>
@@ -6518,14 +6518,14 @@ function setWorkflowScanRunningUI(running, runId = null) {
     if (runId != null) setWorkflowActiveScanRunId(runId);
     if (runBtn) runBtn.disabled = true;
     if (stopBtn) {
-      stopBtn.style.display = '';
       stopBtn.disabled = false;
+      stopBtn.title = 'Stop the currently running scan';
     }
   } else {
     if (runBtn) runBtn.disabled = false;
     if (stopBtn) {
-      stopBtn.style.display = 'none';
-      stopBtn.disabled = false;
+      stopBtn.disabled = true;
+      stopBtn.title = 'No scan is running right now';
     }
   }
 }
@@ -6865,6 +6865,9 @@ function ensureUnifiedWorkflowUI() {
                 <button class="btn btn-primary" id="uploadGemRunBtn" onclick="runGemScanFromUpload()">
                   <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
                   Run GeM Scan
+                </button>
+                <button class="btn btn-outline" id="uploadGemStopBtn" onclick="stopWorkflowScan()" disabled title="No scan is running right now">
+                  Stop Scan
                 </button>
               </div>
             </div>
@@ -7438,7 +7441,7 @@ workflowCandidateRow = function(candidate) {
       ${!isManual ? `<button class="btn btn-success btn-xs" onclick="approveGemCandidate(${candidate.id})">Approve & Send</button>` : ''}
       ${!isManual ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToReview(${candidate.id})">Move to Review</button>` : ''}
       ${!isManual ? `<button class="btn btn-danger btn-xs" onclick="rejectGemCandidate(${candidate.id})">Reject</button>` : ''}
-      ${!isManual && candidate?.status !== 'SENT_TO_ALL_TENDERS' ? `<button class="btn btn-outline btn-xs" onclick="deleteGemCandidate(${candidate.id})">Delete</button>` : ''}
+      ${!isManual && candidate?.status !== 'SENT_TO_ALL_TENDERS' ? `<button class="btn btn-danger btn-xs" onclick="deleteGemCandidate(${candidate.id})">Delete</button>` : ''}
       ${pdfHref ? `<a class="btn btn-outline btn-xs" href="${esc(pdfHref)}" target="_blank" rel="noopener">Download/View PDF</a>` : ''}
       ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="rerunGemCandidateExtraction(${candidate.id})">Re-Extract</button>` : ''}
       ${!isManual && candidate?.pdf_file_id ? `<button class="btn btn-outline btn-xs" onclick="moveGemCandidateToFullEvaluation(${candidate.id})">Re-Run Evaluation</button>` : ''}
