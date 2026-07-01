@@ -820,6 +820,119 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
 .badge-danger  { background:var(--red-100);    color:var(--red-700); }
 .badge-purple  { background:var(--purple-100); color:var(--purple-700); }
 .badge-slate   { background:var(--slate-100);  color:var(--slate-600); }
+.result-actions { display:flex; flex-wrap:wrap; gap:4px; }
+.notification-bell {
+  position:relative;
+  width:32px;
+  height:32px;
+  border-radius:8px;
+  border:1px solid var(--slate-200);
+  background:#fff;
+  color:var(--slate-600);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.notification-bell:hover { background:var(--slate-50); }
+.notification-count {
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--red-600);
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.notification-panel {
+  display:none;
+  position:absolute;
+  top:calc(100% + 10px);
+  right:0;
+  width:min(360px, calc(100vw - 32px));
+  max-height:420px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--slate-200);
+  border-radius:16px;
+  box-shadow:0 18px 48px rgba(15, 23, 42, 0.16);
+  z-index:9999;
+}
+.notification-panel.open { display:block; }
+.notification-panel-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--slate-100);
+}
+.notification-panel-list { padding:10px; display:flex; flex-direction:column; gap:8px; }
+.notification-card {
+  border:1px solid var(--slate-200);
+  border-radius:14px;
+  padding:12px;
+  background:linear-gradient(135deg,#ffffff 0%,#f9fcff 100%);
+}
+.notification-card.unread { border-color:#fecaca; background:linear-gradient(135deg,#fff7f7 0%,#ffffff 100%); }
+.notification-card-title { font-size:13px; font-weight:700; color:var(--slate-800); }
+.notification-card-message { margin-top:4px; font-size:12px; line-height:1.5; color:var(--slate-600); }
+.notification-card-meta {
+  margin-top:8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:11px;
+  color:var(--slate-400);
+}
+.notification-empty { padding:22px 16px; text-align:center; color:var(--slate-400); font-size:12px; }
+.result-summary-card {
+  border:1px solid #d9e6f2;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fff7ed 0%,#ffffff 58%,#f0fdf4 100%);
+  padding:18px 20px;
+  margin-bottom:18px;
+}
+.result-summary-grid {
+  display:grid;
+  grid-template-columns:minmax(180px, 220px) 1fr;
+  gap:16px;
+  align-items:start;
+}
+.result-summary-number { font-size:38px; line-height:1; font-weight:800; color:#0f172a; }
+.result-summary-label {
+  margin-top:8px;
+  font-size:12px;
+  font-weight:700;
+  color:#64748b;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.result-summary-list { display:flex; flex-direction:column; gap:8px; }
+.result-summary-item {
+  border:1px solid rgba(148,163,184,.2);
+  border-radius:14px;
+  background:rgba(255,255,255,.86);
+  padding:10px 12px;
+}
+.result-summary-item-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+@media (max-width: 900px) {
+  .result-summary-grid { grid-template-columns:1fr; }
+}
 
 /* ── Action Bar ──────────────────────────────────────────────────────────── */
 .action-bar {
@@ -1402,6 +1515,22 @@ body.col-resizing { cursor:col-resize !important; }
     <h2 id="topbarTitle">Upload Tender</h2>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="page-topbar-actions" id="topbarActions"></div>
+      <div id="notificationWrap" style="position:relative;">
+        <button class="notification-bell" onclick="toggleNotificationPanel()" title="Tender result notifications">
+          <span id="notificationCount" class="notification-count">0</span>
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.08 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+        </button>
+        <div id="notificationPanel" class="notification-panel">
+          <div class="notification-panel-head">
+            <div>
+              <div style="font-size:13px;font-weight:800;color:var(--slate-800)">Tender Notifications</div>
+              <div style="font-size:11px;color:var(--slate-400);margin-top:2px">Latest available result alerts from GeM</div>
+            </div>
+            <button class="btn btn-outline btn-xs" onclick="loadTenderNotifications(true)">Refresh</button>
+          </div>
+          <div id="notificationPanelList" class="notification-panel-list"></div>
+        </div>
+      </div>
       <!-- App Switcher -->
       <div id="appSwitcherWrap" style="position:relative;">
         <button onclick="toggleSwitcher()" title="Switch app" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--slate-200);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;" onmouseenter="this.style.background='var(--slate-50)'" onmouseleave="this.style.background='transparent'">
@@ -1429,6 +1558,18 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="workflow-page-hero">
       <div class="workflow-page-hero-title">Upload &amp; Evaluate Tenders</div>
       <div class="workflow-page-hero-sub">Manual PDF upload and GeM auto scan now work from one page. Review extracted tenders below before approving them into All Tenders.</div>
+    </div>
+    <div class="result-summary-card">
+      <div class="result-summary-grid">
+        <div>
+          <div class="result-summary-number" id="newResultsDeclaredCount">0</div>
+          <div class="result-summary-label">New Results Available</div>
+          <div style="margin-top:10px;font-size:12px;color:var(--slate-500)">Fresh GeM result alerts from tenders already saved in All Tenders.</div>
+        </div>
+        <div id="newResultsDeclaredList" class="result-summary-list">
+          <div class="notification-empty">No result declarations yet.</div>
+        </div>
+      </div>
     </div>
 
     <!-- Upload Zone -->
@@ -1725,7 +1866,8 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-make"    style="width:120px">
           <col id="col-vot"     style="width:100px">
           <col id="col-qty"     style="width:80px">
-          <col id="col-actions" style="width:120px">
+          <col id="col-result"  style="width:180px">
+          <col id="col-actions" style="width:180px">
           <col id="col-status"  style="width:120px">
           <col id="col-remark"  style="width:140px">
         </colgroup>
@@ -1806,6 +1948,7 @@ body.col-resizing { cursor:col-resize !important; }
             </th>
             <th class="has-resize" title="VoT = Valuation of Tender" style="position:relative">VoT (₹)<div class="col-resize-handle" onpointerdown="startColResize('vot',event)" ondblclick="resetColWidth('vot')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="text-align:center;position:relative">Qty<div class="col-resize-handle" onpointerdown="startColResize('qty',event)" ondblclick="resetColWidth('qty')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="position:relative">Result<div class="col-resize-handle" onpointerdown="startColResize('result',event)" ondblclick="resetColWidth('result')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="position:relative">Actions<div class="col-resize-handle" onpointerdown="startColResize('actions',event)" ondblclick="resetColWidth('actions')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;text-align:center;position:relative">
               Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
@@ -2252,6 +2395,45 @@ body.col-resizing { cursor:col-resize !important; }
   </div>
 </div>
 
+<div class="view" id="view-gem-result-debug">
+  <div style="max-width:1180px;margin:0 auto;display:grid;gap:18px">
+    <div class="workflow-page-hero">
+      <div class="workflow-page-hero-title">GeM Exact Result Search Debug</div>
+      <div class="workflow-page-hero-sub">Use this page to prove whether our backend is getting the exact GeM Bid/RA Status response for a known bid number before we trust the automatic watcher.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12m-12 5.25h12m-12 5.25h12M3.75 6.75h.008v.008H3.75V6.75zm0 5.25h.008v.008H3.75v-.008zm0 5.25h.008v.008H3.75v-.008z"/></svg>
+        Test GeM Exact Result Search
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>GeM Bid Number</label>
+          <input type="text" id="gemResultDebugBidNumber" placeholder="GEM/2026/B/7586698" value="GEM/2026/B/7586698">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn btn-primary" id="gemResultDebugBtn" onclick="testGemExactResultSearch()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          Test GeM Exact Result Search
+        </button>
+        <button class="btn btn-outline" type="button" onclick="prefillGemResultDebugFromSelection()">Use Selected Tender Bid</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m5.25-2.036A11.959 11.959 0 0112 21.75 11.959 11.959 0 013.75 7.714m16.5 0A11.959 11.959 0 0012 2.25 11.959 11.959 0 003.75 7.714"/></svg>
+        Debug Output
+      </div>
+      <div id="gemResultDebugOutput" style="display:grid;gap:14px">
+        <div class="notification-empty">Run a test search to inspect the GeM exact-search response.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <!-- GEM CANDIDATES VIEW                                                     -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -2423,6 +2605,7 @@ let pendingExtraction = null;
 const PAGE_TITLES = {
   upload: 'Upload & Evaluate Tenders',
   'gem-candidates': 'Extracted & Evaluated Tenders',
+  'gem-result-debug': 'GeM Result Debug',
   list:   'All Tenders',
   review: 'Review Tender',
   library:'Document Library',
@@ -2443,6 +2626,7 @@ const PAGE_ACTIONS = {
   'tender-portals': '',
   'gem-watcher': '',
   'gem-candidates': '',
+  'gem-result-debug': '',
   'gem-review-candidates': '',
   'gem-rejected-candidates': '',
 };
@@ -2456,6 +2640,9 @@ let companyProfileNameCache = '';
 let participantReportSearchTerm = '';
 let selectedBrandReportName = '';
 let brandReportSearchTerm = '';
+let tenderNotificationsCache = [];
+let knownUnreadNotificationIds = new Set();
+let notificationPollTimer = null;
 
 function normalizeParticipantName(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -2469,6 +2656,31 @@ function canonicalizeCompanyName(value) {
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+const GEM_BID_NUMBER_REGEX = /\b(GEM\/\d{4}\/B\/\d+)\b/i;
+
+function extractValidGemBidNumber(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const match = text.match(GEM_BID_NUMBER_REGEX);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function getCanonicalGemBidNumber(tender) {
+  if (!tender) return null;
+  const candidates = [
+    tender.gem_bidding_no,
+    tender.gem_bidding_number,
+    tender.tender_number,
+    tender.bid_number,
+    tender.gem_bid_number,
+  ];
+  for (const candidate of candidates) {
+    const bidNumber = extractValidGemBidNumber(candidate);
+    if (bidNumber) return bidNumber;
+  }
+  return null;
 }
 
 function shouldIncludeParticipantName(name) {
@@ -3582,6 +3794,9 @@ function _renderCurrentPage() {
   tbody.innerHTML = pageRows.map((t, idx) => {
     const rowNum = start + idx + 1;
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
+    const resultMeta = getResultStatusMeta(t);
+    const bidResultHref = resolveGemResultUrl(t.gem_result_url, getCanonicalGemBidNumber(t));
+    const raResultHref = resolveGemResultUrl(t.gem_ra_result_url, t.gem_ra_number);
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="expand-col" onclick="event.stopPropagation()">
@@ -3599,10 +3814,21 @@ function _renderCurrentPage() {
         <td class="col-make" title="${esc(t.make)}">${esc(t.make)||'—'}</td>
         <td class="col-vot" title="${esc(t.tender_approx_value)||''}">${esc(t.tender_approx_value)||'—'}</td>
         <td class="col-qty">${t.total_quantity!=null?t.total_quantity:'—'}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap;padding:3px 5px">
-          ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
-          <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
-          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete" style="padding:2px 5px;font-size:10px">✕</button>
+        <td onclick="event.stopPropagation()">
+          <div><span class="badge ${resultMeta.badge}">${esc(resultMeta.label)}</span></div>
+          <div style="margin-top:6px;font-size:10.5px;color:var(--slate-400)">
+            ${t.last_result_checked_at ? `Last checked: ${formatNotificationDate(t.last_result_checked_at)}` : 'Not checked yet'}
+          </div>
+        </td>
+        <td onclick="event.stopPropagation()" style="padding:6px 5px">
+          <div class="result-actions">
+            ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
+            <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
+            <button class="btn btn-outline btn-xs" onclick="checkTenderResultNow(${t.id}, event)" title="Check result now" style="padding:2px 6px;font-size:10px">Check Result</button>
+            ${bidResultHref ? `<a href="${esc(bidResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result search" style="padding:2px 6px;font-size:10px">View Bid Result</a>` : ''}
+            ${raResultHref ? `<a href="${esc(raResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result search" style="padding:2px 6px;font-size:10px">View RA Result</a>` : ''}
+            <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete" style="padding:2px 5px;font-size:10px">✕</button>
+          </div>
         </td>
         <td onclick="event.stopPropagation()">
           <div class="status-control-row">
@@ -3624,7 +3850,7 @@ function _renderCurrentPage() {
         </td>
       </tr>
       <tr class="expand-row" id="expandRow-${t.id}" style="display:none">
-        <td colspan="14" style="padding:0">
+        <td colspan="15" style="padding:0">
           <div class="expand-panel">
             <div class="expand-tabs" id="expandTabs-${t.id}">
               ${renderExpandTabs(t.id)}
@@ -3741,7 +3967,7 @@ const EXPAND_TEXT = {
   resultsTitle: 'GeM Results',
   resultsOpen: 'Open GeM Results',
   resultsCopy: 'Copy Bid Number',
-  resultsMissingBid: 'No bid number found for this tender',
+  resultsMissingBid: 'Valid GeM Bid Number not found. Please check extraction.',
   resultsOpened: 'GeM page opened for extension autofill',
   resultsCopied: 'Bid number copied',
   resultsClipboardFallback: 'Copy failed, but the bid number is shown below',
@@ -3986,8 +4212,7 @@ function renderExpandFutureSection(content) {
 
 function getExpandResultBidNumber(tenderId) {
   const tender = tenderListCache.find(t => t.id === tenderId);
-  if (!tender) return '';
-  return String(tender.tender_number || tender.gem_bidding_number || '').trim();
+  return getCanonicalGemBidNumber(tender) || '';
 }
 
 async function copyExpandResultBidNumber(tenderId) {
@@ -4886,7 +5111,7 @@ async function loadTenderList() {
   const tbody  = document.getElementById('tendersTableBody');
   const empty  = document.getElementById('listEmpty');
   const statRow = document.getElementById('statRow');
-  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
   try {
     const res = await fetch('/api/tenders');
     const tenders = await res.json();
@@ -4921,7 +5146,7 @@ async function loadTenderList() {
     renderTenderTable(tenders);
     showDeadlineReminder(tenders);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="14" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
   }
 }
 async function loadStartupDeadlineReminder() {
@@ -6110,6 +6335,282 @@ function toast(msg, type='success') {
   setTimeout(() => el.classList.remove('show'), 3200);
 }
 
+const RESULT_STATUS_META = {
+  PENDING: { label: 'Not Checked Yet', badge: 'badge-slate' },
+  NOT_AVAILABLE_YET: { label: 'Not Available Yet', badge: 'badge-slate' },
+  BID_RESULT_AVAILABLE: { label: 'Bid Result Available', badge: 'badge-info' },
+  RA_RESULT_AVAILABLE: { label: 'RA Result Available', badge: 'badge-warning' },
+  BID_AND_RA_RESULT_AVAILABLE: { label: 'Bid + RA Result Available', badge: 'badge-success' },
+  FAILED_TO_CHECK: { label: 'Failed to Check', badge: 'badge-danger' },
+};
+
+function formatNotificationDate(value) {
+  if (!value) return 'Just now';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return esc(value);
+  return dt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+}
+function buildGemResultSearchUrl(identifier) {
+  const value = String(identifier || '').trim().toUpperCase();
+  if (!value) return '';
+  return `https://bidplus.gem.gov.in/all-bids#bidrastatus-search-${encodeURIComponent(value)}`;
+}
+function isGemDocumentDownloadUrl(url) {
+  const value = String(url || '').trim().toLowerCase();
+  return value.includes('showbiddocument/') || value.includes('showradocumentpdf/');
+}
+function resolveGemResultUrl(rawUrl, fallbackIdentifier) {
+  const url = String(rawUrl || '').trim();
+  if (url && !isGemDocumentDownloadUrl(url)) return url;
+  return buildGemResultSearchUrl(fallbackIdentifier);
+}
+function getResultStatusMeta(tender) {
+  const key = String(tender?.gem_result_status || 'PENDING').toUpperCase();
+  return RESULT_STATUS_META[key] || RESULT_STATUS_META.PENDING;
+}
+function renderResultBadge(tender) {
+  const meta = getResultStatusMeta(tender);
+  return `<span class="badge ${meta.badge}">${esc(meta.label)}</span>`;
+}
+function setNotificationCount(count) {
+  const el = document.getElementById('notificationCount');
+  if (!el) return;
+  if (!count) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  el.textContent = count > 99 ? '99+' : String(count);
+}
+function renderResultSummaryCard() {
+  const unread = tenderNotificationsCache.filter(n => !n.is_read);
+  const countEl = document.getElementById('newResultsDeclaredCount');
+  const listEl = document.getElementById('newResultsDeclaredList');
+  if (countEl) countEl.textContent = String(unread.length);
+  if (!listEl) return;
+  if (!unread.length) {
+    listEl.innerHTML = '<div class="notification-empty">No result declarations yet.</div>';
+    return;
+  }
+  listEl.innerHTML = unread.slice(0, 4).map(n => {
+    const bidResultHref = resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number);
+    const raResultHref = resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number || n.tender_number);
+    return `
+      <div class="result-summary-item">
+        <div class="result-summary-item-head">
+          <strong style="font-size:13px;color:var(--slate-800)">${esc(n.gem_bidding_number || n.tender_number || n.title || 'Tender Result')}</strong>
+          <span class="badge ${(RESULT_STATUS_META[n.gem_result_status] || RESULT_STATUS_META.PENDING).badge}">${esc((RESULT_STATUS_META[n.gem_result_status] || RESULT_STATUS_META.PENDING).label)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--slate-600);line-height:1.5">${esc(n.message || '')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          ${bidResultHref ? `<a class="btn btn-outline btn-xs" href="${esc(bidResultHref)}" target="_blank" rel="noreferrer">View Result</a>` : ''}
+          ${raResultHref ? `<a class="btn btn-outline btn-xs" href="${esc(raResultHref)}" target="_blank" rel="noreferrer">View RA Result</a>` : ''}
+          ${!n.is_read ? `<button class="btn btn-outline btn-xs" onclick="markTenderNotificationRead(${n.id})">Mark Read</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+function renderNotificationPanel() {
+  const listEl = document.getElementById('notificationPanelList');
+  if (!listEl) return;
+  const unreadCount = tenderNotificationsCache.filter(n => !n.is_read).length;
+  setNotificationCount(unreadCount);
+  renderResultSummaryCard();
+  if (!tenderNotificationsCache.length) {
+    listEl.innerHTML = '<div class="notification-empty">No notifications yet.</div>';
+    return;
+  }
+  listEl.innerHTML = tenderNotificationsCache.map(n => {
+    const bidResultHref = resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number);
+    const raResultHref = resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number || n.tender_number);
+    return `
+      <div class="notification-card ${n.is_read ? '' : 'unread'}">
+        <div class="notification-card-title">${esc(n.title || 'Tender Notification')}</div>
+        <div class="notification-card-message">${esc(n.message || '')}</div>
+        <div class="notification-card-meta">
+          <span>${formatNotificationDate(n.created_at)}</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            ${bidResultHref ? `<a class="btn btn-outline btn-xs" href="${esc(bidResultHref)}" target="_blank" rel="noreferrer">View Result</a>` : ''}
+            ${raResultHref ? `<a class="btn btn-outline btn-xs" href="${esc(raResultHref)}" target="_blank" rel="noreferrer">View RA Result</a>` : ''}
+            ${!n.is_read ? `<button class="btn btn-outline btn-xs" onclick="markTenderNotificationRead(${n.id})">Mark Read</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+async function loadTenderNotifications(silent=false) {
+  try {
+    const res = await fetch('/api/tender-notifications');
+    if (!res.ok) throw new Error('Failed to load notifications');
+    const data = await res.json();
+    const unreadNow = new Set(data.filter(n => !n.is_read).map(n => n.id));
+    const newUnread = data.filter(n => !n.is_read && !knownUnreadNotificationIds.has(n.id));
+    tenderNotificationsCache = data;
+    renderNotificationPanel();
+    if (!silent && knownUnreadNotificationIds.size && newUnread.length) {
+      toast(newUnread[0].title || 'New tender result available', 'success');
+    }
+    knownUnreadNotificationIds = unreadNow;
+  } catch (err) {
+    if (!silent) toast('Failed to load notifications: ' + err.message, 'error');
+  }
+}
+async function markTenderNotificationRead(notificationId) {
+  try {
+    const res = await fetch(`/api/tender-notifications/${notificationId}/read`, { method:'PATCH' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || 'Failed to mark notification as read');
+    }
+    await loadTenderNotifications(true);
+  } catch (err) {
+    toast('Failed to update notification: ' + err.message, 'error');
+  }
+}
+function toggleNotificationPanel() {
+  const panel = document.getElementById('notificationPanel');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  if (!isOpen) loadTenderNotifications(true);
+}
+function renderGemResultDebug(data) {
+  const output = document.getElementById('gemResultDebugOutput');
+  if (!output) return;
+  const bidNumbers = Array.isArray(data?.all_returned_b_bid_number_values) ? data.all_returned_b_bid_number_values : [];
+  const parentBidNumbers = Array.isArray(data?.all_returned_b_bid_number_parent_values) ? data.all_returned_b_bid_number_parent_values : [];
+  const matchedDocJson = data?.matched_doc_json ? JSON.stringify(data.matched_doc_json, null, 2) : 'No matched document found.';
+  const requestPayloadJson = data?.request_payload ? JSON.stringify(data.request_payload, null, 2) : 'No payload.';
+  const statusTone = data?.searched_bid_found ? 'var(--green-600)' : (data?.exact_search_filter_applied === false ? 'var(--amber-600)' : 'var(--red-600)');
+  output.innerHTML = `
+    <div style="padding:14px 16px;border:1px solid var(--slate-200);border-radius:12px;background:var(--slate-50)">
+      <div style="font-size:12px;font-weight:700;color:${statusTone};text-transform:uppercase;letter-spacing:.04em">${esc(data?.searched_bid_found ? 'Match Found' : 'No Exact Match Yet')}</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--slate-700);line-height:1.6">${esc(data?.reason || 'No reason returned.')}</div>
+    </div>
+    <div class="table-card">
+      <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">Request URL</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800);word-break:break-word">${esc(data?.request_url || '—')}</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">Method</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800)">${esc(data?.request_method || '—')}</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">Searched Bid</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800)">${esc(data?.searched_bid_number || '—')}</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">Docs Count</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800)">${esc(String(data?.docs_count ?? 0))}</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">numFound</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800)">${esc(String(data?.num_found ?? 0))}</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase">Exact Filter Applied</div><div style="margin-top:5px;font-size:13px;color:var(--slate-800)">${esc(String(Boolean(data?.exact_search_filter_applied)))}</div></div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);font-size:13px;font-weight:700;color:var(--slate-700)">Request Payload</div>
+      <div style="padding:16px"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:var(--slate-800)">${esc(requestPayloadJson)}</pre></div>
+    </div>
+    <div class="table-card">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);font-size:13px;font-weight:700;color:var(--slate-700)">Returned Bid Numbers</div>
+      <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;margin-bottom:8px">b_bid_number</div>
+          <pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:var(--slate-800)">${esc(bidNumbers.length ? bidNumbers.join('\n') : 'None')}</pre>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--slate-500);text-transform:uppercase;margin-bottom:8px">b_bid_number_parent</div>
+          <pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:var(--slate-800)">${esc(parentBidNumbers.length ? parentBidNumbers.join('\n') : 'None')}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);font-size:13px;font-weight:700;color:var(--slate-700)">Matched Doc JSON</div>
+      <div style="padding:16px"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.55;color:var(--slate-800)">${esc(matchedDocJson)}</pre></div>
+    </div>
+  `;
+}
+function prefillGemResultDebugFromSelection() {
+  const input = document.getElementById('gemResultDebugBidNumber');
+  if (!input) return;
+  try {
+    const firstTender = Array.isArray(tenderListCache) ? tenderListCache.find(Boolean) : null;
+    const fallbackBid = firstTender ? getCanonicalGemBidNumber(firstTender) : '';
+    if (fallbackBid) input.value = fallbackBid;
+  } catch (_) {}
+}
+async function testGemExactResultSearch() {
+  const input = document.getElementById('gemResultDebugBidNumber');
+  const output = document.getElementById('gemResultDebugOutput');
+  const button = document.getElementById('gemResultDebugBtn');
+  const bidNumber = String(input?.value || '').trim().toUpperCase();
+  if (!bidNumber) {
+    toast('Enter a GeM Bid Number first.', 'error');
+    return;
+  }
+  if (output) {
+    output.innerHTML = '<div class="notification-empty"><span class="spinner"></span>&nbsp; Running exact GeM search…</div>';
+  }
+  if (button) button.disabled = true;
+  try {
+    const res = await fetch('/api/gem-result-debug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bid_number: bidNumber }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Failed to run GeM result debug');
+    window.__lastGemResultDebug = data;
+    console.groupCollapsed(`GeM result debug: ${bidNumber}`);
+    console.log(data);
+    console.groupEnd();
+    renderGemResultDebug(data);
+    if (data?.searched_bid_found) {
+      toast(`Exact GeM response matched ${bidNumber}`, 'success');
+    } else {
+      toast(data?.reason || `Exact GeM response did not match ${bidNumber}`, 'error');
+    }
+  } catch (err) {
+    if (output) {
+      output.innerHTML = `<div style="color:var(--red-600);font-size:13px">${esc(err.message || 'Failed to run debug search')}</div>`;
+    }
+    toast('GeM debug failed: ' + err.message, 'error');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+async function checkTenderResultNow(tenderId, event) {
+  if (event) event.stopPropagation();
+  try {
+    const res = await fetch(`/api/tenders/${tenderId}/check-result`, { method:'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Result check failed');
+    const bidNo = getCanonicalGemBidNumber(data?.tender) || data?.tender?.gem_bidding_number || data?.tender?.tender_number || `Tender ${tenderId}`;
+    const effectiveStatus = String(data?.gem_result_status || data?.status || data?.tender?.gem_result_status || 'FAILED_TO_CHECK').toUpperCase();
+    window.__lastTenderResultCheck = data;
+    if (data?.debug) {
+      console.groupCollapsed(`Tender result debug: ${bidNo}`);
+      console.log(data.debug);
+      console.groupEnd();
+    }
+    if (effectiveStatus === 'FAILED_TO_CHECK') {
+      const reason = data?.debug?.reason || data.error || `Failed to check result for ${bidNo}`;
+      throw new Error(`${reason} | searched ${data?.debug?.final_bid_number || bidNo}`);
+    }
+    if (data.result_found) {
+      toast(`Result available for ${bidNo}`, 'success');
+    } else {
+      const reason = data?.debug?.reason || 'No result buttons found';
+      const failures = Array.isArray(data?.debug?.failure_details) && data.debug.failure_details.length
+        ? ` Details: ${data.debug.failure_details.join(' | ')}`
+        : '';
+      toast(`Result not available yet for ${bidNo}. ${reason}${failures}`, 'error');
+    }
+    if (data?.debug?.failure_details?.length) {
+      console.warn('Tender result failure details:', data.debug.failure_details);
+    }
+    await Promise.all([loadTenderList(), loadTenderNotifications(true)]);
+  } catch (err) {
+    toast('Result check failed: ' + err.message, 'error');
+  }
+}
+function startNotificationPolling() {
+  if (notificationPollTimer) return;
+  notificationPollTimer = setInterval(() => loadTenderNotifications(true), 60000);
+}
+
 (function defaultUploadScanDate() {
   const el = document.getElementById('uploadScanDate');
   if (el) {
@@ -6121,6 +6622,7 @@ function toast(msg, type='success') {
 (function bootstrapInitialView() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/gem-watcher') { setTimeout(() => showView('gem-watcher'), 0); return; }
+  if (path === '/gem-result-debug') { setTimeout(() => showView('gem-result-debug'), 0); return; }
   if (path === '/gem-candidates') { setTimeout(() => showView('gem-candidates'), 0); return; }
   if (path === '/gem-review-candidates') { setTimeout(() => showView('gem-review-candidates'), 0); return; }
   if (path === '/gem-rejected-candidates') { setTimeout(() => showView('gem-rejected-candidates'), 0); return; }
@@ -6150,6 +6652,10 @@ document.addEventListener('mousedown', function(e) {
   if (wrap && !wrap.contains(e.target)) {
     document.getElementById('appSwitcherMenu').style.display = 'none';
   }
+  const notificationWrap = document.getElementById('notificationWrap');
+  if (notificationWrap && !notificationWrap.contains(e.target)) {
+    document.getElementById('notificationPanel').classList.remove('open');
+  }
 });
 
 async function signOut() {
@@ -6169,6 +6675,8 @@ async function signOut() {
     const el = document.getElementById('userInfo');
     if (el) el.textContent = data.username;
     window._userRole = data.role || 'employee';
+    loadTenderNotifications(true);
+    startNotificationPolling();
   } catch (_) {
     window.location.href = isLocal ? '/dev-login' : _PORTAL + '/login';
   }

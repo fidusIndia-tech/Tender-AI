@@ -16,3 +16,4 @@ uvicorn-*.log
 *.log
 tender_app/extractions/
 tender_app/debug.log
+tender_app/debug-screenshots/

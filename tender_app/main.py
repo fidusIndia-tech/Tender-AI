@@ -3,6 +3,7 @@ import io
 import hashlib
 import hmac
 import json
+import asyncio
 import os
 import re
 import shutil
@@ -30,6 +31,12 @@ import doc_matcher
 import doc_generator
 from evaluation import evaluate_tender_against_capability
 from gem_watcher.routes import router as gem_watcher_router
+from result_watcher import (
+    check_tender_result,
+    debug_gem_exact_result_search,
+    run_result_watcher_for_eligible_tenders,
+    start_result_watcher_scheduler,
+)
 
 HERE = Path(__file__).parent
 UPLOADS_DIR     = HERE / "uploads"
@@ -47,6 +54,10 @@ try:
     database.fail_stale_running_scans()
 except Exception as e:
     print(f"[WARN] fail_stale_running_scans on startup: {type(e).__name__}: {e}")
+try:
+    start_result_watcher_scheduler()
+except Exception as e:
+    print(f"[WARN] result watcher scheduler startup failed: {type(e).__name__}: {e}")
 
 # ── Portal Encryption (Fernet symmetric) ──────────────────────────────────────
 
@@ -254,6 +265,10 @@ class CompanyProfilePayload(BaseModel):
     authorized_signatory_designation: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+
+
+class GemResultDebugPayload(BaseModel):
+    bid_number: str
 
 
 class CompanyCapabilityProfilePayload(BaseModel):
@@ -641,6 +656,40 @@ async def update_participation_status(tender_id: int, body: dict):
         raise HTTPException(404, "Tender not found")
     filed_date = database.update_tender_participation_status(tender_id, status)
     return {"id": tender_id, "participation_status": status, "filed_date": filed_date}
+
+
+@app.post("/api/tenders/{tender_id}/check-result")
+async def check_tender_result_now(tender_id: int):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    try:
+        return await asyncio.to_thread(check_tender_result, tender_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/result-watcher/run")
+async def run_result_watcher(request: Request):
+    _require_admin(request)
+    return await asyncio.to_thread(run_result_watcher_for_eligible_tenders)
+
+
+@app.get("/api/tender-notifications")
+async def list_tender_notifications():
+    return database.list_tender_notifications()
+
+
+@app.patch("/api/tender-notifications/{notification_id}/read")
+async def mark_tender_notification_read(notification_id: int):
+    notification = database.mark_tender_notification_read(notification_id)
+    if not notification:
+        raise HTTPException(404, "Notification not found")
+    return notification
+
+
+@app.post("/api/gem-result-debug")
+async def gem_result_debug(payload: GemResultDebugPayload):
+    return await asyncio.to_thread(debug_gem_exact_result_search, payload.bid_number)
 
 
 # ── Company Profile ───────────────────────────────────────────────────────────
@@ -1280,6 +1329,11 @@ async def gem_candidates_page():
 
 @app.get("/tender-portals")
 async def tender_portals_page():
+    return FileResponse(str(HERE / "static" / "index.html"))
+
+
+@app.get("/gem-result-debug")
+async def gem_result_debug_page():
     return FileResponse(str(HERE / "static" / "index.html"))
 
 

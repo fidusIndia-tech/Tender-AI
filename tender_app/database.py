@@ -143,7 +143,42 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS expand_sections_json JSONB")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_available BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS bid_result_available BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_result_available BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_result_status TEXT DEFAULT 'PENDING'")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_bid_number TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_internal_id TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_declared BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_declared_at TIMESTAMP")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_result_url TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_number TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_result_url TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS last_result_checked_at TIMESTAMP")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS l1_seller_name TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS our_company_rank TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS our_company_status TEXT")
         cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'extracted'")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_notifications (
+                id SERIAL PRIMARY KEY,
+                tender_id INTEGER REFERENCES tenders(id) ON DELETE CASCADE,
+                title TEXT,
+                message TEXT,
+                type TEXT DEFAULT 'RESULT_AVAILABLE',
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            cur.execute("ALTER TABLE tender_notifications ALTER COLUMN type SET DEFAULT 'RESULT_AVAILABLE'")
+        except Exception:
+            pass
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS tender_notifications_unique_result_idx
+            ON tender_notifications (tender_id, type)
+        """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS government_portals (
                 id SERIAL PRIMARY KEY,
@@ -715,6 +750,11 @@ def list_tenders():
                       t.office_name_location, t.make, t.total_quantity, t.tender_approx_value,
                       t.participation_status, t.uploaded_at, t.won_text, t.lost_text,
                       t.participant_text, t.expand_sections_json, t.pdf_path, t.extraction_json_path, t.status,
+                      t.result_available, t.bid_result_available, t.ra_result_available,
+                      t.gem_result_status, t.gem_bid_number, t.gem_internal_id,
+                      t.result_declared, t.result_declared_at, t.gem_result_url,
+                      t.gem_ra_number, t.gem_ra_result_url, t.last_result_checked_at, t.notification_sent, t.l1_seller_name,
+                      t.our_company_rank, t.our_company_status,
                       t.filed_date, t.remark,
                       COALESCE(a.attachment_count, 0) AS attachment_count,
                       COALESCE(i.item_search_text, '') AS item_search_text,
@@ -840,6 +880,159 @@ def update_tender_participation_status(tender_id, status):
     conn.commit()
     conn.close()
     return filed_date
+
+
+def list_result_watch_eligible_tenders():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, gem_bidding_number, tender_number, bid_end_datetime, gem_result_status,
+                      result_available, bid_result_available, ra_result_available,
+                      gem_result_url, gem_ra_number, gem_ra_result_url,
+                      result_declared, notification_sent, last_result_checked_at
+               FROM tenders
+               WHERE COALESCE(result_declared, FALSE) = FALSE
+                 AND COALESCE(result_available, FALSE) = FALSE
+               ORDER BY uploaded_at DESC NULLS LAST, id DESC"""
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_tender_result(
+    tender_id,
+    *,
+    result_available=None,
+    bid_result_available=None,
+    ra_result_available=None,
+    gem_result_status=None,
+    gem_bid_number=None,
+    gem_internal_id=None,
+    result_declared=None,
+    result_declared_at=None,
+    gem_result_url=None,
+    gem_ra_number=None,
+    gem_ra_result_url=None,
+    last_result_checked_at=None,
+    notification_sent=None,
+    l1_seller_name=None,
+    our_company_rank=None,
+    our_company_status=None,
+):
+    updates = []
+    values = []
+    if result_available is not None:
+        updates.append("result_available=%s")
+        values.append(result_available)
+    if bid_result_available is not None:
+        updates.append("bid_result_available=%s")
+        values.append(bid_result_available)
+    if ra_result_available is not None:
+        updates.append("ra_result_available=%s")
+        values.append(ra_result_available)
+    if gem_result_status is not None:
+        updates.append("gem_result_status=%s")
+        values.append(gem_result_status)
+    if gem_bid_number is not None:
+        updates.append("gem_bid_number=%s")
+        values.append(gem_bid_number)
+    if gem_internal_id is not None:
+        updates.append("gem_internal_id=%s")
+        values.append(gem_internal_id)
+    if result_declared is not None:
+        updates.append("result_declared=%s")
+        values.append(result_declared)
+    if result_declared_at is not None:
+        updates.append("result_declared_at=%s")
+        values.append(result_declared_at)
+    if gem_result_url is not None:
+        updates.append("gem_result_url=%s")
+        values.append(gem_result_url)
+    if gem_ra_number is not None:
+        updates.append("gem_ra_number=%s")
+        values.append(gem_ra_number)
+    if gem_ra_result_url is not None:
+        updates.append("gem_ra_result_url=%s")
+        values.append(gem_ra_result_url)
+    if last_result_checked_at is not None:
+        updates.append("last_result_checked_at=%s")
+        values.append(last_result_checked_at)
+    if notification_sent is not None:
+        updates.append("notification_sent=%s")
+        values.append(notification_sent)
+    if l1_seller_name is not None:
+        updates.append("l1_seller_name=%s")
+        values.append(l1_seller_name)
+    if our_company_rank is not None:
+        updates.append("our_company_rank=%s")
+        values.append(our_company_rank)
+    if our_company_status is not None:
+        updates.append("our_company_status=%s")
+        values.append(our_company_status)
+    if not updates:
+        return
+
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE tenders SET {', '.join(updates)} WHERE id=%s",
+            (*values, tender_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def create_tender_notification(tender_id, title, message, notification_type="RESULT_AVAILABLE"):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO tender_notifications (tender_id, title, message, type)
+               VALUES (%s, %s, %s, %s)
+               ON CONFLICT (tender_id, type) DO UPDATE
+               SET title = EXCLUDED.title,
+                   message = EXCLUDED.message
+               RETURNING id, tender_id, title, message, type, is_read, created_at""",
+            (tender_id, title, message, notification_type),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row)
+
+
+def list_tender_notifications(limit=50):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT n.id, n.tender_id, n.title, n.message, n.type, n.is_read, n.created_at,
+                      t.gem_bidding_number, t.tender_number, t.gem_result_status, t.gem_result_url,
+                      t.gem_ra_number, t.gem_ra_result_url, t.result_available, t.bid_result_available, t.ra_result_available
+               FROM tender_notifications n
+               LEFT JOIN tenders t ON t.id = n.tender_id
+               ORDER BY n.created_at DESC, n.id DESC
+               LIMIT %s""",
+            (limit,),
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def mark_tender_notification_read(notification_id):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """UPDATE tender_notifications
+               SET is_read=TRUE
+               WHERE id=%s
+               RETURNING id, tender_id, title, message, type, is_read, created_at""",
+            (notification_id,),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
 
 
 def find_tender_duplicate(gem_bidding_number, tender_number=None):
