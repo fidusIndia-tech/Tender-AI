@@ -1870,6 +1870,7 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-actions" style="width:180px">
           <col id="col-status"  style="width:120px">
           <col id="col-remark"  style="width:140px">
+          <col id="col-del"     style="width:46px">
         </colgroup>
         <thead>
           <tr>
@@ -1969,6 +1970,7 @@ body.col-resizing { cursor:col-resize !important; }
               <div class="col-resize-handle" onpointerdown="startColResize('status',event)" ondblclick="resetColWidth('status')" title="Drag to resize - Double-click to reset"></div>
             </th>
             <th class="has-resize" style="position:relative">Remark<div class="col-resize-handle" onpointerdown="startColResize('remark',event)" ondblclick="resetColWidth('remark')" title="Drag to resize - Double-click to reset"></div></th>
+            <th style="text-align:center"></th>
           </tr>
         </thead>
         <tbody id="tendersTableBody"></tbody>
@@ -3827,7 +3829,6 @@ function _renderCurrentPage() {
             <button class="btn btn-outline btn-xs" onclick="checkTenderResultNow(${t.id}, event)" title="Check result now" style="padding:2px 6px;font-size:10px">Check Result</button>
             ${bidResultHref ? `<a href="${esc(bidResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result search" style="padding:2px 6px;font-size:10px">View Bid Result</a>` : ''}
             ${raResultHref ? `<a href="${esc(raResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result search" style="padding:2px 6px;font-size:10px">View RA Result</a>` : ''}
-            <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete" style="padding:2px 5px;font-size:10px">✕</button>
           </div>
         </td>
         <td onclick="event.stopPropagation()">
@@ -3848,9 +3849,14 @@ function _renderCurrentPage() {
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Add remark…">
         </td>
+        <td onclick="event.stopPropagation()" style="text-align:center">
+          <button class="btn btn-danger btn-xs" onclick="deleteTender(${t.id})" title="Delete tender" style="padding:3px 6px">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+          </button>
+        </td>
       </tr>
       <tr class="expand-row" id="expandRow-${t.id}" style="display:none">
-        <td colspan="15" style="padding:0">
+        <td colspan="16" style="padding:0">
           <div class="expand-panel">
             <div class="expand-tabs" id="expandTabs-${t.id}">
               ${renderExpandTabs(t.id)}
@@ -5111,7 +5117,7 @@ async function loadTenderList() {
   const tbody  = document.getElementById('tendersTableBody');
   const empty  = document.getElementById('listEmpty');
   const statRow = document.getElementById('statRow');
-  tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;color:var(--slate-400);padding:32px"><span class="spinner"></span>&nbsp; Loading…</td></tr>';
   try {
     const res = await fetch('/api/tenders');
     const tenders = await res.json();
@@ -5146,7 +5152,7 @@ async function loadTenderList() {
     renderTenderTable(tenders);
     showDeadlineReminder(tenders);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="15" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="16" style="color:var(--red-600);padding:20px">Failed to load: ${err.message}</td></tr>`;
   }
 }
 async function loadStartupDeadlineReminder() {
