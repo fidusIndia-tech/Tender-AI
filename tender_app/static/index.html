@@ -6610,26 +6610,40 @@ async function testGemExactResultSearch() {
 // Runs a result check. When the browser extension is installed it fetches the
 // GeM data on the user's own IP (GeM blocks the server) and posts it to the
 // backend for parsing; otherwise it falls back to the server-side check.
-async function runTenderResultCheck(tenderId) {
+// User-friendly message shown when the extension path fails (403/empty/error).
+const GEM_EXTENSION_BLOCKED_MESSAGE = 'GeM blocked extension background request. Need page-context fetch fallback.';
+
+async function runTenderResultCheck(tenderId, onStatus) {
+  const notify = (msg) => { try { if (onStatus) onStatus(msg); } catch (_) {} };
   if (_gemBidplusResultFetch) {
+    notify('Checking via browser extension…');
     const tender = (typeof tenderListCache !== 'undefined' ? tenderListCache : []).find(t => t.id === tenderId);
     const bidNumber = getCanonicalGemBidNumber(tender) || extractValidGemBidNumber(tender?.gem_bidding_number) || extractValidGemBidNumber(tender?.tender_number);
     if (bidNumber) {
+      let rawResponse;
       try {
-        const rawResponse = await gemExtensionFetchResult(bidNumber);
+        rawResponse = await gemExtensionFetchResult(bidNumber);
+      } catch (extErr) {
+        console.warn('Extension GeM fetch failed:', extErr);
+        throw new Error(GEM_EXTENSION_BLOCKED_MESSAGE);
+      }
+      try {
         const res = await fetch(`/api/tenders/${tenderId}/ingest-gem-result`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ raw_response: rawResponse }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || 'Result ingest failed');
+        if (!res.ok) throw new Error(data.detail || 'ingest failed');
         return data;
-      } catch (extErr) {
-        console.warn('Extension result fetch failed, falling back to server:', extErr);
-        toast(`Browser check failed (${extErr.message}). Trying server…`, 'error');
+      } catch (ingestErr) {
+        console.warn('GeM result ingest failed:', ingestErr);
+        throw new Error(GEM_EXTENSION_BLOCKED_MESSAGE);
       }
     }
+    // Extension present but no bid number available — fall through to server.
+  } else {
+    notify('Browser extension not found. Falling back to server check.');
   }
   const res = await fetch(`/api/tenders/${tenderId}/check-result`, { method: 'POST' });
   const data = await res.json().catch(() => ({}));
@@ -6639,8 +6653,15 @@ async function runTenderResultCheck(tenderId) {
 
 async function checkTenderResultNow(tenderId, event) {
   if (event) event.stopPropagation();
+  const btn = (event && (event.currentTarget || (event.target && event.target.closest && event.target.closest('button')))) || null;
+  const setBtn = (label, disabled) => {
+    if (!btn || !btn.isConnected) return;
+    btn.disabled = disabled;
+    btn.textContent = label;
+  };
+  setBtn('Checking via browser…', true);
   try {
-    const data = await runTenderResultCheck(tenderId);
+    const data = await runTenderResultCheck(tenderId, (label) => setBtn(label, true));
     const bidNo = getCanonicalGemBidNumber(data?.tender) || data?.tender?.gem_bidding_number || data?.tender?.tender_number || `Tender ${tenderId}`;
     const effectiveStatus = String(data?.gem_result_status || data?.status || data?.tender?.gem_result_status || 'FAILED_TO_CHECK').toUpperCase();
     window.__lastTenderResultCheck = data;
@@ -6649,25 +6670,25 @@ async function checkTenderResultNow(tenderId, event) {
       console.log(data.debug);
       console.groupEnd();
     }
-    if (effectiveStatus === 'FAILED_TO_CHECK') {
-      const reason = data?.debug?.reason || data.error || `Failed to check result for ${bidNo}`;
-      throw new Error(`${reason} | searched ${data?.debug?.final_bid_number || bidNo}`);
-    }
-    if (data.result_found) {
-      toast(`Result available for ${bidNo}`, 'success');
-    } else {
-      const reason = data?.debug?.reason || 'No result buttons found';
-      const failures = Array.isArray(data?.debug?.failure_details) && data.debug.failure_details.length
-        ? ` Details: ${data.debug.failure_details.join(' | ')}`
-        : '';
-      toast(`Result not available yet for ${bidNo}. ${reason}${failures}`, 'error');
-    }
     if (data?.debug?.failure_details?.length) {
       console.warn('Tender result failure details:', data.debug.failure_details);
     }
+    if (effectiveStatus === 'FAILED_TO_CHECK') {
+      toast(`Couldn't check the result for ${bidNo} right now. Please try again.`, 'error');
+    } else if (data.result_found) {
+      toast(`Result available for ${bidNo}`, 'success');
+    } else {
+      toast(`Result not available yet for ${bidNo}.`, 'error');
+    }
     await Promise.all([loadTenderList(), loadTenderNotifications(true)]);
   } catch (err) {
-    toast('Result check failed: ' + err.message, 'error');
+    // err.message is already a clean, user-facing string; never surface raw stack/technical text.
+    toast(err.message || 'Result check failed. Please try again.', 'error');
+  } finally {
+    if (btn && btn.isConnected) {
+      btn.disabled = false;
+      btn.textContent = 'Check Result';
+    }
   }
 }
 function startNotificationPolling() {
