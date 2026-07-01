@@ -575,6 +575,117 @@ def debug_gem_exact_result_search(bid_number: str) -> dict:
         }
 
 
+def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
+    """Turn a raw GeM all-bids-data response into a standardized result payload.
+
+    Shared by the server-side network check and the browser-extension ingest path
+    so both use identical bid/RA availability logic.
+    """
+    canonical_bid_number = _normalize_space(canonical_bid_number).upper()
+    debug = {
+        "method": "network",
+        "endpoint": GEM_ALL_BIDS_DATA_URL,
+        "searched_bid_number": canonical_bid_number,
+        "matched_doc_found": False,
+        "b_bid_number": None,
+        "b_bid_number_parent": None,
+        "b_id_parent": None,
+        "ra_id": None,
+        "bid_found": False,
+        "view_bid_results_found": False,
+        "view_ra_results_found": False,
+        "final_result_available": False,
+        "final_gem_result_status": None,
+        "bid_result_url": None,
+        "ra_result_url": None,
+    }
+
+    inner = (data.get("response") or {}).get("response") or {}
+    docs = inner.get("docs") or []
+    values = []
+    _collect_string_values(data, values)
+    joined_text = "\n".join(values)
+
+    matched_doc = None
+    for doc in docs:
+        if not isinstance(doc, dict):
+            continue
+        doc_bid_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number")]
+        doc_parent_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number_parent")]
+        if canonical_bid_number in doc_bid_numbers or canonical_bid_number in doc_parent_numbers:
+            matched_doc = doc
+            break
+
+    matched_doc_found = matched_doc is not None
+    bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number"))).upper() or None
+    parent_bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number_parent"))).upper() or None
+    bid_parent_id = _normalize_space(_first((matched_doc or {}).get("b_id_parent"))) or None
+    ra_id = _normalize_space(_first((matched_doc or {}).get("id") or (matched_doc or {}).get("b_id"))) or None
+    inferred_ra_number = _extract_gem_ra_number(bid_value, joined_text)
+    parent_matches = parent_bid_value == canonical_bid_number
+    direct_matches = bid_value == canonical_bid_number
+    ra_pattern_match = bool(inferred_ra_number and bid_value and "/R/" in bid_value.upper())
+
+    bid_result_available = bool(bid_parent_id)
+    ra_result_available = bool(ra_id and (ra_pattern_match or parent_matches or direct_matches))
+    result_available = bool(matched_doc_found and (bid_result_available or ra_result_available))
+
+    if bid_result_available and ra_result_available:
+        status = RESULT_STATUS_BID_AND_RA_AVAILABLE
+        reason = "Matched GeM result document contains both original bid id and RA id."
+    elif bid_result_available:
+        status = RESULT_STATUS_BID_AVAILABLE
+        reason = "Matched GeM result document contains original bid result id."
+    elif ra_result_available:
+        status = RESULT_STATUS_RA_AVAILABLE
+        reason = "Matched GeM result document contains RA result id."
+    elif matched_doc_found:
+        status = RESULT_STATUS_NOT_AVAILABLE
+        reason = "Exact GeM document matched, but no usable bid/RA result ids were returned."
+    else:
+        status = RESULT_STATUS_NOT_AVAILABLE
+        reason = "Searched bid number was not present in GeM result documents."
+
+    gem_result_url = _build_gem_search_url(canonical_bid_number) if bid_result_available else None
+    gem_ra_result_url = _build_gem_search_url(inferred_ra_number or bid_value) if ra_result_available else None
+
+    debug["matched_doc_found"] = matched_doc_found
+    debug["b_bid_number"] = bid_value
+    debug["b_bid_number_parent"] = parent_bid_value
+    debug["b_id_parent"] = bid_parent_id
+    debug["ra_id"] = ra_id
+    debug["bid_found"] = matched_doc_found
+    debug["view_bid_results_found"] = bid_result_available
+    debug["view_ra_results_found"] = ra_result_available
+    debug["final_result_available"] = result_available
+    debug["final_gem_result_status"] = status
+    debug["bid_result_url"] = gem_result_url
+    debug["ra_result_url"] = gem_ra_result_url
+
+    return {
+        "card_found": matched_doc_found,
+        "matched_doc_found": matched_doc_found,
+        "matched_doc_json": matched_doc,
+        "bid_result_available": bid_result_available,
+        "ra_result_available": ra_result_available,
+        "result_available": result_available,
+        "gem_result_url": gem_result_url,
+        "gem_ra_result_url": gem_ra_result_url,
+        "gem_ra_number": inferred_ra_number,
+        "status": status,
+        "gem_result_status": status,
+        "reason": reason,
+        "page_text_snippet": _normalize_space(joined_text)[:3000],
+        "opened_url": GEM_ALL_BIDS_DATA_URL,
+        "failure_details": [],
+        "network_debug": debug,
+        "b_bid_number": bid_value,
+        "b_bid_number_parent": parent_bid_value,
+        "b_id_parent": bid_parent_id,
+        "ra_id": ra_id,
+    }
+
+
 def checkGemResultByNetwork(bid_number: str):
     headers = {
         "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -674,90 +785,7 @@ def checkGemResultByNetwork(bid_number: str):
                 "network_debug": debug,
             }
 
-        inner = (data.get("response") or {}).get("response") or {}
-        docs = inner.get("docs") or []
-        values = []
-        _collect_string_values(data, values)
-        joined_text = "\n".join(values)
-
-        matched_doc = None
-        for doc in docs:
-            if not isinstance(doc, dict):
-                continue
-            doc_bid_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number")]
-            doc_parent_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number_parent")]
-            if canonical_bid_number in doc_bid_numbers or canonical_bid_number in doc_parent_numbers:
-                matched_doc = doc
-                break
-
-        matched_doc_found = matched_doc is not None
-        bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number"))).upper() or None
-        parent_bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number_parent"))).upper() or None
-        bid_parent_id = _normalize_space(_first((matched_doc or {}).get("b_id_parent"))) or None
-        ra_id = _normalize_space(_first((matched_doc or {}).get("id") or (matched_doc or {}).get("b_id"))) or None
-        inferred_ra_number = _extract_gem_ra_number(bid_value, joined_text)
-        parent_matches = parent_bid_value == canonical_bid_number
-        direct_matches = bid_value == canonical_bid_number
-        ra_pattern_match = bool(inferred_ra_number and bid_value and "/R/" in bid_value.upper())
-
-        bid_result_available = bool(bid_parent_id)
-        ra_result_available = bool(ra_id and (ra_pattern_match or parent_matches or direct_matches))
-        result_available = bool(matched_doc_found and (bid_result_available or ra_result_available))
-
-        if bid_result_available and ra_result_available:
-            status = RESULT_STATUS_BID_AND_RA_AVAILABLE
-            reason = "Matched GeM result document contains both original bid id and RA id."
-        elif bid_result_available:
-            status = RESULT_STATUS_BID_AVAILABLE
-            reason = "Matched GeM result document contains original bid result id."
-        elif ra_result_available:
-            status = RESULT_STATUS_RA_AVAILABLE
-            reason = "Matched GeM result document contains RA result id."
-        elif matched_doc_found:
-            status = RESULT_STATUS_NOT_AVAILABLE
-            reason = "Exact GeM document matched, but no usable bid/RA result ids were returned."
-        else:
-            status = RESULT_STATUS_NOT_AVAILABLE
-            reason = "Searched bid number was not present in GeM result documents."
-
-        gem_result_url = _build_gem_search_url(canonical_bid_number) if bid_result_available else None
-        gem_ra_result_url = _build_gem_search_url(inferred_ra_number or bid_value) if ra_result_available else None
-
-        debug["matched_doc_found"] = matched_doc_found
-        debug["b_bid_number"] = bid_value
-        debug["b_bid_number_parent"] = parent_bid_value
-        debug["b_id_parent"] = bid_parent_id
-        debug["ra_id"] = ra_id
-        debug["bid_found"] = matched_doc_found
-        debug["view_bid_results_found"] = bid_result_available
-        debug["view_ra_results_found"] = ra_result_available
-        debug["final_result_available"] = result_available
-        debug["final_gem_result_status"] = status
-        debug["bid_result_url"] = gem_result_url
-        debug["ra_result_url"] = gem_ra_result_url
-
-        return {
-            "card_found": matched_doc_found,
-            "matched_doc_found": matched_doc_found,
-            "matched_doc_json": matched_doc,
-            "bid_result_available": bid_result_available,
-            "ra_result_available": ra_result_available,
-            "result_available": result_available,
-            "gem_result_url": gem_result_url,
-            "gem_ra_result_url": gem_ra_result_url,
-            "gem_ra_number": inferred_ra_number,
-            "status": status,
-            "gem_result_status": status,
-            "reason": reason,
-            "page_text_snippet": _normalize_space(joined_text)[:3000],
-            "opened_url": GEM_ALL_BIDS_DATA_URL,
-            "failure_details": [],
-            "network_debug": debug,
-            "b_bid_number": bid_value,
-            "b_bid_number_parent": parent_bid_value,
-            "b_id_parent": bid_parent_id,
-            "ra_id": ra_id,
-        }
+        return parse_gem_result_response(canonical_bid_number, data)
 
 
 def _find_matching_link(page, bid_number: str):
@@ -1400,7 +1428,25 @@ def _run_with_playwright(tender: dict, company_name: str | None):
     return None
 
 
-def check_tender_result(tender_id: int):
+def ingest_gem_result(tender_id: int, raw_response: dict):
+    """Apply a GeM all-bids-data response that was fetched by the browser extension.
+
+    The extension runs on the user's own IP (which GeM allows), fetches the raw
+    JSON, and posts it here so the server never has to reach GeM directly.
+    """
+    tender = database.get_tender(tender_id)
+    if not tender:
+        raise ValueError("Tender not found")
+    bid_number = getCanonicalGemBidNumber(tender)
+    if not bid_number:
+        raise ValueError("Valid GeM Bid Number not found. Please check extraction.")
+    if not isinstance(raw_response, dict):
+        raise ValueError("Invalid GeM response payload from extension.")
+    result = parse_gem_result_response(bid_number, raw_response)
+    return check_tender_result(tender_id, precomputed_result=result)
+
+
+def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
     tender = database.get_tender(tender_id)
     if not tender:
         raise ValueError("Tender not found")
@@ -1444,7 +1490,7 @@ def check_tender_result(tender_id: int):
         "bid_result_url": None,
         "ra_result_url": None,
     }
-    if not _is_tender_eligible(tender, now=now):
+    if precomputed_result is None and not _is_tender_eligible(tender, now=now):
         _watcher_log(f"pending bid={bid_number} reason=not-eligible")
         database.update_tender_result(
             tender_id,
@@ -1467,14 +1513,26 @@ def check_tender_result(tender_id: int):
     existing_available = bool(tender.get("result_available"))
 
     try:
-        _watcher_log(f"checking bid={bid_number} tender_id={tender_id}")
-        result = _standardize_result_payload(checkGemResultByNetwork(bid_number))
-        if result.get("gem_result_status") == RESULT_STATUS_FAILED:
-            _watcher_log(
-                f"network-check-failed bid={bid_number} reason={result.get('reason')!r} "
-                f"failure_details={result.get('failure_details')!r}; falling back to Playwright"
-            )
-            result = _standardize_result_payload(_run_with_playwright(tender, company_name))
+        if precomputed_result is not None:
+            _watcher_log(f"applying browser-supplied result bid={bid_number} tender_id={tender_id}")
+            result = _standardize_result_payload(precomputed_result)
+        else:
+            _watcher_log(f"checking bid={bid_number} tender_id={tender_id}")
+            try:
+                result = _standardize_result_payload(checkGemResultByNetwork(bid_number))
+            except Exception as network_exc:
+                _watcher_log(f"network-check-exception bid={bid_number} {type(network_exc).__name__}: {network_exc}")
+                result = _standardize_result_payload({
+                    "status": RESULT_STATUS_FAILED,
+                    "reason": f"GeM network check could not connect: {network_exc}",
+                    "failure_details": [f"{type(network_exc).__name__}: {network_exc}"],
+                })
+            if result.get("gem_result_status") == RESULT_STATUS_FAILED:
+                _watcher_log(
+                    f"network-check-failed bid={bid_number} reason={result.get('reason')!r} "
+                    f"failure_details={result.get('failure_details')!r}; falling back to Playwright"
+                )
+                result = _standardize_result_payload(_run_with_playwright(tender, company_name))
 
         _watcher_log(
             "check-result "

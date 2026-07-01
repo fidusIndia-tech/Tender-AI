@@ -1,11 +1,23 @@
 # GeM BidPlus Autofill Extension
 
-This Chrome extension watches `https://bidplus.gem.gov.in/all-bids` for a bid number encoded in the URL and then:
+This Chrome extension does two things:
+
+**1. Autofill** — watches `https://bidplus.gem.gov.in/all-bids` for a bid number encoded in the URL and then:
 
 - switches the page to `Bid/RA Status`
 - sets search mode to `Exact Search`
 - fills the GeM bid number
 - clicks the search button
+
+**2. Result check (v1.1.0+)** — when you click `Check Result` in the tender app, the
+extension fetches the GeM Bid/RA status data **from your own browser/IP** (a background
+service worker) and hands the raw response back to the app, which forwards it to the
+backend for parsing. This is required because GeM blocks the hosted server's IP, so the
+server cannot query GeM directly. The result is fetched on your machine instead.
+
+> After updating to v1.1.0, reload the extension: open `chrome://extensions/`, find
+> `GeM BidPlus Autofill`, and click the reload icon (or re-`Load unpacked`). The first
+> time, open `https://bidplus.gem.gov.in/all-bids` once so GeM sets its session cookie.
 
 ## Expected URL format
 

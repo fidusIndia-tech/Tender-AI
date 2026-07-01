@@ -4024,15 +4024,45 @@ let _expandBoqGrids = {}; // tenderId -> 2D array (part_number, item_description
 let _expandCustomSections = {}; // tenderId -> [{ key, label, grid }]
 let _expandActiveTabByTender = {};
 let _gemBidplusExtensionDetected = document.documentElement?.dataset?.gemBidplusExtension === 'installed';
+let _gemBidplusResultFetch = document.documentElement?.dataset?.gemBidplusResultFetch === '1';
 let _pendingGemResultsUrl = '';
 
-document.addEventListener('gem-bidplus-extension-ready', () => {
+document.addEventListener('gem-bidplus-extension-ready', (event) => {
   _gemBidplusExtensionDetected = true;
+  if (event?.detail?.resultFetch) _gemBidplusResultFetch = true;
   document.querySelectorAll('[data-gem-extension-status]').forEach(el => {
     el.textContent = EXPAND_TEXT.resultsStatusInstalled;
     el.style.color = '#166534';
   });
 });
+
+// Ask the extension to fetch a GeM Bid/RA result from the user's own browser/IP.
+// Resolves with the raw GeM JSON, or rejects with a readable error.
+function gemExtensionFetchResult(bidNumber, timeoutMs = 45000) {
+  return new Promise((resolve, reject) => {
+    const requestId = `gem-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('message', onMessage);
+      reject(new Error('The GeM extension did not respond. Make sure it is installed and enabled.'));
+    }, timeoutMs);
+    function onMessage(event) {
+      if (event.source !== window) return;
+      const data = event.data;
+      if (!data || data.source !== 'gem-bidplus-extension' || data.type !== 'GEM_FETCH_RESULT_RESULT') return;
+      if (data.requestId !== requestId || done) return;
+      done = true;
+      clearTimeout(timer);
+      window.removeEventListener('message', onMessage);
+      if (data.ok) resolve(data.data);
+      else reject(new Error(data.error || 'GeM result fetch failed in the extension.'));
+    }
+    window.addEventListener('message', onMessage);
+    window.postMessage({ source: 'tender-app', type: 'GEM_FETCH_RESULT', requestId, bidNumber }, '*');
+  });
+}
 
 function _readExpandLocalStore() {
   try { return JSON.parse(localStorage.getItem(_EXPAND_LOCAL_KEY) || '{}'); } catch (_) { return {}; }
@@ -6577,12 +6607,40 @@ async function testGemExactResultSearch() {
     if (button) button.disabled = false;
   }
 }
+// Runs a result check. When the browser extension is installed it fetches the
+// GeM data on the user's own IP (GeM blocks the server) and posts it to the
+// backend for parsing; otherwise it falls back to the server-side check.
+async function runTenderResultCheck(tenderId) {
+  if (_gemBidplusResultFetch) {
+    const tender = (typeof tenderListCache !== 'undefined' ? tenderListCache : []).find(t => t.id === tenderId);
+    const bidNumber = getCanonicalGemBidNumber(tender) || extractValidGemBidNumber(tender?.gem_bidding_number) || extractValidGemBidNumber(tender?.tender_number);
+    if (bidNumber) {
+      try {
+        const rawResponse = await gemExtensionFetchResult(bidNumber);
+        const res = await fetch(`/api/tenders/${tenderId}/ingest-gem-result`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_response: rawResponse }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Result ingest failed');
+        return data;
+      } catch (extErr) {
+        console.warn('Extension result fetch failed, falling back to server:', extErr);
+        toast(`Browser check failed (${extErr.message}). Trying server…`, 'error');
+      }
+    }
+  }
+  const res = await fetch(`/api/tenders/${tenderId}/check-result`, { method: 'POST' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Result check failed');
+  return data;
+}
+
 async function checkTenderResultNow(tenderId, event) {
   if (event) event.stopPropagation();
   try {
-    const res = await fetch(`/api/tenders/${tenderId}/check-result`, { method:'POST' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || 'Result check failed');
+    const data = await runTenderResultCheck(tenderId);
     const bidNo = getCanonicalGemBidNumber(data?.tender) || data?.tender?.gem_bidding_number || data?.tender?.tender_number || `Tender ${tenderId}`;
     const effectiveStatus = String(data?.gem_result_status || data?.status || data?.tender?.gem_result_status || 'FAILED_TO_CHECK').toUpperCase();
     window.__lastTenderResultCheck = data;

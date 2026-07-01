@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
   "name": "GeM BidPlus Autofill",
-  "version": "1.0.0",
-  "description": "Autofills Bid/RA Status and bid number on GeM all-bids pages opened from the tender app.",
+  "version": "1.1.0",
+  "description": "Autofills GeM all-bids search and checks tender results from your browser so the tender app never has to reach GeM directly.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "cookies"
+  ],
   "content_scripts": [
     {
       "matches": [

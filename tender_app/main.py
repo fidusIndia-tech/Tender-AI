@@ -34,6 +34,7 @@ from gem_watcher.routes import router as gem_watcher_router
 from result_watcher import (
     check_tender_result,
     debug_gem_exact_result_search,
+    ingest_gem_result,
     run_result_watcher_for_eligible_tenders,
     start_result_watcher_scheduler,
 )
@@ -269,6 +270,10 @@ class CompanyProfilePayload(BaseModel):
 
 class GemResultDebugPayload(BaseModel):
     bid_number: str
+
+
+class GemResultIngestPayload(BaseModel):
+    raw_response: dict
 
 
 class CompanyCapabilityProfilePayload(BaseModel):
@@ -664,6 +669,16 @@ async def check_tender_result_now(tender_id: int):
         raise HTTPException(404, "Tender not found")
     try:
         return await asyncio.to_thread(check_tender_result, tender_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/tenders/{tender_id}/ingest-gem-result")
+async def ingest_gem_result_now(tender_id: int, payload: GemResultIngestPayload):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    try:
+        return await asyncio.to_thread(ingest_gem_result, tender_id, payload.raw_response)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
