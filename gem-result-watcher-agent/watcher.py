@@ -70,9 +70,82 @@ def load_config(require_api=True):
         "delay": float(os.getenv("CHECK_DELAY_SECONDS", "7") or "7"),
         "max_tenders": int(os.getenv("MAX_TENDERS_PER_RUN", "0") or "0"),
         "headless": os.getenv("PLAYWRIGHT_HEADLESS", "false").strip().lower() in {"1", "true", "yes"},
+        "use_persistent_profile": os.getenv("USE_PERSISTENT_PROFILE", "false").strip().lower() in {"1", "true", "yes"},
         "profile_dir": str((ROOT / os.getenv("BROWSER_PROFILE_DIR", ".browser-profile")).resolve()),
+        "browser_channel": os.getenv("BROWSER_CHANNEL", "msedge").strip(),
         "log_level": os.getenv("LOG_LEVEL", "INFO"),
     }
+
+
+def launch_browser_context(playwright, config):
+    profile_dir = config["profile_dir"]
+    headless = config["headless"]
+    use_persistent_profile = config.get("use_persistent_profile", False)
+    browser_channel = config.get("browser_channel") or ""
+    viewport = {"width": 1366, "height": 900}
+    browser = None
+    context = None
+    launch_mode = "persistent"
+
+    if use_persistent_profile:
+        try:
+            context = playwright.chromium.launch_persistent_context(
+                profile_dir,
+                headless=headless,
+                viewport=viewport,
+            )
+            logging.info("Playwright browser launched using persistent profile: %s", profile_dir)
+            return browser, context, launch_mode
+        except Exception as exc:
+            logging.warning(
+                "Persistent Playwright profile launch failed for %s: %s. Falling back to a fresh browser context.",
+                profile_dir,
+                exc,
+            )
+
+    launch_attempts = []
+    if browser_channel:
+        launch_attempts.append(("channel", {"channel": browser_channel, "headless": headless}))
+    launch_attempts.append(("bundled", {"headless": headless}))
+
+    last_error = None
+    for attempt_name, launch_kwargs in launch_attempts:
+        try:
+            browser = playwright.chromium.launch(**launch_kwargs)
+            context = browser.new_context(viewport=viewport)
+            launch_mode = f"ephemeral-{attempt_name}"
+            if attempt_name == "channel":
+                logging.info(
+                    "Playwright browser launched using installed channel '%s' with a fresh ephemeral context.",
+                    browser_channel,
+                )
+            else:
+                logging.info("Playwright browser launched using bundled Chromium with a fresh ephemeral context.")
+            return browser, context, launch_mode
+        except Exception as exc:
+            last_error = exc
+            logging.warning("Ephemeral Playwright launch using %s failed: %s", attempt_name, exc)
+
+    raise RuntimeError(
+        "Playwright could not launch any supported browser. "
+        f"Attempted persistent_profile={use_persistent_profile}, channel='{browser_channel or 'none'}', bundled Chromium."
+    ) from last_error
+
+
+def close_browser_context(browser, context):
+    close_errors = []
+    if context is not None:
+        try:
+            context.close()
+        except Exception as exc:
+            close_errors.append(f"context.close failed: {exc}")
+    if browser is not None:
+        try:
+            browser.close()
+        except Exception as exc:
+            close_errors.append(f"browser.close failed: {exc}")
+    for item in close_errors:
+        logging.warning(item)
 
 
 def auth_headers(config):
@@ -254,7 +327,10 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
     bid_parent_id = first_value((result_doc or {}).get("b_id_parent"))
     result_status_text = extract_status_text(result_doc)
     is_direct_bid = bool(result_bid_value == bid and not result_parent_value)
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id and is_evaluated_status_text(result_status_text))
+    # The Bid/RA Status result feed can expose a valid direct bid result row while the
+    # raw status field is just an opaque code such as "1". In that case the result is
+    # still available because GeM returned the exact bid with a result document id.
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id)
 
     ongoing_bid_value = str(first_value((ongoing_doc or {}).get("b_bid_number")) or "").strip().upper()
     ongoing_parent_value = str(first_value((ongoing_doc or {}).get("b_bid_number_parent")) or "").strip().upper()
@@ -324,7 +400,18 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
             "final_gem_result_status": status,
             "result_filter_type": RESULT_FILTER_TYPE,
             "ongoing_filter_type": ONGOING_FILTER_TYPE,
-            "reason": result_status_text or ongoing_status_text,
+            "reason": (
+                "Original bid result is available and the RA document is also evaluated."
+                if status == STATUS_BID_AND_RA_AVAILABLE
+                else "RA document matched and its status indicates evaluation/result availability."
+                if status == STATUS_RA_AVAILABLE
+                else "RA document exists for this bid, but the RA result is not available yet."
+                if status == STATUS_RA_CREATED
+                else "Direct original bid result is available from the matched GeM document."
+                if status == STATUS_BID_AVAILABLE
+                else "Exact GeM document matched, but no bid result and no RA were available."
+            ),
+            "doc_status_text": result_status_text or ongoing_status_text or None,
         },
     }
 
@@ -500,11 +587,7 @@ def run_pending(config):
     }
 
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            config["profile_dir"],
-            headless=config["headless"],
-            viewport={"width": 1366, "height": 900},
-        )
+        browser, context, _launch_mode = launch_browser_context(p, config)
         page = context.pages[0] if context.pages else context.new_page()
         try:
             for index, tender in enumerate(pending):
@@ -528,7 +611,7 @@ def run_pending(config):
                     delay = max(0, config["delay"] + random.uniform(-2, 2))
                     time.sleep(delay)
         finally:
-            context.close()
+            close_browser_context(browser, context)
 
     finished_at = utc_now_iso()
     post_json(
@@ -561,11 +644,7 @@ def run_recheck_and_fix_statuses(config):
     }
 
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            config["profile_dir"],
-            headless=config["headless"],
-            viewport={"width": 1366, "height": 900},
-        )
+        browser, context, _launch_mode = launch_browser_context(p, config)
         page = context.pages[0] if context.pages else context.new_page()
         try:
             for index, tender in enumerate(pending):
@@ -589,7 +668,7 @@ def run_recheck_and_fix_statuses(config):
                     delay = max(0, config["delay"] + random.uniform(-2, 2))
                     time.sleep(delay)
         finally:
-            context.close()
+            close_browser_context(browser, context)
 
     finished_at = utc_now_iso()
     post_json(
@@ -611,11 +690,7 @@ def run_test_bid(config, bid_number):
     if not GEM_BID_RE.fullmatch(bid):
         raise SystemExit("Use a valid bid number like GEM/2026/B/7586698")
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            config["profile_dir"],
-            headless=config["headless"],
-            viewport={"width": 1366, "height": 900},
-        )
+        browser, context, _launch_mode = launch_browser_context(p, config)
         page = context.pages[0] if context.pages else context.new_page()
         try:
             result_raw = fetch_gem_bid_status(context, page, config, bid, RESULT_FILTER_TYPE)
@@ -623,7 +698,7 @@ def run_test_bid(config, bid_number):
             parsed = parse_gem_response(bid, config["gem_base_url"], result_raw, ongoing_raw)
             print(json.dumps(parsed, indent=2, default=str))
         finally:
-            context.close()
+            close_browser_context(browser, context)
 
 
 def main():

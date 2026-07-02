@@ -695,7 +695,9 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
     result_status_text = _extract_doc_status_text(result_doc)
     result_direct_matches = result_bid_value == canonical_bid_number
     is_direct_bid = bool(result_direct_matches and not result_parent_bid_value)
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id and _is_evaluated_status_text(result_status_text))
+    # GeM sometimes returns opaque status values like "1" even when the Bid/RA Status
+    # filter already exposes a direct result row with a valid result document id.
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id)
 
     ongoing_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number"))).upper() or None
     ongoing_parent_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number_parent"))).upper() or None
@@ -769,6 +771,7 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
     debug["gem_ra_url"] = gem_ra_url
     debug["ra_result_url"] = gem_ra_result_url
     debug["doc_status_text"] = status_text
+    debug["doc_status_indicates_evaluated"] = _is_evaluated_status_text(status_text)
 
     return {
         "card_found": matched_doc_found,
