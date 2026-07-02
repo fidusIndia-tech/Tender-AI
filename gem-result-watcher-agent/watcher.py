@@ -31,6 +31,8 @@ STATUS_RA_CREATED = "RA_CREATED"
 STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 STATUS_FAILED = "FAILED_TO_CHECK"
+RESULT_FILTER_TYPE = os.getenv("GEM_RESULT_FILTER_TYPE", "bidrastatus").strip() or "bidrastatus"
+ONGOING_FILTER_TYPE = os.getenv("GEM_ONGOING_FILTER_TYPE", "bidra").strip() or "bidra"
 
 
 class GemNoDataFound(Exception):
@@ -175,44 +177,13 @@ def is_evaluated_status_text(text):
     )
 
 
-def parse_gem_response(bid_number, gem_base_url, data):
-    bid = str(bid_number or "").strip().upper()
-    if data.get("_gem_not_found"):
-        return {
-            "resultAvailable": False,
-            "bidResultAvailable": False,
-            "raCreated": False,
-            "raResultAvailable": False,
-            "raNumber": None,
-            "raUrl": None,
-            "raStartDate": None,
-            "raEndDate": None,
-            "bidResultUrl": None,
-            "raResultUrl": None,
-            "gemResultStatus": STATUS_NOT_FOUND,
-            "gemPageStatus": None,
-            "resultCheckError": "GeM returned 404 No data found",
-            "rawGemMatchedDoc": None,
-            "debug": {
-                "numFound": 0,
-                "returnedBidNumbers": [],
-                "returnedParentBidNumbers": [],
-                "matched_doc_id": None,
-                "b_bid_number": None,
-                "b_bid_number_parent": None,
-                "b_id_parent": None,
-                "ra_id": None,
-                "is_direct_bid": False,
-                "is_ra_doc": False,
-            },
-        }
+def find_matching_doc(data, bid):
     inner = ((data or {}).get("response") or {}).get("response") or {}
     docs = inner.get("docs") or []
     num_found = int(inner.get("numFound") or len(docs) or 0)
     returned_bids = []
     returned_parents = []
     matched_doc = None
-
     for doc in docs:
         if not isinstance(doc, dict):
             continue
@@ -223,16 +194,27 @@ def parse_gem_response(bid_number, gem_base_url, data):
         if bid in doc_bids or bid in doc_parents:
             matched_doc = doc
             break
+    return matched_doc, returned_bids, returned_parents, num_found
+
+
+def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None):
+    bid = str(bid_number or "").strip().upper()
+    result_doc, returned_bids, returned_parents, num_found = find_matching_doc(result_data, bid)
+    ongoing_doc, ongoing_returned_bids, ongoing_returned_parents, ongoing_num_found = find_matching_doc(ongoing_data, bid)
+    matched_doc = result_doc or ongoing_doc
 
     logging.info(
-        "GeM docs num_found=%s returned_bids=%s returned_parents=%s matched=%s",
+        "GeM docs result_filter=%s num_found=%s ongoing_filter=%s ongoing_num_found=%s matched=%s",
+        RESULT_FILTER_TYPE,
         num_found,
-        returned_bids[:10],
-        returned_parents[:10],
+        ONGOING_FILTER_TYPE,
+        ongoing_num_found,
         bool(matched_doc),
     )
 
     if not matched_doc:
+        result_not_found = bool((result_data or {}).get("_gem_not_found"))
+        ongoing_not_found = bool((ongoing_data or {}).get("_gem_not_found"))
         return {
             "resultAvailable": False,
             "bidResultAvailable": False,
@@ -244,14 +226,16 @@ def parse_gem_response(bid_number, gem_base_url, data):
             "raEndDate": None,
             "bidResultUrl": None,
             "raResultUrl": None,
-            "gemResultStatus": STATUS_NOT_FOUND,
+            "gemResultStatus": STATUS_NOT_FOUND if result_not_found and (ongoing_not_found or ongoing_data is None) else STATUS_NOT_AVAILABLE,
             "gemPageStatus": None,
-            "resultCheckError": "Exact tender was not found in GeM response.",
+            "resultCheckError": "GeM returned 404 No data found" if result_not_found and (ongoing_not_found or ongoing_data is None) else "Exact tender was not matchable in selected GeM filters.",
             "rawGemMatchedDoc": None,
             "debug": {
                 "numFound": num_found,
                 "returnedBidNumbers": returned_bids,
                 "returnedParentBidNumbers": returned_parents,
+                "ongoingReturnedBidNumbers": ongoing_returned_bids,
+                "ongoingReturnedParentBidNumbers": ongoing_returned_parents,
                 "matched_doc_id": None,
                 "b_bid_number": None,
                 "b_bid_number_parent": None,
@@ -259,31 +243,31 @@ def parse_gem_response(bid_number, gem_base_url, data):
                 "ra_id": None,
                 "is_direct_bid": False,
                 "is_ra_doc": False,
+                "result_filter_type": RESULT_FILTER_TYPE,
+                "ongoing_filter_type": ONGOING_FILTER_TYPE,
             },
         }
 
-    bid_value = str(first_value(matched_doc.get("b_bid_number")) or "").strip().upper()
-    parent_value = str(first_value(matched_doc.get("b_bid_number_parent")) or "").strip().upper()
-    direct_doc_id = first_value(matched_doc.get("id")) or first_value(matched_doc.get("b_id"))
-    bid_parent_id = first_value(matched_doc.get("b_id_parent"))
-    status_text = extract_status_text(matched_doc)
-    ra_match = GEM_RA_RE.search(bid_value or "")
+    result_bid_value = str(first_value((result_doc or {}).get("b_bid_number")) or "").strip().upper()
+    result_parent_value = str(first_value((result_doc or {}).get("b_bid_number_parent")) or "").strip().upper()
+    result_direct_doc_id = first_value((result_doc or {}).get("id")) or first_value((result_doc or {}).get("b_id"))
+    bid_parent_id = first_value((result_doc or {}).get("b_id_parent"))
+    result_status_text = extract_status_text(result_doc)
+    is_direct_bid = bool(result_bid_value == bid and not result_parent_value)
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id and is_evaluated_status_text(result_status_text))
+
+    ongoing_bid_value = str(first_value((ongoing_doc or {}).get("b_bid_number")) or "").strip().upper()
+    ongoing_parent_value = str(first_value((ongoing_doc or {}).get("b_bid_number_parent")) or "").strip().upper()
+    ongoing_doc_id = first_value((ongoing_doc or {}).get("id")) or first_value((ongoing_doc or {}).get("b_id"))
+    ra_match = GEM_RA_RE.search(ongoing_bid_value or "")
     ra_number = ra_match.group(0).upper() if ra_match else None
-    parent_matches = parent_value == bid
-    direct_matches = bid_value == bid
-    is_ra_doc = bool(parent_matches and ra_number and "/R/" in (bid_value or ""))
-    is_direct_bid = bool(direct_matches and not parent_value)
-    ra_id = direct_doc_id if is_ra_doc else None
-    status_is_evaluated = is_evaluated_status_text(status_text)
-
-    bid_result_available = False
-    if is_direct_bid and direct_doc_id and status_is_evaluated:
-        bid_result_available = True
-    elif is_ra_doc and bid_parent_id:
-        bid_result_available = True
-
+    is_ra_doc = bool(ongoing_parent_value == bid and ra_number and "/R/" in (ongoing_bid_value or ""))
     ra_created = is_ra_doc
-    ra_result_available = bool(is_ra_doc and ra_id and status_is_evaluated)
+    ra_id = ongoing_doc_id if is_ra_doc else None
+    ongoing_status_text = extract_status_text(ongoing_doc)
+    ra_result_available = bool(is_ra_doc and ra_id and is_evaluated_status_text(ongoing_status_text))
+    if is_ra_doc and bid_parent_id:
+        bid_result_available = True
     result_available = bool(bid_result_available or ra_result_available)
 
     if bid_result_available and ra_result_available:
@@ -299,7 +283,7 @@ def parse_gem_response(bid_number, gem_base_url, data):
 
     bid_result_url = None
     if is_direct_bid and bid_result_available:
-        bid_result_url = build_result_url(gem_base_url, direct_doc_id)
+        bid_result_url = build_result_url(gem_base_url, result_direct_doc_id)
     elif bid_result_available:
         bid_result_url = build_result_url(gem_base_url, bid_parent_id)
 
@@ -318,16 +302,18 @@ def parse_gem_response(bid_number, gem_base_url, data):
         "bidResultUrl": bid_result_url,
         "raResultUrl": ra_result_url,
         "gemResultStatus": status,
-        "gemPageStatus": status_text or None,
+        "gemPageStatus": result_status_text or ongoing_status_text or None,
         "resultCheckError": None,
         "rawGemMatchedDoc": matched_doc,
         "debug": {
             "numFound": num_found,
             "returnedBidNumbers": returned_bids,
             "returnedParentBidNumbers": returned_parents,
-            "matched_doc_id": direct_doc_id,
-            "b_bid_number": bid_value,
-            "b_bid_number_parent": parent_value,
+            "ongoingReturnedBidNumbers": ongoing_returned_bids,
+            "ongoingReturnedParentBidNumbers": ongoing_returned_parents,
+            "matched_doc_id": result_direct_doc_id or ongoing_doc_id,
+            "b_bid_number": result_bid_value or ongoing_bid_value,
+            "b_bid_number_parent": result_parent_value or ongoing_parent_value,
             "b_id_parent": bid_parent_id,
             "ra_id": ra_id,
             "is_direct_bid": is_direct_bid,
@@ -336,16 +322,18 @@ def parse_gem_response(bid_number, gem_base_url, data):
             "ra_created": ra_created,
             "ra_result_available": ra_result_available,
             "final_gem_result_status": status,
-            "reason": status_text,
+            "result_filter_type": RESULT_FILTER_TYPE,
+            "ongoing_filter_type": ONGOING_FILTER_TYPE,
+            "reason": result_status_text or ongoing_status_text,
         },
     }
 
 
-def gem_payload(bid_number):
+def gem_payload(bid_number, bid_status_type):
     return {
         "param": {"searchBid": bid_number, "searchType": "fullText"},
         "filter": {
-            "bidStatusType": "bidrastatus",
+            "bidStatusType": bid_status_type,
             "byType": "all",
             "highBidValue": "",
             "byEndDate": {"from": "", "to": ""},
@@ -366,11 +354,11 @@ def ensure_gem_page(context, page, gem_base_url):
     return csrf
 
 
-def fetch_gem_bid_status(context, page, config, bid_number):
+def fetch_gem_bid_status(context, page, config, bid_number, bid_status_type):
     gem_base_url = config["gem_base_url"]
     csrf = ensure_gem_page(context, page, gem_base_url)
     request_url = f"{gem_base_url}/all-bids-data"
-    body = f"payload={urllib.parse.quote(json.dumps(gem_payload(bid_number), separators=(',', ':')))}&csrf_bd_gem_nk={urllib.parse.quote(csrf)}"
+    body = f"payload={urllib.parse.quote(json.dumps(gem_payload(bid_number, bid_status_type), separators=(',', ':')))}&csrf_bd_gem_nk={urllib.parse.quote(csrf)}"
 
     script = """
     async ({ requestUrl, body }) => {
@@ -391,7 +379,7 @@ def fetch_gem_bid_status(context, page, config, bid_number):
     result = page.evaluate(script, {"requestUrl": request_url, "body": body})
     status = int(result.get("status") or 0)
     text = result.get("text") or ""
-    logging.info("GeM response status=%s snippet=%s", status, text[:250])
+    logging.info("GeM response filter=%s status=%s snippet=%s", bid_status_type, status, text[:250])
 
     if status == 404:
         try:
@@ -418,8 +406,9 @@ def check_one_tender(context, page, config, tender):
     last_error = None
     for attempt in range(1, 4):
         try:
-            raw = fetch_gem_bid_status(context, page, config, bid_number)
-            parsed = parse_gem_response(bid_number, config["gem_base_url"], raw)
+            result_raw = fetch_gem_bid_status(context, page, config, bid_number, RESULT_FILTER_TYPE)
+            ongoing_raw = fetch_gem_bid_status(context, page, config, bid_number, ONGOING_FILTER_TYPE)
+            parsed = parse_gem_response(bid_number, config["gem_base_url"], result_raw, ongoing_raw)
             payload = {
                 "bidNumber": bid_number,
                 "checkedAt": utc_now_iso(),
@@ -629,8 +618,9 @@ def run_test_bid(config, bid_number):
         )
         page = context.pages[0] if context.pages else context.new_page()
         try:
-            raw = fetch_gem_bid_status(context, page, config, bid)
-            parsed = parse_gem_response(bid, config["gem_base_url"], raw)
+            result_raw = fetch_gem_bid_status(context, page, config, bid, RESULT_FILTER_TYPE)
+            ongoing_raw = fetch_gem_bid_status(context, page, config, bid, ONGOING_FILTER_TYPE)
+            parsed = parse_gem_response(bid, config["gem_base_url"], result_raw, ongoing_raw)
             print(json.dumps(parsed, indent=2, default=str))
         finally:
             context.close()

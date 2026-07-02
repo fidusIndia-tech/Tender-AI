@@ -40,6 +40,8 @@ GEM_NETWORK_USER_AGENT = os.environ.get(
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
 )
 GEM_NETWORK_COOKIE_HEADER = os.environ.get("GEM_RESULT_NETWORK_COOKIES", "").strip()
+GEM_RESULT_FILTER_TYPE = os.environ.get("GEM_RESULT_FILTER_TYPE", "bidrastatus").strip() or "bidrastatus"
+GEM_ONGOING_FILTER_TYPE = os.environ.get("GEM_ONGOING_FILTER_TYPE", "bidra").strip() or "bidra"
 
 DEFAULT_RESULT_URLS = [
     "https://bidplus.gem.gov.in/all-bids",
@@ -390,11 +392,11 @@ def _extract_urls_from_text(text: str, label: str) -> str | None:
     return None
 
 
-def _build_bid_status_payload(bid_number: str) -> str:
+def _build_bid_status_payload(bid_number: str, bid_status_type: str) -> str:
     body_json = {
         "param": {"searchBid": bid_number, "searchType": "fullText"},
         "filter": {
-            "bidStatusType": "bidrastatus",
+            "bidStatusType": bid_status_type,
             "byType": "all",
             "highBidValue": "",
             "byEndDate": {"from": "", "to": ""},
@@ -420,6 +422,26 @@ def _extract_doc_field_values(docs: list[dict], field_name: str) -> list[str]:
             if text:
                 values.append(text)
     return values
+
+
+def _find_matching_doc(data: dict | None, canonical_bid_number: str) -> tuple[dict | None, list[str], list[str], int]:
+    inner = ((data or {}).get("response") or {}).get("response") or {}
+    docs = inner.get("docs") or []
+    num_found = int(inner.get("numFound") or len(docs) or 0)
+    returned_bids: list[str] = []
+    returned_parents: list[str] = []
+    matched_doc = None
+    for doc in docs:
+        if not isinstance(doc, dict):
+            continue
+        doc_bid_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number")]
+        doc_parent_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number_parent")]
+        returned_bids.extend(doc_bid_numbers)
+        returned_parents.extend(doc_parent_numbers)
+        if canonical_bid_number in doc_bid_numbers or canonical_bid_number in doc_parent_numbers:
+            matched_doc = doc
+            break
+    return matched_doc, returned_bids, returned_parents, num_found
 
 
 def _build_gem_bid_result_url(doc_id) -> str | None:
@@ -499,7 +521,7 @@ def debug_gem_exact_result_search(bid_number: str) -> dict:
     payload_json = {
         "param": {"searchBid": canonical_bid_number, "searchType": "fullText"},
         "filter": {
-            "bidStatusType": "bidrastatus",
+            "bidStatusType": GEM_RESULT_FILTER_TYPE,
             "byType": "all",
             "highBidValue": "",
             "byEndDate": {"from": "", "to": ""},
@@ -550,7 +572,7 @@ def debug_gem_exact_result_search(bid_number: str) -> dict:
                 "landing_snippet": _normalize_space(landing.text)[:1500],
             }
 
-        body = _build_bid_status_payload(canonical_bid_number) + "&csrf_bd_gem_nk=" + csrf_token
+        body = _build_bid_status_payload(canonical_bid_number, GEM_RESULT_FILTER_TYPE) + "&csrf_bd_gem_nk=" + csrf_token
         response = client.post(GEM_ALL_BIDS_DATA_URL, headers=headers, content=body)
         response_text = response.text
         base_result = {
@@ -631,7 +653,7 @@ def debug_gem_exact_result_search(bid_number: str) -> dict:
         }
 
 
-def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
+def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongoing_data: dict | None = None) -> dict:
     """Turn a raw GeM all-bids-data response into a standardized result payload.
 
     Shared by the server-side network check and the browser-extension ingest path
@@ -656,44 +678,43 @@ def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
         "ra_result_url": None,
     }
 
-    inner = (data.get("response") or {}).get("response") or {}
-    docs = inner.get("docs") or []
     values = []
-    _collect_string_values(data, values)
+    _collect_string_values(result_data, values)
+    _collect_string_values(ongoing_data, values)
     joined_text = "\n".join(values)
+    result_doc, returned_bids, returned_parents, num_found = _find_matching_doc(result_data, canonical_bid_number)
+    ongoing_doc, ongoing_returned_bids, ongoing_returned_parents, ongoing_num_found = _find_matching_doc(ongoing_data, canonical_bid_number)
 
-    matched_doc = None
-    for doc in docs:
-        if not isinstance(doc, dict):
-            continue
-        doc_bid_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number")]
-        doc_parent_numbers = [value.upper() for value in _extract_doc_field_values([doc], "b_bid_number_parent")]
-        if canonical_bid_number in doc_bid_numbers or canonical_bid_number in doc_parent_numbers:
-            matched_doc = doc
-            break
-
+    matched_doc = result_doc or ongoing_doc
     matched_doc_found = matched_doc is not None
-    bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number"))).upper() or None
-    parent_bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number_parent"))).upper() or None
-    direct_doc_id = _normalize_space(_first((matched_doc or {}).get("id") or (matched_doc or {}).get("b_id"))) or None
-    bid_parent_id = _normalize_space(_first((matched_doc or {}).get("b_id_parent"))) or None
-    status_text = _extract_doc_status_text(matched_doc)
-    inferred_ra_number = _extract_gem_ra_number(bid_value, status_text, joined_text)
-    parent_matches = parent_bid_value == canonical_bid_number
-    direct_matches = bid_value == canonical_bid_number
-    is_ra_doc = bool(parent_matches and inferred_ra_number and bid_value and "/R/" in bid_value.upper())
-    is_direct_bid = bool(direct_matches and not parent_bid_value)
-    ra_id = direct_doc_id if is_ra_doc else None
-    status_is_evaluated = _is_evaluated_status_text(status_text)
 
-    bid_result_available = False
-    if is_direct_bid and direct_doc_id and status_is_evaluated:
-        bid_result_available = True
-    elif is_ra_doc and bid_parent_id:
-        bid_result_available = True
+    result_bid_value = _normalize_space(_first((result_doc or {}).get("b_bid_number"))).upper() or None
+    result_parent_bid_value = _normalize_space(_first((result_doc or {}).get("b_bid_number_parent"))).upper() or None
+    result_direct_doc_id = _normalize_space(_first((result_doc or {}).get("id") or (result_doc or {}).get("b_id"))) or None
+    result_bid_parent_id = _normalize_space(_first((result_doc or {}).get("b_id_parent"))) or None
+    result_status_text = _extract_doc_status_text(result_doc)
+    result_direct_matches = result_bid_value == canonical_bid_number
+    is_direct_bid = bool(result_direct_matches and not result_parent_bid_value)
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id and _is_evaluated_status_text(result_status_text))
 
+    ongoing_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number"))).upper() or None
+    ongoing_parent_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number_parent"))).upper() or None
+    ongoing_direct_doc_id = _normalize_space(_first((ongoing_doc or {}).get("id") or (ongoing_doc or {}).get("b_id"))) or None
+    ongoing_ra_number = _extract_gem_ra_number(ongoing_bid_value, joined_text)
+    ongoing_parent_matches = ongoing_parent_bid_value == canonical_bid_number
+    is_ra_doc = bool(ongoing_parent_matches and ongoing_ra_number and ongoing_bid_value and "/R/" in ongoing_bid_value.upper())
     ra_created = is_ra_doc
-    ra_result_available = bool(is_ra_doc and ra_id and status_is_evaluated)
+    ra_result_available = bool(is_ra_doc and ongoing_direct_doc_id and _is_evaluated_status_text(_extract_doc_status_text(ongoing_doc)))
+    inferred_ra_number = ongoing_ra_number
+    ra_id = ongoing_direct_doc_id if is_ra_doc else None
+    bid_value = result_bid_value or ongoing_bid_value
+    parent_bid_value = result_parent_bid_value or ongoing_parent_bid_value
+    direct_doc_id = result_direct_doc_id or ongoing_direct_doc_id
+    bid_parent_id = result_bid_parent_id
+    status_text = result_status_text or _extract_doc_status_text(ongoing_doc)
+
+    if is_ra_doc and bid_parent_id:
+        bid_result_available = True
     result_available = bool(bid_result_available or ra_result_available)
 
     if bid_result_available and ra_result_available:
@@ -723,10 +744,14 @@ def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
 
     gem_ra_url = _build_gem_ra_result_url(ra_id) if ra_created else None
     gem_ra_result_url = _build_gem_ra_result_url(ra_id) if ra_result_available else None
-    ra_start_date = _extract_doc_sort_value(matched_doc, "final_start_date_sort")
-    ra_end_date = _extract_doc_sort_value(matched_doc, "final_end_date_sort")
+    ra_start_date = _extract_doc_sort_value(ongoing_doc, "final_start_date_sort")
+    ra_end_date = _extract_doc_sort_value(ongoing_doc, "final_end_date_sort")
 
     debug["matched_doc_found"] = matched_doc_found
+    debug["result_filter_type"] = GEM_RESULT_FILTER_TYPE
+    debug["ongoing_filter_type"] = GEM_ONGOING_FILTER_TYPE
+    debug["result_num_found"] = num_found
+    debug["ongoing_num_found"] = ongoing_num_found
     debug["b_bid_number"] = bid_value
     debug["b_bid_number_parent"] = parent_bid_value
     debug["b_id_parent"] = bid_parent_id
@@ -838,21 +863,25 @@ def checkGemResultByNetwork(bid_number: str):
                 "network_debug": debug,
             }
 
-        body = _build_bid_status_payload(canonical_bid_number) + "&csrf_bd_gem_nk=" + csrf_token
+        body = _build_bid_status_payload(canonical_bid_number, GEM_RESULT_FILTER_TYPE) + "&csrf_bd_gem_nk=" + csrf_token
         response = client.post(GEM_ALL_BIDS_DATA_URL, headers=headers, content=body)
         debug["response_status"] = response.status_code
         raw_text = response.text
         debug["response_snippet"] = _normalize_space(raw_text)[:3000]
+        result_data = None
         if response.status_code == 404:
             try:
                 parsed_404 = response.json()
             except Exception:
                 parsed_404 = {}
             if parsed_404.get("code") == 404 and _normalize_for_compare(parsed_404.get("message")) == "no data found":
-                debug["final_gem_result_status"] = RESULT_STATUS_NOT_FOUND
+                result_data = {"_gem_not_found": True}
+        elif response.status_code == 200:
+            try:
+                result_data = response.json()
+            except Exception as exc:
                 return {
                     "card_found": False,
-                    "matched_doc_found": False,
                     "bid_result_available": False,
                     "ra_created": False,
                     "ra_result_available": False,
@@ -863,16 +892,15 @@ def checkGemResultByNetwork(bid_number: str):
                     "gem_ra_number": None,
                     "ra_start_date": None,
                     "ra_end_date": None,
-                    "status": RESULT_STATUS_NOT_FOUND,
-                    "gem_result_status": RESULT_STATUS_NOT_FOUND,
-                    "reason": "GeM returned 404 No data found.",
-                    "result_check_error": "GeM returned 404 No data found",
+                    "status": RESULT_STATUS_FAILED,
+                    "reason": f"GeM network search failed: invalid JSON response ({type(exc).__name__}).",
+                    "result_check_error": f"GeM network search failed: invalid JSON response ({type(exc).__name__}).",
                     "page_text_snippet": debug["response_snippet"],
                     "opened_url": GEM_ALL_BIDS_DATA_URL,
-                    "failure_details": [],
+                    "failure_details": [str(exc)],
                     "network_debug": debug,
                 }
-        if response.status_code != 200:
+        if response.status_code not in (200, 404):
             return {
                 "card_found": False,
                 "bid_result_available": False,
@@ -893,27 +921,24 @@ def checkGemResultByNetwork(bid_number: str):
                 "failure_details": [f"HTTP {response.status_code}"],
                 "network_debug": debug,
             }
+        ongoing_body = _build_bid_status_payload(canonical_bid_number, GEM_ONGOING_FILTER_TYPE) + "&csrf_bd_gem_nk=" + csrf_token
+        ongoing_response = client.post(GEM_ALL_BIDS_DATA_URL, headers=headers, content=ongoing_body)
+        debug["ongoing_response_status"] = ongoing_response.status_code
+        debug["ongoing_response_snippet"] = _normalize_space(ongoing_response.text)[:3000]
+        ongoing_data = None
+        if ongoing_response.status_code == 200:
+            try:
+                ongoing_data = ongoing_response.json()
+            except Exception:
+                ongoing_data = None
+        elif ongoing_response.status_code == 404:
+            ongoing_data = {"_gem_not_found": True}
 
-        try:
-            data = response.json()
-        except Exception as exc:
-            return {
-                "card_found": False,
-                "bid_result_available": False,
-                "ra_result_available": False,
-                "result_available": False,
-                "gem_result_url": None,
-                "gem_ra_result_url": None,
-                "gem_ra_number": None,
-                "status": RESULT_STATUS_FAILED,
-                "reason": f"GeM network search failed: invalid JSON response ({type(exc).__name__}).",
-                "page_text_snippet": debug["response_snippet"],
-                "opened_url": GEM_ALL_BIDS_DATA_URL,
-                "failure_details": [str(exc)],
-                "network_debug": debug,
-            }
-
-        return parse_gem_result_response(canonical_bid_number, data)
+        return parse_gem_result_response(
+            canonical_bid_number,
+            result_data or {"response": {"response": {"docs": []}}},
+            ongoing_data,
+        )
 
 
 def _find_matching_link(page, bid_number: str):
