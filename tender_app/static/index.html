@@ -2646,6 +2646,7 @@ let brandReportSearchTerm = '';
 let tenderNotificationsCache = [];
 let knownUnreadNotificationIds = new Set();
 let notificationPollTimer = null;
+let notificationBootstrapDone = false;
 
 function normalizeParticipantName(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -6621,6 +6622,12 @@ function showNewTenderNotificationToasts(newUnread) {
     }
   });
 }
+function showUnreadNotificationSummaryToast(unreadCount) {
+  const count = Number(unreadCount || 0);
+  if (!count) return;
+  const message = count === 1 ? '1 new result available.' : `${count} new results available.`;
+  toast(message, 'success');
+}
 async function loadTenderNotifications(silent=false) {
   try {
     const res = await fetch('/api/tender-notifications');
@@ -6630,7 +6637,12 @@ async function loadTenderNotifications(silent=false) {
     const newUnread = data.filter(n => !n.is_read && !knownUnreadNotificationIds.has(n.id));
     tenderNotificationsCache = data;
     renderNotificationPanel();
-    if (knownUnreadNotificationIds.size && newUnread.length) {
+    if (!notificationBootstrapDone) {
+      notificationBootstrapDone = true;
+      if (unreadNow.size) {
+        showUnreadNotificationSummaryToast(unreadNow.size);
+      }
+    } else if (knownUnreadNotificationIds.size && newUnread.length) {
       showNewTenderNotificationToasts(newUnread);
     }
     knownUnreadNotificationIds = unreadNow;

@@ -1061,6 +1061,10 @@ def get_result_watcher_summary():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
+            """DELETE FROM tender_notifications
+               WHERE created_at < (CURRENT_TIMESTAMP - INTERVAL '24 hours')"""
+        )
+        cur.execute(
             """SELECT id, started_at, finished_at, total_pending, checked, results_found, not_available, failed, skipped, run_source, created_at
                FROM result_watcher_run_logs
                ORDER BY COALESCE(finished_at, created_at) DESC, id DESC
@@ -1074,10 +1078,18 @@ def get_result_watcher_summary():
                  AND created_at::date = CURRENT_DATE"""
         )
         today = cur.fetchone()
+        cur.execute(
+            """SELECT COUNT(*) AS unread_notifications_24h
+               FROM tender_notifications
+               WHERE is_read = FALSE"""
+        )
+        unread = cur.fetchone()
+    conn.commit()
     conn.close()
     return {
         "last_run": dict(last_run) if last_run else None,
         "results_found_today": int((today or {}).get("results_found_today") or 0),
+        "unread_notifications_24h": int((unread or {}).get("unread_notifications_24h") or 0),
     }
 
 
@@ -1103,6 +1115,10 @@ def list_tender_notifications(limit=50):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
+            """DELETE FROM tender_notifications
+               WHERE created_at < (CURRENT_TIMESTAMP - INTERVAL '24 hours')"""
+        )
+        cur.execute(
             """SELECT n.id, n.tender_id, n.title, n.message, n.type, n.is_read, n.created_at,
                       t.gem_bidding_number, t.tender_number, t.gem_result_status, t.gem_result_url,
                       t.gem_ra_number, t.gem_ra_url, t.gem_ra_result_url, t.result_available, t.bid_result_available, t.ra_created, t.ra_result_available
@@ -1113,6 +1129,7 @@ def list_tender_notifications(limit=50):
             (limit,),
         )
         rows = cur.fetchall()
+    conn.commit()
     conn.close()
     return [dict(r) for r in rows]
 
