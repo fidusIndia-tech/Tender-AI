@@ -154,8 +154,10 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_result_url TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_number TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_result_url TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_page_status TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS last_result_checked_at TIMESTAMP")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_check_error TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS l1_seller_name TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS our_company_rank TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS our_company_status TEXT")
@@ -178,6 +180,21 @@ def init_db():
         cur.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS tender_notifications_unique_result_idx
             ON tender_notifications (tender_id, type)
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS result_watcher_run_logs (
+                id SERIAL PRIMARY KEY,
+                started_at TIMESTAMP,
+                finished_at TIMESTAMP,
+                total_pending INTEGER DEFAULT 0,
+                checked INTEGER DEFAULT 0,
+                results_found INTEGER DEFAULT 0,
+                not_available INTEGER DEFAULT 0,
+                failed INTEGER DEFAULT 0,
+                skipped INTEGER DEFAULT 0,
+                run_source TEXT DEFAULT 'LOCAL_AGENT',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS government_portals (
@@ -753,7 +770,8 @@ def list_tenders():
                       t.result_available, t.bid_result_available, t.ra_result_available,
                       t.gem_result_status, t.gem_bid_number, t.gem_internal_id,
                       t.result_declared, t.result_declared_at, t.gem_result_url,
-                      t.gem_ra_number, t.gem_ra_result_url, t.last_result_checked_at, t.notification_sent, t.l1_seller_name,
+                      t.gem_ra_number, t.gem_ra_result_url, t.gem_page_status,
+                      t.last_result_checked_at, t.notification_sent, t.result_check_error, t.l1_seller_name,
                       t.our_company_rank, t.our_company_status,
                       t.filed_date, t.remark,
                       COALESCE(a.attachment_count, 0) AS attachment_count,
@@ -888,8 +906,9 @@ def list_result_watch_eligible_tenders():
         cur.execute(
             """SELECT id, gem_bidding_number, tender_number, bid_end_datetime, gem_result_status,
                       result_available, bid_result_available, ra_result_available,
-                      gem_result_url, gem_ra_number, gem_ra_result_url,
-                      result_declared, notification_sent, last_result_checked_at
+                      gem_result_url, gem_ra_number, gem_ra_result_url, gem_page_status,
+                      result_declared, notification_sent, last_result_checked_at, result_check_error,
+                      organization_name, make
                FROM tenders
                WHERE COALESCE(result_declared, FALSE) = FALSE
                  AND COALESCE(result_available, FALSE) = FALSE
@@ -914,8 +933,10 @@ def update_tender_result(
     gem_result_url=None,
     gem_ra_number=None,
     gem_ra_result_url=None,
+    gem_page_status=None,
     last_result_checked_at=None,
     notification_sent=None,
+    result_check_error=None,
     l1_seller_name=None,
     our_company_rank=None,
     our_company_status=None,
@@ -955,12 +976,18 @@ def update_tender_result(
     if gem_ra_result_url is not None:
         updates.append("gem_ra_result_url=%s")
         values.append(gem_ra_result_url)
+    if gem_page_status is not None:
+        updates.append("gem_page_status=%s")
+        values.append(gem_page_status)
     if last_result_checked_at is not None:
         updates.append("last_result_checked_at=%s")
         values.append(last_result_checked_at)
     if notification_sent is not None:
         updates.append("notification_sent=%s")
         values.append(notification_sent)
+    if result_check_error is not None:
+        updates.append("result_check_error=%s")
+        values.append(result_check_error)
     if l1_seller_name is not None:
         updates.append("l1_seller_name=%s")
         values.append(l1_seller_name)
@@ -981,6 +1008,57 @@ def update_tender_result(
         )
     conn.commit()
     conn.close()
+
+
+def create_result_watcher_run_log(
+    *,
+    started_at=None,
+    finished_at=None,
+    total_pending=0,
+    checked=0,
+    results_found=0,
+    not_available=0,
+    failed=0,
+    skipped=0,
+    run_source="LOCAL_AGENT",
+):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO result_watcher_run_logs
+               (started_at, finished_at, total_pending, checked, results_found, not_available, failed, skipped, run_source)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+               RETURNING id, started_at, finished_at, total_pending, checked, results_found, not_available, failed, skipped, run_source, created_at""",
+            (started_at, finished_at, total_pending, checked, results_found, not_available, failed, skipped, run_source),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row)
+
+
+def get_result_watcher_summary():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, started_at, finished_at, total_pending, checked, results_found, not_available, failed, skipped, run_source, created_at
+               FROM result_watcher_run_logs
+               ORDER BY COALESCE(finished_at, created_at) DESC, id DESC
+               LIMIT 1"""
+        )
+        last_run = cur.fetchone()
+        cur.execute(
+            """SELECT COUNT(*) AS results_found_today
+               FROM tender_notifications
+               WHERE type = 'RESULT_AVAILABLE'
+                 AND created_at::date = CURRENT_DATE"""
+        )
+        today = cur.fetchone()
+    conn.close()
+    return {
+        "last_run": dict(last_run) if last_run else None,
+        "results_found_today": int((today or {}).get("results_found_today") or 0),
+    }
 
 
 def create_tender_notification(tender_id, title, message, notification_type="RESULT_AVAILABLE"):

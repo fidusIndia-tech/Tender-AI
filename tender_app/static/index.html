@@ -1565,6 +1565,10 @@ body.col-resizing { cursor:col-resize !important; }
           <div class="result-summary-number" id="newResultsDeclaredCount">0</div>
           <div class="result-summary-label">New Results Available</div>
           <div style="margin-top:10px;font-size:12px;color:var(--slate-500)">Fresh GeM result alerts from tenders already saved in All Tenders.</div>
+          <div style="margin-top:12px;display:grid;gap:5px;font-size:11.5px;color:var(--slate-500)">
+            <div><strong style="color:var(--slate-700)">Last watcher run:</strong> <span id="lastWatcherRunText">Not run yet</span></div>
+            <div><strong style="color:var(--slate-700)">Results found today:</strong> <span id="resultsFoundTodayText">0</span></div>
+          </div>
         </div>
         <div id="newResultsDeclaredList" class="result-summary-list">
           <div class="notification-empty">No result declarations yet.</div>
@@ -2619,8 +2623,8 @@ const PAGE_TITLES = {
   'gem-rejected-candidates': 'Rejected Tenders',
 };
 const PAGE_ACTIONS = {
-  upload:  '',
-  list:    '<button class="btn btn-primary btn-sm" onclick="showView(\'upload\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Upload New</button>',
+  upload:  '<button class="btn btn-outline btn-sm" id="checkAllPendingResultsBtn" onclick="runBrowserResultWatcherFromUi(event)">Check All Pending Results</button>',
+  list:    '<button class="btn btn-outline btn-sm" id="checkAllPendingResultsBtn" onclick="runBrowserResultWatcherFromUi(event)">Check All Pending Results</button><button class="btn btn-primary btn-sm" onclick="showView(\'upload\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Upload New</button>',
   review:  '<button class="btn btn-outline btn-sm" onclick="showView(\'list\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg> Back to List</button>',
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
@@ -4025,11 +4029,17 @@ let _expandCustomSections = {}; // tenderId -> [{ key, label, grid }]
 let _expandActiveTabByTender = {};
 let _gemBidplusExtensionDetected = document.documentElement?.dataset?.gemBidplusExtension === 'installed';
 let _gemBidplusResultFetch = document.documentElement?.dataset?.gemBidplusResultFetch === '1';
+let _gemBidplusBrowserWatcher = document.documentElement?.dataset?.gemBidplusBrowserWatcher === '1';
 let _pendingGemResultsUrl = '';
+let _browserResultWatcherRunning = false;
+const GEM_EXTENSION_SUPPORTED_VERSIONS = new Set(['1.1.0', '1.1.1', '1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6', '1.1.7']);
+const GEM_EXTENSION_BACKGROUND_BATCH_VERSION = '1.1.7';
 
 document.addEventListener('gem-bidplus-extension-ready', (event) => {
   _gemBidplusExtensionDetected = true;
+  if (event?.detail?.version) document.documentElement.dataset.gemBidplusVersion = event.detail.version;
   if (event?.detail?.resultFetch) _gemBidplusResultFetch = true;
+  if (event?.detail?.browserWatcher) _gemBidplusBrowserWatcher = true;
   document.querySelectorAll('[data-gem-extension-status]').forEach(el => {
     el.textContent = EXPAND_TEXT.resultsStatusInstalled;
     el.style.color = '#166534';
@@ -4057,11 +4067,89 @@ function gemExtensionFetchResult(bidNumber, timeoutMs = 45000) {
       clearTimeout(timer);
       window.removeEventListener('message', onMessage);
       if (data.ok) resolve(data.data);
-      else reject(new Error(data.error || 'GeM result fetch failed in the extension.'));
+      else {
+        const error = new Error(data.error || 'GeM result fetch failed in the extension.');
+        error.gemDebug = data.debug || null;
+        reject(error);
+      }
     }
     window.addEventListener('message', onMessage);
     window.postMessage({ source: 'tender-app', type: 'GEM_FETCH_RESULT', requestId, bidNumber }, '*');
   });
+}
+
+function gemExtensionRunBrowserResultWatcher(onProgress, timeoutMs = 30 * 60 * 1000) {
+  return new Promise((resolve, reject) => {
+    const requestId = `batch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('message', onMessage);
+      reject(new Error('Browser result watcher timed out. Please retry.'));
+    }, timeoutMs);
+
+    function finish(fn, value) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      window.removeEventListener('message', onMessage);
+      fn(value);
+    }
+
+    function onMessage(event) {
+      if (event.source !== window) return;
+      const data = event.data;
+      if (!data || data.source !== 'gem-bidplus-extension' || data.requestId !== requestId) return;
+      if (data.extensionVersion && data.extensionVersion !== GEM_EXTENSION_BACKGROUND_BATCH_VERSION) return;
+      if (data.type === 'GEM_BATCH_PROGRESS') {
+        try { if (onProgress) onProgress(data.progress || {}); } catch (_) {}
+        return;
+      }
+      if (data.type === 'RUN_BROWSER_RESULT_WATCHER_RESULT') {
+        if (data.ok) finish(resolve, data.summary || {});
+        else finish(reject, new Error(data.error || 'Browser result watcher failed.'));
+      }
+    }
+
+    window.addEventListener('message', onMessage);
+    window.postMessage({ source: 'tender-app', type: 'RUN_BROWSER_RESULT_WATCHER', requestId }, '*');
+  });
+}
+
+function hasGemExtensionInstalled() {
+  const root = document.documentElement;
+  return _gemBidplusExtensionDetected || root?.dataset?.gemBidplusExtension === 'installed';
+}
+
+function hasGemExtensionResultFetch() {
+  const root = document.documentElement;
+  return _gemBidplusResultFetch || root?.dataset?.gemBidplusResultFetch === '1';
+}
+
+function hasGemExtensionBrowserWatcher() {
+  const root = document.documentElement;
+  return _gemBidplusBrowserWatcher || root?.dataset?.gemBidplusBrowserWatcher === '1';
+}
+
+function getGemExtensionVersion() {
+  return String(document.documentElement?.dataset?.gemBidplusVersion || '').trim();
+}
+
+function hasRequiredGemExtensionVersion() {
+  const version = getGemExtensionVersion();
+  return !version || GEM_EXTENSION_SUPPORTED_VERSIONS.has(version);
+}
+
+function hasBackgroundBatchGemExtensionVersion() {
+  return getGemExtensionVersion() === GEM_EXTENSION_BACKGROUND_BATCH_VERSION;
+}
+
+async function fetchPendingBrowserWatcherTenders() {
+  const res = await fetch('/api/result-watcher/pending');
+  const data = await res.json().catch(() => ([]));
+  if (!res.ok) throw new Error(data.detail || 'Failed to load pending result checks.');
+  return Array.isArray(data) ? data : [];
 }
 
 function _readExpandLocalStore() {
@@ -6489,8 +6577,29 @@ async function loadTenderNotifications(silent=false) {
       toast(newUnread[0].title || 'New tender result available', 'success');
     }
     knownUnreadNotificationIds = unreadNow;
+    loadResultWatcherSummary(true);
   } catch (err) {
     if (!silent) toast('Failed to load notifications: ' + err.message, 'error');
+  }
+}
+async function loadResultWatcherSummary(silent=true) {
+  try {
+    const res = await fetch('/api/result-watcher/summary');
+    if (!res.ok) throw new Error('Failed to load watcher summary');
+    const data = await res.json();
+    const lastRunEl = document.getElementById('lastWatcherRunText');
+    const todayEl = document.getElementById('resultsFoundTodayText');
+    if (lastRunEl) {
+      const last = data?.last_run;
+      const when = last?.finished_at || last?.created_at || last?.started_at;
+      const counts = last
+        ? ` (${Number(last.checked || 0)} checked, ${Number(last.results_found || 0)} found, ${Number(last.failed || 0)} failed)`
+        : '';
+      lastRunEl.textContent = when ? `${formatNotificationDate(when)}${counts}` : 'Not run yet';
+    }
+    if (todayEl) todayEl.textContent = String(Number(data?.results_found_today || 0));
+  } catch (err) {
+    if (!silent) toast('Failed to load watcher summary: ' + err.message, 'error');
   }
 }
 async function markTenderNotificationRead(notificationId) {
@@ -6651,6 +6760,144 @@ async function runTenderResultCheck(tenderId, onStatus) {
   return data;
 }
 
+function _getBrowserWatcherButtons() {
+  return Array.from(document.querySelectorAll('#checkAllPendingResultsBtn'));
+}
+
+function _setBrowserWatcherButtonState(label, disabled = false) {
+  _getBrowserWatcherButtons().forEach((btn) => {
+    btn.disabled = disabled;
+    btn.textContent = label;
+  });
+}
+
+async function runBrowserResultWatcherFromUi(event) {
+  if (event) event.preventDefault();
+  if (_browserResultWatcherRunning) return;
+
+  _browserResultWatcherRunning = true;
+  _setBrowserWatcherButtonState('Checking all pending tenders via browser extension…', true);
+
+  try {
+    const extensionInstalled = hasGemExtensionInstalled();
+    const extensionResultFetch = hasGemExtensionResultFetch();
+    const extensionBrowserWatcher = hasGemExtensionBrowserWatcher();
+    if (!extensionInstalled) {
+      throw new Error('Chrome extension not found. Browser watcher cannot run.');
+    }
+    if (!hasRequiredGemExtensionVersion()) {
+      const version = getGemExtensionVersion() || 'unknown';
+      throw new Error(`Chrome extension version ${version} is not supported. Reload the extension from tender_app/extension_bundle, then retry.`);
+    }
+
+    let summary;
+    if (extensionResultFetch) {
+      if (extensionBrowserWatcher && !hasBackgroundBatchGemExtensionVersion()) {
+        console.info('Using page-level result fetch because the installed GeM extension does not have the latest background batch runner.');
+      }
+      const pending = await fetchPendingBrowserWatcherTenders();
+      summary = {
+        totalPending: pending.length,
+        checked: 0,
+        resultsFound: 0,
+        notAvailable: 0,
+        failed: 0,
+        skipped: 0,
+        failures: [],
+      };
+      for (let index = 0; index < pending.length; index += 1) {
+        const tender = pending[index] || {};
+        const bidNumber = String(tender.bidNumber || '').trim().toUpperCase();
+        _setBrowserWatcherButtonState(`Checking ${index + 1} of ${pending.length}`, true);
+
+        if (!tender.id || !bidNumber) {
+          summary.skipped += 1;
+          continue;
+        }
+
+        try {
+          const rawResponse = await gemExtensionFetchResult(bidNumber);
+          const res = await fetch(`/api/tenders/${tender.id}/ingest-gem-result`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ raw_response: rawResponse }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || 'Failed to ingest GeM result.');
+          summary.checked += 1;
+          if (data?.result_found) summary.resultsFound += 1;
+          else summary.notAvailable += 1;
+        } catch (err) {
+          const errMessage = String(err?.message || `Failed to check ${bidNumber}`);
+          if (err?.gemDebug) {
+            console.groupCollapsed(`GeM request debug: ${bidNumber}`);
+            console.log(err.gemDebug);
+            console.groupEnd();
+          }
+          summary.checked += 1;
+          summary.failed += 1;
+          summary.failures.push({
+            tenderId: tender.id || null,
+            bidNumber,
+            message: errMessage,
+            debug: err?.gemDebug || null,
+          });
+          if (/GeM endpoint URL is wrong|HTTP 404/i.test(errMessage)) {
+            window.__lastBrowserResultWatcher = summary;
+            window.__lastGemRequestDebug = err?.gemDebug || null;
+            throw new Error('GeM endpoint URL is wrong. Check all-bids-data Request URL.');
+          }
+          if (/session/i.test(errMessage) || /Open GeM once/i.test(errMessage)) {
+            window.__lastBrowserResultWatcher = summary;
+            window.__lastGemRequestDebug = err?.gemDebug || null;
+            throw new Error('Open GeM once in this browser, then retry.');
+          }
+        }
+
+        if (index < pending.length - 1) {
+          const waitMs = 5000 + Math.floor(Math.random() * 5001);
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
+      }
+    } else if (extensionBrowserWatcher && hasBackgroundBatchGemExtensionVersion()) {
+      summary = await gemExtensionRunBrowserResultWatcher((progress) => {
+        const current = Number(progress?.current || 0);
+        const total = Number(progress?.total || 0);
+        if (current && total) {
+          _setBrowserWatcherButtonState(`Checking ${current} of ${total}`, true);
+        }
+      });
+    } else {
+      throw new Error('Chrome extension found, but it is outdated. Reload the extension, then retry.');
+    }
+
+    window.__lastBrowserResultWatcher = summary;
+    if (Array.isArray(summary?.failures) && summary.failures.length) {
+      console.groupCollapsed('Browser result watcher failures');
+      console.table(summary.failures);
+      console.groupEnd();
+    }
+    await Promise.all([loadTenderList(), loadTenderNotifications(true)]);
+    const firstFailure = Array.isArray(summary?.failures) && summary.failures.length
+      ? ` First failure: ${summary.failures[0].bidNumber || 'unknown'} - ${summary.failures[0].message}`
+      : '';
+    toast(
+      `Batch check finished. Total pending: ${summary.totalPending || 0}, Checked: ${summary.checked || 0}, Results found: ${summary.resultsFound || 0}, Not available: ${summary.notAvailable || 0}, Failed: ${summary.failed || 0}, Skipped: ${summary.skipped || 0}.${firstFailure}`,
+      (summary.failed || 0) > 0 ? 'error' : 'success'
+    );
+  } catch (err) {
+    const message = String(err?.message || 'Browser watcher failed.');
+    if (/Open GeM once/i.test(message)) {
+      toast('Open GeM once in this browser, then retry.', 'error');
+    } else {
+      toast(message, 'error');
+    }
+  } finally {
+    _browserResultWatcherRunning = false;
+    _setBrowserWatcherButtonState('Check All Pending Results', false);
+  }
+}
+
 async function checkTenderResultNow(tenderId, event) {
   if (event) event.stopPropagation();
   const btn = (event && (event.currentTarget || (event.target && event.target.closest && event.target.closest('button')))) || null;
@@ -6693,7 +6940,10 @@ async function checkTenderResultNow(tenderId, event) {
 }
 function startNotificationPolling() {
   if (notificationPollTimer) return;
-  notificationPollTimer = setInterval(() => loadTenderNotifications(true), 60000);
+  notificationPollTimer = setInterval(() => {
+    loadTenderNotifications(true);
+    loadResultWatcherSummary(true);
+  }, 60000);
 }
 
 (function defaultUploadScanDate() {

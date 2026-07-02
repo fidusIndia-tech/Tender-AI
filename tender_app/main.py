@@ -11,8 +11,9 @@ import tempfile
 import time
 import uuid
 import zipfile
+from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.parse import quote, urlparse
 from dotenv import load_dotenv
 load_dotenv()
@@ -35,6 +36,9 @@ from result_watcher import (
     check_tender_result,
     debug_gem_exact_result_search,
     ingest_gem_result,
+    ingest_gem_result_error,
+    ingest_gem_result_from_agent,
+    list_pending_result_watcher_tenders,
     run_result_watcher_for_eligible_tenders,
     start_result_watcher_scheduler,
 )
@@ -102,6 +106,15 @@ def _require_admin(request: Request) -> dict:
     return payload
 
 
+def _require_watcher_or_admin(request: Request) -> dict:
+    expected = os.environ.get("WATCHER_API_KEY", "").strip()
+    auth = request.headers.get("Authorization", "")
+    scheme, _, token = auth.partition(" ")
+    if expected and scheme.lower() == "bearer" and hmac.compare_digest(token.strip(), expected):
+        return {"role": "watcher", "sub": "local-agent"}
+    return _require_admin(request)
+
+
 def _normalize_portal_url(url: Optional[str]) -> Optional[str]:
     value = (url or "").strip()
     if not value:
@@ -110,6 +123,16 @@ def _normalize_portal_url(url: Optional[str]) -> Optional[str]:
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(422, "Portal URL must be a valid http/https URL")
     return value
+
+
+def _parse_optional_datetime(value: Optional[str]):
+    if not value:
+        return None
+    text = str(value).strip().replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError:
+        return value
 
 # ── SSO / Auth ─────────────────────────────────────────────────────────────────
 
@@ -273,7 +296,36 @@ class GemResultDebugPayload(BaseModel):
 
 
 class GemResultIngestPayload(BaseModel):
-    raw_response: dict
+    raw_response: Optional[dict] = None
+    bidNumber: Optional[str] = None
+    resultAvailable: Optional[bool] = None
+    bidResultAvailable: Optional[bool] = None
+    raResultAvailable: Optional[bool] = None
+    raNumber: Optional[str] = None
+    bidResultUrl: Optional[str] = None
+    raResultUrl: Optional[str] = None
+    gemResultStatus: Optional[str] = None
+    gemPageStatus: Optional[str] = None
+    rawGemMatchedDoc: Optional[dict[str, Any]] = None
+    checkedAt: Optional[str] = None
+
+
+class GemResultErrorPayload(BaseModel):
+    bidNumber: Optional[str] = None
+    error: str
+    checkedAt: Optional[str] = None
+
+
+class ResultWatcherRunLogPayload(BaseModel):
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    total_pending: int = 0
+    checked: int = 0
+    results_found: int = 0
+    not_available: int = 0
+    failed: int = 0
+    skipped: int = 0
+    run_source: str = "LOCAL_AGENT"
 
 
 class CompanyCapabilityProfilePayload(BaseModel):
@@ -674,11 +726,26 @@ async def check_tender_result_now(tender_id: int):
 
 
 @app.post("/api/tenders/{tender_id}/ingest-gem-result")
-async def ingest_gem_result_now(tender_id: int, payload: GemResultIngestPayload):
+async def ingest_gem_result_now(tender_id: int, payload: GemResultIngestPayload, request: Request):
+    _require_watcher_or_admin(request)
     if not database.get_tender(tender_id):
         raise HTTPException(404, "Tender not found")
     try:
-        return await asyncio.to_thread(ingest_gem_result, tender_id, payload.raw_response)
+        data = payload.dict(exclude_none=True)
+        if payload.raw_response is not None:
+            return await asyncio.to_thread(ingest_gem_result, tender_id, payload.raw_response)
+        return await asyncio.to_thread(ingest_gem_result_from_agent, tender_id, data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/tenders/{tender_id}/ingest-gem-result-error")
+async def ingest_gem_result_error_now(tender_id: int, payload: GemResultErrorPayload, request: Request):
+    _require_watcher_or_admin(request)
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    try:
+        return await asyncio.to_thread(ingest_gem_result_error, tender_id, payload.dict(exclude_none=True))
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -687,6 +754,35 @@ async def ingest_gem_result_now(tender_id: int, payload: GemResultIngestPayload)
 async def run_result_watcher(request: Request):
     _require_admin(request)
     return await asyncio.to_thread(run_result_watcher_for_eligible_tenders)
+
+
+@app.get("/api/result-watcher/pending")
+async def list_pending_result_watcher_items(request: Request):
+    _require_watcher_or_admin(request)
+    return await asyncio.to_thread(list_pending_result_watcher_tenders)
+
+
+@app.post("/api/result-watcher/run-log")
+async def create_result_watcher_run_log(payload: ResultWatcherRunLogPayload, request: Request):
+    _require_watcher_or_admin(request)
+    data = payload.dict()
+    return await asyncio.to_thread(
+        database.create_result_watcher_run_log,
+        started_at=_parse_optional_datetime(data.get("started_at")),
+        finished_at=_parse_optional_datetime(data.get("finished_at")),
+        total_pending=data.get("total_pending", 0),
+        checked=data.get("checked", 0),
+        results_found=data.get("results_found", 0),
+        not_available=data.get("not_available", 0),
+        failed=data.get("failed", 0),
+        skipped=data.get("skipped", 0),
+        run_source=data.get("run_source") or "LOCAL_AGENT",
+    )
+
+
+@app.get("/api/result-watcher/summary")
+async def get_result_watcher_summary():
+    return await asyncio.to_thread(database.get_result_watcher_summary)
 
 
 @app.get("/api/tender-notifications")

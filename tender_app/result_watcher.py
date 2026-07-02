@@ -328,9 +328,21 @@ def _standardize_result_payload(result: dict | None) -> dict:
     payload.setdefault("gem_result_url", None)
     payload.setdefault("gem_ra_result_url", None)
     payload.setdefault("gem_ra_number", None)
+    payload.setdefault("gem_page_status", None)
     payload.setdefault("reason", "")
     payload.setdefault("failure_details", [])
     return payload
+
+
+def _parse_agent_checked_at(value):
+    text = _normalize_space(value)
+    if not text:
+        return datetime.now()
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return datetime.now()
 
 
 def _load_cookie_header_into_client(client: httpx.Client, cookie_header: str):
@@ -1446,6 +1458,107 @@ def ingest_gem_result(tender_id: int, raw_response: dict):
     return check_tender_result(tender_id, precomputed_result=result)
 
 
+def ingest_gem_result_from_agent(tender_id: int, payload: dict):
+    tender = database.get_tender(tender_id)
+    if not tender:
+        raise ValueError("Tender not found")
+    bid_number = getCanonicalGemBidNumber(tender)
+    if not bid_number:
+        raise ValueError("Valid GeM Bid Number not found. Please check extraction.")
+    payload_bid = _normalize_space(payload.get("bidNumber") or payload.get("bid_number")).upper()
+    if payload_bid and payload_bid != bid_number:
+        raise ValueError(f"Bid number mismatch. Expected {bid_number}, got {payload_bid}.")
+
+    bid_available = bool(payload.get("bidResultAvailable") or payload.get("bid_result_available"))
+    ra_available = bool(payload.get("raResultAvailable") or payload.get("ra_result_available"))
+    result_available = bool(payload.get("resultAvailable") or payload.get("result_available") or bid_available or ra_available)
+    status = _normalize_space(payload.get("gemResultStatus") or payload.get("gem_result_status") or payload.get("status")).upper()
+    if not status:
+        if bid_available and ra_available:
+            status = RESULT_STATUS_BID_AND_RA_AVAILABLE
+        elif bid_available:
+            status = RESULT_STATUS_BID_AVAILABLE
+        elif ra_available:
+            status = RESULT_STATUS_RA_AVAILABLE
+        elif result_available:
+            status = RESULT_STATUS_BID_AND_RA_AVAILABLE
+        else:
+            status = RESULT_STATUS_NOT_AVAILABLE
+
+    result = _standardize_result_payload(
+        {
+            "result_available": result_available,
+            "bid_result_available": bid_available,
+            "ra_result_available": ra_available,
+            "gem_result_status": status,
+            "gem_result_url": payload.get("bidResultUrl") or payload.get("gem_result_url") or payload.get("bid_result_url"),
+            "gem_ra_result_url": payload.get("raResultUrl") or payload.get("gem_ra_result_url") or payload.get("ra_result_url"),
+            "gem_ra_number": payload.get("raNumber") or payload.get("gem_ra_number") or payload.get("ra_number"),
+            "gem_page_status": payload.get("gemPageStatus") or payload.get("gem_page_status"),
+            "matched_doc_json": payload.get("rawGemMatchedDoc") or payload.get("raw_gem_matched_doc"),
+            "reason": "Result data ingested from local GeM Result Watcher Agent.",
+            "network_debug": {
+                "method": "local_agent",
+                "checked_at": payload.get("checkedAt") or payload.get("checked_at"),
+                "matched_doc_found": bool(payload.get("rawGemMatchedDoc") or payload.get("raw_gem_matched_doc")),
+            },
+        }
+    )
+    return check_tender_result(tender_id, precomputed_result=result)
+
+
+def ingest_gem_result_error(tender_id: int, payload: dict):
+    tender = database.get_tender(tender_id)
+    if not tender:
+        raise ValueError("Tender not found")
+    bid_number = getCanonicalGemBidNumber(tender)
+    if not bid_number:
+        raise ValueError("Valid GeM Bid Number not found. Please check extraction.")
+    payload_bid = _normalize_space(payload.get("bidNumber") or payload.get("bid_number")).upper()
+    if payload_bid and payload_bid != bid_number:
+        raise ValueError(f"Bid number mismatch. Expected {bid_number}, got {payload_bid}.")
+
+    checked_at = _parse_agent_checked_at(payload.get("checkedAt") or payload.get("checked_at"))
+    error_message = _normalize_space(payload.get("error") or "GeM request failed")
+    database.update_tender_result(
+        tender_id,
+        gem_result_status=RESULT_STATUS_FAILED,
+        last_result_checked_at=checked_at,
+        result_check_error=error_message,
+    )
+    updated = database.get_tender(tender_id)
+    return {
+        "tender_id": tender_id,
+        "bidNumber": bid_number,
+        "gem_result_status": RESULT_STATUS_FAILED,
+        "result_found": False,
+        "error": error_message,
+        "tender": updated,
+    }
+
+
+def list_pending_result_watcher_tenders() -> list[dict]:
+    pending_items: list[dict] = []
+    for tender in database.list_result_watch_eligible_tenders():
+        if not _is_tender_eligible(tender):
+            continue
+        bid_number = getCanonicalGemBidNumber(tender)
+        if not bid_number:
+            continue
+        pending_items.append(
+            {
+                "id": tender["id"],
+                "bidNumber": bid_number,
+                "tenderNumber": tender.get("tender_number"),
+                "gemBiddingNo": tender.get("gem_bidding_number") or tender.get("gem_bidding_no"),
+                "bidEndDate": tender.get("bid_end_datetime"),
+                "organisation": tender.get("organization_name"),
+                "itemCategory": tender.get("make"),
+            }
+        )
+    return pending_items
+
+
 def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
     tender = database.get_tender(tender_id)
     if not tender:
@@ -1593,7 +1706,9 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             gem_result_url=result["gem_result_url"],
             gem_ra_number=result.get("gem_ra_number"),
             gem_ra_result_url=result.get("gem_ra_result_url"),
+            gem_page_status=result.get("gem_page_status"),
             last_result_checked_at=now,
+            result_check_error="",
             l1_seller_name=result.get("l1_seller_name"),
             our_company_rank=result.get("our_company_rank"),
             our_company_status=result.get("our_company_status"),
@@ -1650,6 +1765,7 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             tender_id,
             gem_result_status=RESULT_STATUS_FAILED,
             last_result_checked_at=now,
+            result_check_error=str(exc),
         )
         updated = database.get_tender(tender_id)
         debug.update(

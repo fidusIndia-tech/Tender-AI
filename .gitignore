@@ -17,3 +17,7 @@ uvicorn-*.log
 tender_app/extractions/
 tender_app/debug.log
 tender_app/debug-screenshots/
+gem-result-watcher-agent/.browser-profile/
+gem-result-watcher-agent/.venv/
+gem-result-watcher-agent/logs/*
+!gem-result-watcher-agent/logs/.gitkeep

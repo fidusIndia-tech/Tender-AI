@@ -1,8 +1,19 @@
 {
   "manifest_version": 3,
   "name": "GeM BidPlus Autofill",
-  "version": "1.0.0",
-  "description": "Autofills Bid/RA Status and bid number on GeM all-bids pages opened from the tender app.",
+  "version": "1.1.7",
+  "description": "Autofills GeM Bid/RA status searches and runs browser-side tender result checks from the user's own IP.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "alarms",
+    "cookies",
+    "notifications",
+    "storage",
+    "tabs",
+    "scripting"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -29,6 +40,12 @@
     }
   ],
   "host_permissions": [
-    "https://bidplus.gem.gov.in/*"
+    "https://bidplus.gem.gov.in/*",
+    "http://127.0.0.1:8000/*",
+    "http://127.0.0.1:8001/*",
+    "http://localhost:8000/*",
+    "http://localhost:8001/*",
+    "https://tender-ai-production-5a7d.up.railway.app/*",
+    "https://*.up.railway.app/*"
   ]
 }
