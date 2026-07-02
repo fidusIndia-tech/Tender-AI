@@ -3451,6 +3451,7 @@ function getTenderResultFilterGroup(tender) {
   const status = String(tender?.gem_result_status || 'PENDING').toUpperCase();
   const available = Boolean(tender?.result_available || tender?.bid_result_available || tender?.ra_result_available);
   if (available || status === 'BID_RESULT_AVAILABLE' || status === 'RA_RESULT_AVAILABLE' || status === 'BID_AND_RA_RESULT_AVAILABLE') return 'available';
+  if (status === 'RA_CREATED' || status === 'NOT_FOUND_ON_GEM') return 'not_available';
   if (status === 'FAILED_TO_CHECK') return 'failed';
   if (status === 'PENDING' || !tender?.last_result_checked_at) return 'not_checked';
   return 'not_available';
@@ -6517,7 +6518,9 @@ function toast(msg, type='success') {
 const RESULT_STATUS_META = {
   PENDING: { label: 'Not Checked Yet', badge: 'badge-slate' },
   NOT_AVAILABLE_YET: { label: 'Not Available Yet', badge: 'badge-slate' },
+  NOT_FOUND_ON_GEM: { label: 'Not Found on GeM', badge: 'badge-warning' },
   BID_RESULT_AVAILABLE: { label: 'Bid Result Available', badge: 'badge-info' },
+  RA_CREATED: { label: 'RA Created', badge: 'badge-info' },
   RA_RESULT_AVAILABLE: { label: 'RA Result Available', badge: 'badge-warning' },
   BID_AND_RA_RESULT_AVAILABLE: { label: 'Bid + RA Result Available', badge: 'badge-success' },
   FAILED_TO_CHECK: { label: 'Failed to Check', badge: 'badge-danger' },
@@ -6977,6 +6980,10 @@ async function checkTenderResultNow(tenderId, event) {
     }
     if (effectiveStatus === 'FAILED_TO_CHECK') {
       toast(`Couldn't check the result for ${bidNo} right now. Please try again.`, 'error');
+    } else if (effectiveStatus === 'NOT_FOUND_ON_GEM') {
+      toast(`${bidNo} was not found on GeM yet.`, 'error');
+    } else if (effectiveStatus === 'RA_CREATED') {
+      toast(`RA created for ${bidNo}, but RA result is not available yet.`, 'success');
     } else if (data.result_found) {
       toast(`Result available for ${bidNo}`, 'success');
     } else {

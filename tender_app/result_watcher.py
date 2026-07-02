@@ -22,7 +22,9 @@ from gem_bid_utils import getCanonicalGemBidNumber
 
 RESULT_STATUS_PENDING = "PENDING"
 RESULT_STATUS_NOT_AVAILABLE = "NOT_AVAILABLE_YET"
+RESULT_STATUS_NOT_FOUND = "NOT_FOUND_ON_GEM"
 RESULT_STATUS_BID_AVAILABLE = "BID_RESULT_AVAILABLE"
+RESULT_STATUS_RA_CREATED = "RA_CREATED"
 RESULT_STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 RESULT_STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 RESULT_STATUS_FAILED = "FAILED_TO_CHECK"
@@ -129,15 +131,17 @@ def _parse_bid_end_datetime(value):
 
 
 def _is_tender_eligible(tender: dict, now: datetime | None = None) -> bool:
-    if tender.get("result_available") or tender.get("result_declared"):
-        return False
     if not getCanonicalGemBidNumber(tender):
         return False
     bid_end_dt = _parse_bid_end_datetime(tender.get("bid_end_datetime"))
     if bid_end_dt is None:
         return False
     current = now or datetime.now()
-    return bid_end_dt < current
+    if bid_end_dt >= current:
+        return False
+    if tender.get("ra_created"):
+        return not tender.get("ra_result_available")
+    return not tender.get("result_available") and not tender.get("result_declared")
 
 
 def _status_from_text(text: str) -> str | None:
@@ -324,11 +328,16 @@ def _standardize_result_payload(result: dict | None) -> dict:
     payload["status"] = gem_result_status
     payload["result_available"] = bool(payload.get("result_available", False))
     payload["bid_result_available"] = bool(payload.get("bid_result_available", False))
+    payload["ra_created"] = bool(payload.get("ra_created", False))
     payload["ra_result_available"] = bool(payload.get("ra_result_available", False))
     payload.setdefault("gem_result_url", None)
+    payload.setdefault("gem_ra_url", None)
     payload.setdefault("gem_ra_result_url", None)
     payload.setdefault("gem_ra_number", None)
+    payload.setdefault("ra_start_date", None)
+    payload.setdefault("ra_end_date", None)
     payload.setdefault("gem_page_status", None)
+    payload.setdefault("result_check_error", None)
     payload.setdefault("reason", "")
     payload.setdefault("failure_details", [])
     return payload
@@ -417,7 +426,7 @@ def _build_gem_bid_result_url(doc_id) -> str | None:
     value = _normalize_space(_first(doc_id))
     if not value:
         return None
-    return None
+    return f"https://bidplus.gem.gov.in/bidding/bid/getBidResultView/{urllib.parse.quote(value, safe='')}"
 
 
 def _build_gem_search_url(identifier: str | None) -> str | None:
@@ -431,7 +440,42 @@ def _build_gem_ra_result_url(doc_id) -> str | None:
     value = _normalize_space(_first(doc_id))
     if not value:
         return None
-    return None
+    return f"https://bidplus.gem.gov.in/bidding/bid/getBidResultView/{urllib.parse.quote(value, safe='')}"
+
+
+def _extract_doc_status_text(doc: dict | None) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    parts: list[str] = []
+    for key in ("b_status", "status", "status_text", "evaluation_status"):
+        raw = doc.get(key)
+        if isinstance(raw, list):
+            parts.extend(_normalize_space(item) for item in raw if _normalize_space(item))
+        else:
+            text = _normalize_space(raw)
+            if text:
+                parts.append(text)
+    return " | ".join(parts)
+
+
+def _is_evaluated_status_text(text: str) -> bool:
+    normalized = _normalize_for_compare(text)
+    if not normalized:
+        return False
+    phrases = (
+        "technical evaluation",
+        "financial evaluation",
+        "evaluated",
+        "bid awarded",
+        "awarded",
+        "contract",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
+def _extract_doc_sort_value(doc: dict | None, key: str) -> str | None:
+    value = _normalize_space(_first((doc or {}).get(key)))
+    return value or None
 
 
 def debug_gem_exact_result_search(bid_number: str) -> dict:
@@ -631,68 +675,101 @@ def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
     matched_doc_found = matched_doc is not None
     bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number"))).upper() or None
     parent_bid_value = _normalize_space(_first((matched_doc or {}).get("b_bid_number_parent"))).upper() or None
+    direct_doc_id = _normalize_space(_first((matched_doc or {}).get("id") or (matched_doc or {}).get("b_id"))) or None
     bid_parent_id = _normalize_space(_first((matched_doc or {}).get("b_id_parent"))) or None
-    ra_id = _normalize_space(_first((matched_doc or {}).get("id") or (matched_doc or {}).get("b_id"))) or None
-    inferred_ra_number = _extract_gem_ra_number(bid_value, joined_text)
+    status_text = _extract_doc_status_text(matched_doc)
+    inferred_ra_number = _extract_gem_ra_number(bid_value, status_text, joined_text)
     parent_matches = parent_bid_value == canonical_bid_number
     direct_matches = bid_value == canonical_bid_number
-    ra_pattern_match = bool(inferred_ra_number and bid_value and "/R/" in bid_value.upper())
+    is_ra_doc = bool(parent_matches and inferred_ra_number and bid_value and "/R/" in bid_value.upper())
+    is_direct_bid = bool(direct_matches and not parent_bid_value)
+    ra_id = direct_doc_id if is_ra_doc else None
+    status_is_evaluated = _is_evaluated_status_text(status_text)
 
-    bid_result_available = bool(bid_parent_id)
-    ra_result_available = bool(ra_id and ra_pattern_match)
-    result_available = bool(matched_doc_found and (bid_result_available or ra_result_available))
+    bid_result_available = False
+    if is_direct_bid and direct_doc_id and status_is_evaluated:
+        bid_result_available = True
+    elif is_ra_doc and bid_parent_id:
+        bid_result_available = True
+
+    ra_created = is_ra_doc
+    ra_result_available = bool(is_ra_doc and ra_id and status_is_evaluated)
+    result_available = bool(bid_result_available or ra_result_available)
 
     if bid_result_available and ra_result_available:
         status = RESULT_STATUS_BID_AND_RA_AVAILABLE
-        reason = "Matched GeM result document contains both original bid id and RA id."
-    elif bid_result_available:
-        status = RESULT_STATUS_BID_AVAILABLE
-        reason = "Matched GeM result document contains original bid result id."
+        reason = "Original bid result is available and the RA document is also evaluated."
     elif ra_result_available:
         status = RESULT_STATUS_RA_AVAILABLE
-        reason = "Matched GeM result document contains RA number and RA result id."
+        reason = "RA document matched and its status indicates evaluation/result availability."
+    elif ra_created:
+        status = RESULT_STATUS_RA_CREATED
+        reason = "RA document exists for this bid, but the RA result is not available yet."
+    elif bid_result_available:
+        status = RESULT_STATUS_BID_AVAILABLE
+        reason = "Direct original bid result is available from the matched GeM document."
     elif matched_doc_found:
         status = RESULT_STATUS_NOT_AVAILABLE
-        reason = "Exact GeM document matched, but no usable bid/RA result ids were returned."
+        reason = "Exact GeM document matched, but no bid result and no RA were available."
     else:
-        status = RESULT_STATUS_NOT_AVAILABLE
+        status = RESULT_STATUS_NOT_FOUND
         reason = "Searched bid number was not present in GeM result documents."
 
-    gem_result_url = _build_gem_search_url(canonical_bid_number) if bid_result_available else None
-    gem_ra_result_url = _build_gem_search_url(inferred_ra_number or bid_value) if ra_result_available else None
+    gem_result_url = None
+    if is_direct_bid and bid_result_available:
+        gem_result_url = _build_gem_bid_result_url(direct_doc_id)
+    elif bid_result_available:
+        gem_result_url = _build_gem_bid_result_url(bid_parent_id)
+
+    gem_ra_url = _build_gem_ra_result_url(ra_id) if ra_created else None
+    gem_ra_result_url = _build_gem_ra_result_url(ra_id) if ra_result_available else None
+    ra_start_date = _extract_doc_sort_value(matched_doc, "final_start_date_sort")
+    ra_end_date = _extract_doc_sort_value(matched_doc, "final_end_date_sort")
 
     debug["matched_doc_found"] = matched_doc_found
     debug["b_bid_number"] = bid_value
     debug["b_bid_number_parent"] = parent_bid_value
     debug["b_id_parent"] = bid_parent_id
+    debug["matched_doc_id"] = direct_doc_id
     debug["ra_id"] = ra_id
+    debug["is_direct_bid"] = is_direct_bid
+    debug["is_ra_doc"] = is_ra_doc
     debug["bid_found"] = matched_doc_found
     debug["view_bid_results_found"] = bid_result_available
     debug["view_ra_results_found"] = ra_result_available
+    debug["ra_created"] = ra_created
     debug["final_result_available"] = result_available
     debug["final_gem_result_status"] = status
     debug["bid_result_url"] = gem_result_url
+    debug["gem_ra_url"] = gem_ra_url
     debug["ra_result_url"] = gem_ra_result_url
+    debug["doc_status_text"] = status_text
 
     return {
         "card_found": matched_doc_found,
         "matched_doc_found": matched_doc_found,
         "matched_doc_json": matched_doc,
         "bid_result_available": bid_result_available,
+        "ra_created": ra_created,
         "ra_result_available": ra_result_available,
         "result_available": result_available,
         "gem_result_url": gem_result_url,
+        "gem_ra_url": gem_ra_url,
         "gem_ra_result_url": gem_ra_result_url,
         "gem_ra_number": inferred_ra_number,
+        "ra_start_date": ra_start_date,
+        "ra_end_date": ra_end_date,
         "status": status,
         "gem_result_status": status,
         "reason": reason,
+        "result_check_error": None,
         "page_text_snippet": _normalize_space(joined_text)[:3000],
         "opened_url": GEM_ALL_BIDS_DATA_URL,
         "failure_details": [],
         "network_debug": debug,
         "b_bid_number": bid_value,
         "b_bid_number_parent": parent_bid_value,
+        "matched_doc_id": direct_doc_id,
         "b_id_parent": bid_parent_id,
         "ra_id": ra_id,
     }
@@ -743,13 +820,18 @@ def checkGemResultByNetwork(bid_number: str):
             return {
                 "card_found": False,
                 "bid_result_available": False,
+                "ra_created": False,
                 "ra_result_available": False,
                 "result_available": False,
                 "gem_result_url": None,
+                "gem_ra_url": None,
                 "gem_ra_result_url": None,
                 "gem_ra_number": None,
+                "ra_start_date": None,
+                "ra_end_date": None,
                 "status": RESULT_STATUS_FAILED,
                 "reason": "GeM network search failed: csrf_gem_cookie not found after opening all-bids.",
+                "result_check_error": "GeM network search failed: csrf_gem_cookie not found after opening all-bids.",
                 "page_text_snippet": _normalize_space(landing.text)[:3000],
                 "opened_url": GEM_ALL_BIDS_URL,
                 "failure_details": [],
@@ -761,17 +843,51 @@ def checkGemResultByNetwork(bid_number: str):
         debug["response_status"] = response.status_code
         raw_text = response.text
         debug["response_snippet"] = _normalize_space(raw_text)[:3000]
+        if response.status_code == 404:
+            try:
+                parsed_404 = response.json()
+            except Exception:
+                parsed_404 = {}
+            if parsed_404.get("code") == 404 and _normalize_for_compare(parsed_404.get("message")) == "no data found":
+                debug["final_gem_result_status"] = RESULT_STATUS_NOT_FOUND
+                return {
+                    "card_found": False,
+                    "matched_doc_found": False,
+                    "bid_result_available": False,
+                    "ra_created": False,
+                    "ra_result_available": False,
+                    "result_available": False,
+                    "gem_result_url": None,
+                    "gem_ra_url": None,
+                    "gem_ra_result_url": None,
+                    "gem_ra_number": None,
+                    "ra_start_date": None,
+                    "ra_end_date": None,
+                    "status": RESULT_STATUS_NOT_FOUND,
+                    "gem_result_status": RESULT_STATUS_NOT_FOUND,
+                    "reason": "GeM returned 404 No data found.",
+                    "result_check_error": "GeM returned 404 No data found",
+                    "page_text_snippet": debug["response_snippet"],
+                    "opened_url": GEM_ALL_BIDS_DATA_URL,
+                    "failure_details": [],
+                    "network_debug": debug,
+                }
         if response.status_code != 200:
             return {
                 "card_found": False,
                 "bid_result_available": False,
+                "ra_created": False,
                 "ra_result_available": False,
                 "result_available": False,
                 "gem_result_url": None,
+                "gem_ra_url": None,
                 "gem_ra_result_url": None,
                 "gem_ra_number": None,
+                "ra_start_date": None,
+                "ra_end_date": None,
                 "status": RESULT_STATUS_FAILED,
                 "reason": f"GeM network search failed: HTTP {response.status_code}",
+                "result_check_error": f"GeM network search failed: HTTP {response.status_code}",
                 "page_text_snippet": debug["response_snippet"],
                 "opened_url": GEM_ALL_BIDS_DATA_URL,
                 "failure_details": [f"HTTP {response.status_code}"],
@@ -1470,18 +1586,19 @@ def ingest_gem_result_from_agent(tender_id: int, payload: dict):
         raise ValueError(f"Bid number mismatch. Expected {bid_number}, got {payload_bid}.")
 
     bid_available = bool(payload.get("bidResultAvailable") or payload.get("bid_result_available"))
+    ra_created = bool(payload.get("raCreated") or payload.get("ra_created"))
     ra_available = bool(payload.get("raResultAvailable") or payload.get("ra_result_available"))
     result_available = bool(payload.get("resultAvailable") or payload.get("result_available") or bid_available or ra_available)
     status = _normalize_space(payload.get("gemResultStatus") or payload.get("gem_result_status") or payload.get("status")).upper()
     if not status:
         if bid_available and ra_available:
             status = RESULT_STATUS_BID_AND_RA_AVAILABLE
-        elif bid_available:
-            status = RESULT_STATUS_BID_AVAILABLE
         elif ra_available:
             status = RESULT_STATUS_RA_AVAILABLE
-        elif result_available:
-            status = RESULT_STATUS_BID_AND_RA_AVAILABLE
+        elif ra_created:
+            status = RESULT_STATUS_RA_CREATED
+        elif bid_available:
+            status = RESULT_STATUS_BID_AVAILABLE
         else:
             status = RESULT_STATUS_NOT_AVAILABLE
 
@@ -1489,13 +1606,18 @@ def ingest_gem_result_from_agent(tender_id: int, payload: dict):
         {
             "result_available": result_available,
             "bid_result_available": bid_available,
+            "ra_created": ra_created,
             "ra_result_available": ra_available,
             "gem_result_status": status,
             "gem_result_url": (payload.get("bidResultUrl") or payload.get("gem_result_url") or payload.get("bid_result_url")) if bid_available else None,
+            "gem_ra_url": (payload.get("raUrl") or payload.get("gem_ra_url") or payload.get("ra_url")) if ra_created else None,
             "gem_ra_result_url": (payload.get("raResultUrl") or payload.get("gem_ra_result_url") or payload.get("ra_result_url")) if ra_available else None,
-            "gem_ra_number": (payload.get("raNumber") or payload.get("gem_ra_number") or payload.get("ra_number")) if ra_available else None,
+            "gem_ra_number": (payload.get("raNumber") or payload.get("gem_ra_number") or payload.get("ra_number")) if ra_created else None,
+            "ra_start_date": (payload.get("raStartDate") or payload.get("ra_start_date")) if ra_created else None,
+            "ra_end_date": (payload.get("raEndDate") or payload.get("ra_end_date")) if ra_created else None,
             "gem_page_status": payload.get("gemPageStatus") or payload.get("gem_page_status"),
             "matched_doc_json": payload.get("rawGemMatchedDoc") or payload.get("raw_gem_matched_doc"),
+            "result_check_error": payload.get("resultCheckError") or payload.get("result_check_error"),
             "reason": "Result data ingested from local GeM Result Watcher Agent.",
             "network_debug": {
                 "method": "local_agent",
@@ -1557,6 +1679,30 @@ def list_pending_result_watcher_tenders() -> list[dict]:
             }
         )
     return pending_items
+
+
+def list_recheck_result_watcher_tenders() -> list[dict]:
+    items: list[dict] = []
+    now = datetime.now()
+    for tender in database.list_tenders():
+        bid_number = getCanonicalGemBidNumber(tender)
+        if not bid_number:
+            continue
+        bid_end_dt = _parse_bid_end_datetime(tender.get("bid_end_datetime"))
+        if bid_end_dt is None or bid_end_dt >= now:
+            continue
+        items.append(
+            {
+                "id": tender["id"],
+                "bidNumber": bid_number,
+                "tenderNumber": tender.get("tender_number"),
+                "gemBiddingNo": tender.get("gem_bidding_number") or tender.get("gem_bidding_no"),
+                "bidEndDate": tender.get("bid_end_datetime"),
+                "organisation": tender.get("organization_name"),
+                "itemCategory": tender.get("make"),
+            }
+        )
+    return items
 
 
 def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
@@ -1624,6 +1770,9 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
 
     company_name = (database.get_company_profile() or {}).get("company_name")
     existing_available = bool(tender.get("result_available"))
+    existing_bid_available = bool(tender.get("bid_result_available"))
+    existing_ra_created = bool(tender.get("ra_created"))
+    existing_ra_available = bool(tender.get("ra_result_available"))
 
     try:
         if precomputed_result is not None:
@@ -1656,7 +1805,11 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             f"matched_card={result.get('matched_card_text')!r} "
             f"matched_scope={result.get('matched_scope')!r} "
             f"view_bid_results_found={result.get('bid_result_available')} "
+            f"ra_created={result.get('ra_created')} "
             f"view_ra_results_found={result.get('ra_result_available')} "
+            f"matched_doc_id={result.get('matched_doc_id')!r} "
+            f"is_direct_bid={result.get('network_debug', {}).get('is_direct_bid') if isinstance(result.get('network_debug'), dict) else None} "
+            f"is_ra_doc={result.get('network_debug', {}).get('is_ra_doc') if isinstance(result.get('network_debug'), dict) else None} "
             f"bid_ra_status_tab_clicked={result.get('bid_ra_status_tab_clicked')} "
             f"exact_search_selected={result.get('exact_search_selected')} "
             f"input_filled={result.get('input_filled')} "
@@ -1686,11 +1839,14 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
                 "search_button_clicked": result.get("search_button_clicked"),
                 "network_debug": result.get("network_debug"),
                 "matched_doc_found": result.get("matched_doc_found"),
+                "matched_doc_id": result.get("matched_doc_id"),
                 "b_bid_number": result.get("b_bid_number"),
                 "b_bid_number_parent": result.get("b_bid_number_parent"),
                 "b_id_parent": result.get("b_id_parent"),
                 "ra_id": result.get("ra_id"),
+                "ra_created": result.get("ra_created"),
                 "bid_result_url": result.get("gem_result_url"),
+                "gem_ra_url": result.get("gem_ra_url"),
                 "ra_result_url": result.get("gem_ra_result_url"),
             }
         )
@@ -1699,16 +1855,20 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             tender_id,
             result_available=result["result_available"],
             bid_result_available=result["bid_result_available"],
+            ra_created=result.get("ra_created", False),
             ra_result_available=result["ra_result_available"],
             gem_result_status=result["gem_result_status"],
             gem_bid_number=bid_number,
             gem_internal_id=_normalize_space(tender.get("gem_bidding_number")) or None,
             gem_result_url=result["gem_result_url"],
             gem_ra_number=result.get("gem_ra_number"),
+            gem_ra_url=result.get("gem_ra_url"),
             gem_ra_result_url=result.get("gem_ra_result_url"),
+            ra_start_date=result.get("ra_start_date"),
+            ra_end_date=result.get("ra_end_date"),
             gem_page_status=result.get("gem_page_status"),
             last_result_checked_at=now,
-            result_check_error="",
+            result_check_error=result.get("result_check_error") or "",
             l1_seller_name=result.get("l1_seller_name"),
             our_company_rank=result.get("our_company_rank"),
             our_company_status=result.get("our_company_status"),
@@ -1716,21 +1876,39 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             result_declared_at=(tender.get("result_declared_at") or now) if result["result_available"] else tender.get("result_declared_at"),
         )
 
-        notification = None
-        notification_created = False
-        if result["result_available"] and (not existing_available or not tender.get("notification_sent")):
-            if result["bid_result_available"] and result["ra_result_available"]:
-                title = f"Bid and RA results available for {bid_number}"
-                message = f"Bid and RA results available for {bid_number}."
-            elif result["bid_result_available"]:
-                title = f"Bid result available for {bid_number}"
-                message = f"Bid result available for {bid_number}."
-            else:
-                title = f"RA result available for {bid_number}"
-                message = f"RA result available for {bid_number}."
-            notification = database.create_tender_notification(tender_id, title, message, notification_type="RESULT_AVAILABLE")
+        notifications: list[dict] = []
+        if result["bid_result_available"] and not existing_bid_available:
+            notifications.append(
+                database.create_tender_notification(
+                    tender_id,
+                    f"Bid result available for {bid_number}",
+                    f"Bid result available for {bid_number}.",
+                    notification_type="BID_RESULT_AVAILABLE",
+                )
+            )
+        if result.get("ra_created") and not existing_ra_created:
+            notifications.append(
+                database.create_tender_notification(
+                    tender_id,
+                    f"RA created for {bid_number}",
+                    f"RA created for {bid_number}{' as ' + result.get('gem_ra_number') if result.get('gem_ra_number') else ''}.",
+                    notification_type="RA_CREATED",
+                )
+            )
+        if result["ra_result_available"] and not existing_ra_available:
+            notifications.append(
+                database.create_tender_notification(
+                    tender_id,
+                    f"RA result available for {bid_number}",
+                    f"RA result available for {bid_number}.",
+                    notification_type="RA_RESULT_AVAILABLE",
+                )
+            )
+
+        notification = notifications[-1] if notifications else None
+        notification_created = bool(notifications)
+        if notification_created:
             database.update_tender_result(tender_id, notification_sent=True)
-            notification_created = True
             _watcher_log(f"result-found bid={bid_number} status={result['gem_result_status']}")
         else:
             _watcher_log(

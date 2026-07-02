@@ -5,6 +5,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
+_UNSET = object()
+
 
 def get_db():
     url = os.environ.get("DATABASE_URL")
@@ -145,6 +147,7 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS expand_sections_json JSONB")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_available BOOLEAN DEFAULT FALSE")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS bid_result_available BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_created BOOLEAN DEFAULT FALSE")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_result_available BOOLEAN DEFAULT FALSE")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_result_status TEXT DEFAULT 'PENDING'")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_bid_number TEXT")
@@ -153,7 +156,10 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_declared_at TIMESTAMP")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_result_url TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_number TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_url TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_ra_result_url TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_start_date TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_end_date TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_page_status TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS last_result_checked_at TIMESTAMP")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FALSE")
@@ -767,10 +773,10 @@ def list_tenders():
                       t.office_name_location, t.make, t.total_quantity, t.tender_approx_value,
                       t.participation_status, t.uploaded_at, t.won_text, t.lost_text,
                       t.participant_text, t.expand_sections_json, t.pdf_path, t.extraction_json_path, t.status,
-                      t.result_available, t.bid_result_available, t.ra_result_available,
+                      t.result_available, t.bid_result_available, t.ra_created, t.ra_result_available,
                       t.gem_result_status, t.gem_bid_number, t.gem_internal_id,
                       t.result_declared, t.result_declared_at, t.gem_result_url,
-                      t.gem_ra_number, t.gem_ra_result_url, t.gem_page_status,
+                      t.gem_ra_number, t.gem_ra_url, t.gem_ra_result_url, t.ra_start_date, t.ra_end_date, t.gem_page_status,
                       t.last_result_checked_at, t.notification_sent, t.result_check_error, t.l1_seller_name,
                       t.our_company_rank, t.our_company_status,
                       t.filed_date, t.remark,
@@ -905,13 +911,11 @@ def list_result_watch_eligible_tenders():
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """SELECT id, gem_bidding_number, tender_number, bid_end_datetime, gem_result_status,
-                      result_available, bid_result_available, ra_result_available,
-                      gem_result_url, gem_ra_number, gem_ra_result_url, gem_page_status,
+                      result_available, bid_result_available, ra_created, ra_result_available,
+                      gem_result_url, gem_ra_number, gem_ra_url, gem_ra_result_url, ra_start_date, ra_end_date, gem_page_status,
                       result_declared, notification_sent, last_result_checked_at, result_check_error,
                       organization_name, make
                FROM tenders
-               WHERE COALESCE(result_declared, FALSE) = FALSE
-                 AND COALESCE(result_available, FALSE) = FALSE
                ORDER BY uploaded_at DESC NULLS LAST, id DESC"""
         )
         rows = cur.fetchall()
@@ -922,79 +926,95 @@ def list_result_watch_eligible_tenders():
 def update_tender_result(
     tender_id,
     *,
-    result_available=None,
-    bid_result_available=None,
-    ra_result_available=None,
-    gem_result_status=None,
-    gem_bid_number=None,
-    gem_internal_id=None,
-    result_declared=None,
-    result_declared_at=None,
-    gem_result_url=None,
-    gem_ra_number=None,
-    gem_ra_result_url=None,
-    gem_page_status=None,
-    last_result_checked_at=None,
-    notification_sent=None,
-    result_check_error=None,
-    l1_seller_name=None,
-    our_company_rank=None,
-    our_company_status=None,
+    result_available=_UNSET,
+    bid_result_available=_UNSET,
+    ra_created=_UNSET,
+    ra_result_available=_UNSET,
+    gem_result_status=_UNSET,
+    gem_bid_number=_UNSET,
+    gem_internal_id=_UNSET,
+    result_declared=_UNSET,
+    result_declared_at=_UNSET,
+    gem_result_url=_UNSET,
+    gem_ra_number=_UNSET,
+    gem_ra_url=_UNSET,
+    gem_ra_result_url=_UNSET,
+    ra_start_date=_UNSET,
+    ra_end_date=_UNSET,
+    gem_page_status=_UNSET,
+    last_result_checked_at=_UNSET,
+    notification_sent=_UNSET,
+    result_check_error=_UNSET,
+    l1_seller_name=_UNSET,
+    our_company_rank=_UNSET,
+    our_company_status=_UNSET,
 ):
     updates = []
     values = []
-    if result_available is not None:
+    if result_available is not _UNSET:
         updates.append("result_available=%s")
         values.append(result_available)
-    if bid_result_available is not None:
+    if bid_result_available is not _UNSET:
         updates.append("bid_result_available=%s")
         values.append(bid_result_available)
-    if ra_result_available is not None:
+    if ra_created is not _UNSET:
+        updates.append("ra_created=%s")
+        values.append(ra_created)
+    if ra_result_available is not _UNSET:
         updates.append("ra_result_available=%s")
         values.append(ra_result_available)
-    if gem_result_status is not None:
+    if gem_result_status is not _UNSET:
         updates.append("gem_result_status=%s")
         values.append(gem_result_status)
-    if gem_bid_number is not None:
+    if gem_bid_number is not _UNSET:
         updates.append("gem_bid_number=%s")
         values.append(gem_bid_number)
-    if gem_internal_id is not None:
+    if gem_internal_id is not _UNSET:
         updates.append("gem_internal_id=%s")
         values.append(gem_internal_id)
-    if result_declared is not None:
+    if result_declared is not _UNSET:
         updates.append("result_declared=%s")
         values.append(result_declared)
-    if result_declared_at is not None:
+    if result_declared_at is not _UNSET:
         updates.append("result_declared_at=%s")
         values.append(result_declared_at)
-    if gem_result_url is not None:
+    if gem_result_url is not _UNSET:
         updates.append("gem_result_url=%s")
         values.append(gem_result_url)
-    if gem_ra_number is not None:
+    if gem_ra_number is not _UNSET:
         updates.append("gem_ra_number=%s")
         values.append(gem_ra_number)
-    if gem_ra_result_url is not None:
+    if gem_ra_url is not _UNSET:
+        updates.append("gem_ra_url=%s")
+        values.append(gem_ra_url)
+    if gem_ra_result_url is not _UNSET:
         updates.append("gem_ra_result_url=%s")
         values.append(gem_ra_result_url)
-    if gem_page_status is not None:
+    if ra_start_date is not _UNSET:
+        updates.append("ra_start_date=%s")
+        values.append(ra_start_date)
+    if ra_end_date is not _UNSET:
+        updates.append("ra_end_date=%s")
+        values.append(ra_end_date)
+    if gem_page_status is not _UNSET:
         updates.append("gem_page_status=%s")
         values.append(gem_page_status)
-    if last_result_checked_at is not None:
+    if last_result_checked_at is not _UNSET:
         updates.append("last_result_checked_at=%s")
         values.append(last_result_checked_at)
-    if notification_sent is not None:
+    if notification_sent is not _UNSET:
         updates.append("notification_sent=%s")
         values.append(notification_sent)
-    if result_check_error is not None:
+    if result_check_error is not _UNSET:
         updates.append("result_check_error=%s")
         values.append(result_check_error)
-    if l1_seller_name is not None:
+    if l1_seller_name is not _UNSET:
         updates.append("l1_seller_name=%s")
         values.append(l1_seller_name)
-    if our_company_rank is not None:
+    if our_company_rank is not _UNSET:
         updates.append("our_company_rank=%s")
         values.append(our_company_rank)
-    if our_company_status is not None:
+    if our_company_status is not _UNSET:
         updates.append("our_company_status=%s")
         values.append(our_company_status)
     if not updates:
@@ -1085,7 +1105,7 @@ def list_tender_notifications(limit=50):
         cur.execute(
             """SELECT n.id, n.tender_id, n.title, n.message, n.type, n.is_read, n.created_at,
                       t.gem_bidding_number, t.tender_number, t.gem_result_status, t.gem_result_url,
-                      t.gem_ra_number, t.gem_ra_result_url, t.result_available, t.bid_result_available, t.ra_result_available
+                      t.gem_ra_number, t.gem_ra_url, t.gem_ra_result_url, t.result_available, t.bid_result_available, t.ra_created, t.ra_result_available
                FROM tender_notifications n
                LEFT JOIN tenders t ON t.id = n.tender_id
                ORDER BY n.created_at DESC, n.id DESC

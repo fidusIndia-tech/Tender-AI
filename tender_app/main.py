@@ -39,6 +39,7 @@ from result_watcher import (
     ingest_gem_result_error,
     ingest_gem_result_from_agent,
     list_pending_result_watcher_tenders,
+    list_recheck_result_watcher_tenders,
     run_result_watcher_for_eligible_tenders,
     start_result_watcher_scheduler,
 )
@@ -300,14 +301,19 @@ class GemResultIngestPayload(BaseModel):
     bidNumber: Optional[str] = None
     resultAvailable: Optional[bool] = None
     bidResultAvailable: Optional[bool] = None
+    raCreated: Optional[bool] = None
     raResultAvailable: Optional[bool] = None
     raNumber: Optional[str] = None
+    raUrl: Optional[str] = None
+    raStartDate: Optional[str] = None
+    raEndDate: Optional[str] = None
     bidResultUrl: Optional[str] = None
     raResultUrl: Optional[str] = None
     gemResultStatus: Optional[str] = None
     gemPageStatus: Optional[str] = None
     rawGemMatchedDoc: Optional[dict[str, Any]] = None
     checkedAt: Optional[str] = None
+    resultCheckError: Optional[str] = None
 
 
 class GemResultErrorPayload(BaseModel):
@@ -760,6 +766,12 @@ async def run_result_watcher(request: Request):
 async def list_pending_result_watcher_items(request: Request):
     _require_watcher_or_admin(request)
     return await asyncio.to_thread(list_pending_result_watcher_tenders)
+
+
+@app.get("/api/result-watcher/recheck-targets")
+async def list_recheck_result_watcher_items(request: Request):
+    _require_watcher_or_admin(request)
+    return await asyncio.to_thread(list_recheck_result_watcher_tenders)
 
 
 @app.post("/api/result-watcher/run-log")
