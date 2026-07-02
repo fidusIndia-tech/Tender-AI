@@ -639,7 +639,7 @@ def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
     ra_pattern_match = bool(inferred_ra_number and bid_value and "/R/" in bid_value.upper())
 
     bid_result_available = bool(bid_parent_id)
-    ra_result_available = bool(ra_id and (ra_pattern_match or parent_matches or direct_matches))
+    ra_result_available = bool(ra_id and ra_pattern_match)
     result_available = bool(matched_doc_found and (bid_result_available or ra_result_available))
 
     if bid_result_available and ra_result_available:
@@ -650,7 +650,7 @@ def parse_gem_result_response(canonical_bid_number: str, data: dict) -> dict:
         reason = "Matched GeM result document contains original bid result id."
     elif ra_result_available:
         status = RESULT_STATUS_RA_AVAILABLE
-        reason = "Matched GeM result document contains RA result id."
+        reason = "Matched GeM result document contains RA number and RA result id."
     elif matched_doc_found:
         status = RESULT_STATUS_NOT_AVAILABLE
         reason = "Exact GeM document matched, but no usable bid/RA result ids were returned."
@@ -1491,9 +1491,9 @@ def ingest_gem_result_from_agent(tender_id: int, payload: dict):
             "bid_result_available": bid_available,
             "ra_result_available": ra_available,
             "gem_result_status": status,
-            "gem_result_url": payload.get("bidResultUrl") or payload.get("gem_result_url") or payload.get("bid_result_url"),
-            "gem_ra_result_url": payload.get("raResultUrl") or payload.get("gem_ra_result_url") or payload.get("ra_result_url"),
-            "gem_ra_number": payload.get("raNumber") or payload.get("gem_ra_number") or payload.get("ra_number"),
+            "gem_result_url": (payload.get("bidResultUrl") or payload.get("gem_result_url") or payload.get("bid_result_url")) if bid_available else None,
+            "gem_ra_result_url": (payload.get("raResultUrl") or payload.get("gem_ra_result_url") or payload.get("ra_result_url")) if ra_available else None,
+            "gem_ra_number": (payload.get("raNumber") or payload.get("gem_ra_number") or payload.get("ra_number")) if ra_available else None,
             "gem_page_status": payload.get("gemPageStatus") or payload.get("gem_page_status"),
             "matched_doc_json": payload.get("rawGemMatchedDoc") or payload.get("raw_gem_matched_doc"),
             "reason": "Result data ingested from local GeM Result Watcher Agent.",

@@ -3854,8 +3854,8 @@ function _renderCurrentPage() {
     const rowNum = start + idx + 1;
     const st = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     const resultMeta = getResultStatusMeta(t);
-    const bidResultHref = resolveGemResultUrl(t.gem_result_url, getCanonicalGemBidNumber(t));
-    const raResultHref = resolveGemResultUrl(t.gem_ra_result_url, t.gem_ra_number);
+    const bidResultHref = t.bid_result_available ? resolveGemResultUrl(t.gem_result_url, getCanonicalGemBidNumber(t)) : '';
+    const raResultHref = (t.ra_result_available && t.gem_ra_number) ? resolveGemResultUrl(t.gem_ra_result_url, t.gem_ra_number) : '';
     const resultActionLinks = [
       bidResultHref ? '<a href="' + esc(bidResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result" style="padding:2px 6px;font-size:10px">View Bid Result</a>' : '',
       raResultHref ? '<a href="' + esc(raResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result" style="padding:2px 6px;font-size:10px">View RA Result</a>' : ''
@@ -6572,8 +6572,8 @@ function renderResultSummaryCard() {
     return;
   }
   listEl.innerHTML = unread.slice(0, 4).map(n => {
-    const bidResultHref = resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number);
-    const raResultHref = resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number || n.tender_number);
+    const bidResultHref = n.bid_result_available ? resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number) : '';
+    const raResultHref = (n.ra_result_available && n.gem_ra_number) ? resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number) : '';
     return `
       <div class="result-summary-item">
         <div class="result-summary-item-head">
@@ -6601,8 +6601,8 @@ function renderNotificationPanel() {
     return;
   }
   listEl.innerHTML = tenderNotificationsCache.map(n => {
-    const bidResultHref = resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number);
-    const raResultHref = resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number || n.tender_number);
+    const bidResultHref = n.bid_result_available ? resolveGemResultUrl(n.gem_result_url, n.tender_number || n.gem_bidding_number) : '';
+    const raResultHref = (n.ra_result_available && n.gem_ra_number) ? resolveGemResultUrl(n.gem_ra_result_url, n.gem_ra_number) : '';
     return `
       <div class="notification-card ${n.is_read ? '' : 'unread'}">
         <div class="notification-card-title">${esc(n.title || 'Tender Notification')}</div>
