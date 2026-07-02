@@ -1953,7 +1953,21 @@ body.col-resizing { cursor:col-resize !important; }
             </th>
             <th class="has-resize" title="VoT = Valuation of Tender" style="position:relative">VoT (₹)<div class="col-resize-handle" onpointerdown="startColResize('vot',event)" ondblclick="resetColWidth('vot')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="text-align:center;position:relative">Qty<div class="col-resize-handle" onpointerdown="startColResize('qty',event)" ondblclick="resetColWidth('qty')" title="Drag to resize - Double-click to reset"></div></th>
-            <th class="has-resize" style="position:relative">Result<div class="col-resize-handle" onpointerdown="startColResize('result',event)" ondblclick="resetColWidth('result')" title="Drag to resize - Double-click to reset"></div></th>
+            <th class="has-resize" style="white-space:nowrap;position:relative">
+              Result<span id="resultFilterCount"></span><span style="display:inline-block;margin-left:4px">
+                <span class="th-filter-btn" id="resultFilterBtn" onclick="toggleFilterMenu('result',event)" title="Filter by result status">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h17.25m-17.25 0a1.125 1.125 0 000 2.25h17.25a1.125 1.125 0 000-2.25zM3 10.5h11.25m-11.25 0a1.125 1.125 0 000 2.25H14.25a1.125 1.125 0 000-2.25zM3 16.5h5.25m-5.25 0a1.125 1.125 0 000 2.25h5.25a1.125 1.125 0 000-2.25z"/></svg>
+                </span>
+                <div class="th-filter-menu" id="resultFilterMenu" style="min-width:185px">
+                  <div class="th-filter-option selected" data-result-filter="all" onclick="setResultFilter('all',this)">All Results</div>
+                  <div class="th-filter-option" data-result-filter="available" onclick="setResultFilter('available',this)">Result Available</div>
+                  <div class="th-filter-option" data-result-filter="not_available" onclick="setResultFilter('not_available',this)">Not Available</div>
+                  <div class="th-filter-option" data-result-filter="not_checked" onclick="setResultFilter('not_checked',this)">Not Checked Yet</div>
+                  <div class="th-filter-option" data-result-filter="failed" onclick="setResultFilter('failed',this)">Failed to Check</div>
+                </div>
+              </span>
+              <div class="col-resize-handle" onpointerdown="startColResize('result',event)" ondblclick="resetColWidth('result')" title="Drag to resize - Double-click to reset"></div>
+            </th>
             <th class="has-resize" style="position:relative">Actions<div class="col-resize-handle" onpointerdown="startColResize('actions',event)" ondblclick="resetColWidth('actions')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;text-align:center;position:relative">
               Status<span id="statusFilterCount"></span><span style="display:inline-block;margin-left:4px">
@@ -3098,6 +3112,7 @@ function getTenderSearchText(t) {
 let orgSelectedValues  = new Set(); // empty = show all
 let makeSelectedValues = new Set(); // empty = show all
 let statusSelectedValues = new Set(); // empty = show all
+let resultFilterMode = 'all';       // all | available | not_available | not_checked | failed
 let listSortField = 'upload';       // 'upload' | 'bid'
 let uploadSortMode = 'desc';        // 'desc' | 'asc'
 let bidSortMode = 'desc';           // 'desc' | 'asc'
@@ -3432,6 +3447,31 @@ function updateMakeFilterCount() {
   const btn = document.getElementById('makeFilterBtn');
   if (btn) btn.classList.toggle('active', n > 0);
 }
+function getTenderResultFilterGroup(tender) {
+  const status = String(tender?.gem_result_status || 'PENDING').toUpperCase();
+  const available = Boolean(tender?.result_available || tender?.bid_result_available || tender?.ra_result_available);
+  if (available || status === 'BID_RESULT_AVAILABLE' || status === 'RA_RESULT_AVAILABLE' || status === 'BID_AND_RA_RESULT_AVAILABLE') return 'available';
+  if (status === 'FAILED_TO_CHECK') return 'failed';
+  if (status === 'PENDING' || !tender?.last_result_checked_at) return 'not_checked';
+  return 'not_available';
+}
+function setResultFilter(mode, el) {
+  resultFilterMode = mode || 'all';
+  document.querySelectorAll('#resultFilterMenu .th-filter-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.resultFilter === resultFilterMode);
+  });
+  if (el) el.classList.add('selected');
+  updateResultFilterCount();
+  closeAllFilterMenus();
+  renderTenderTable(tenderListCache);
+}
+function updateResultFilterCount() {
+  const active = resultFilterMode !== 'all';
+  const el = document.getElementById('resultFilterCount');
+  if (el) el.innerHTML = active ? '<span class="filter-count-badge">1</span>' : '';
+  const btn = document.getElementById('resultFilterBtn');
+  if (btn) btn.classList.toggle('active', active);
+}
 function toggleStatusValue(val, checked) {
   if (checked) statusSelectedValues.add(val); else statusSelectedValues.delete(val);
   updateStatusFilterCount();
@@ -3552,6 +3592,13 @@ function clearAllFilters() {
   statusSelectedValues.clear();
   updateStatusFilterCount();
   document.querySelectorAll('#statusFilterList input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  // Reset result filter
+  resultFilterMode = 'all';
+  updateResultFilterCount();
+  document.querySelectorAll('#resultFilterMenu .th-filter-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.resultFilter === 'all');
+  });
 
   renderTenderTable(tenderListCache);
 }
@@ -3688,6 +3735,7 @@ function openDeadlineGroup(group) {
   orgSelectedValues.clear();
   makeSelectedValues.clear();
   statusSelectedValues.clear();
+  resultFilterMode = 'all';
   uploadDateFrom = null;
   uploadDateTo = null;
   bidDateFrom = null;
@@ -3703,7 +3751,11 @@ function openDeadlineGroup(group) {
   updateOrgFilterCount();
   updateMakeFilterCount();
   updateStatusFilterCount();
+  updateResultFilterCount();
   document.querySelectorAll('#statusFilterList input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#resultFilterMenu .th-filter-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.resultFilter === 'all');
+  });
 
   showView('list');
   renderTenderTable(tenderListCache);
@@ -3761,6 +3813,7 @@ function renderTenderTable(tenders) {
     if (!_bidDateMatches(t.bid_end_datetime)) return false;
     const tSt = (t.participation_status && t.participation_status !== 'new') ? t.participation_status : 'IN PROGRESS';
     if (statusSelectedValues.size > 0 && !statusSelectedValues.has(tSt)) return false;
+    if (resultFilterMode !== 'all' && getTenderResultFilterGroup(t) !== resultFilterMode) return false;
     return true;
   }).sort((a, b) => {
     if (listSortField === 'upload') {
