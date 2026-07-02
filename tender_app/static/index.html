@@ -3803,6 +3803,10 @@ function _renderCurrentPage() {
     const resultMeta = getResultStatusMeta(t);
     const bidResultHref = resolveGemResultUrl(t.gem_result_url, getCanonicalGemBidNumber(t));
     const raResultHref = resolveGemResultUrl(t.gem_ra_result_url, t.gem_ra_number);
+    const resultActionLinks = [
+      bidResultHref ? '<a href="' + esc(bidResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result" style="padding:2px 6px;font-size:10px">View Bid Result</a>' : '',
+      raResultHref ? '<a href="' + esc(raResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result" style="padding:2px 6px;font-size:10px">View RA Result</a>' : ''
+    ].join('');
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="expand-col" onclick="event.stopPropagation()">
@@ -3830,9 +3834,7 @@ function _renderCurrentPage() {
           <div class="result-actions">
             ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
             <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
-            <button class="btn btn-outline btn-xs" onclick="checkTenderResultNow(${t.id}, event)" title="Check result now" style="padding:2px 6px;font-size:10px">Check Result</button>
-            ${bidResultHref ? `<a href="${esc(bidResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result search" style="padding:2px 6px;font-size:10px">View Bid Result</a>` : ''}
-            ${raResultHref ? `<a href="${esc(raResultHref)}" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result search" style="padding:2px 6px;font-size:10px">View RA Result</a>` : ''}
+            ${resultActionLinks}
           </div>
         </td>
         <td onclick="event.stopPropagation()">

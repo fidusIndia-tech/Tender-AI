@@ -31,6 +31,10 @@ STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 STATUS_FAILED = "FAILED_TO_CHECK"
 
 
+class GemNoDataFound(Exception):
+    """Raised when GeM responds cleanly but the exact bid is not present."""
+
+
 def utc_now_iso():
     return datetime.now(timezone.utc).isoformat()
 
@@ -101,6 +105,12 @@ def post_json(config, path, payload):
 def fetch_pending_tenders(config):
     status, text, data = request_json("GET", f"{config['base_url']}/api/result-watcher/pending", auth_headers(config))
     if status < 200 or status >= 300:
+        if status == 404 and "Application not found" in text:
+            raise RuntimeError(
+                "Tender AI base URL is wrong or the Railway app is not deployed. "
+                f"Current TENDER_AI_BASE_URL={config['base_url']}. "
+                "Set it to your live Tender AI app URL."
+            )
         raise RuntimeError(f"pending fetch failed HTTP {status}: {text[:500]}")
     return data if isinstance(data, list) else []
 
@@ -155,7 +165,7 @@ def parse_gem_response(bid_number, gem_base_url, data):
     )
 
     if not matched_doc:
-        raise ValueError("Exact tender was not found in GeM response.")
+        raise GemNoDataFound("Exact tender was not found in GeM response.")
 
     bid_value = str(first_value(matched_doc.get("b_bid_number")) or "").strip().upper()
     parent_value = str(first_value(matched_doc.get("b_bid_number_parent")) or "").strip().upper()
@@ -257,7 +267,7 @@ def fetch_gem_bid_status(context, page, config, bid_number):
         except json.JSONDecodeError:
             parsed = {}
         if parsed.get("code") == 404 and str(parsed.get("message", "")).lower() == "no data found":
-            raise ValueError("Exact tender was not found in GeM response.")
+            raise GemNoDataFound("Exact tender was not found in GeM response.")
     if status < 200 or status >= 300:
         raise RuntimeError(f"GeM request failed HTTP {status}: {text[:500]}")
     try:
@@ -291,6 +301,29 @@ def check_one_tender(context, page, config, tender):
                 payload["resultAvailable"],
                 payload["gemResultStatus"],
                 payload.get("raNumber"),
+            )
+            return payload
+        except GemNoDataFound as exc:
+            payload = {
+                "bidNumber": bid_number,
+                "checkedAt": utc_now_iso(),
+                "resultAvailable": False,
+                "bidResultAvailable": False,
+                "raResultAvailable": False,
+                "gemResultStatus": STATUS_NOT_AVAILABLE,
+                "bidResultUrl": None,
+                "raResultUrl": None,
+                "raNumber": None,
+                "gemPageStatus": None,
+                "rawGemMatchedDoc": None,
+            }
+            post_json(config, f"/api/tenders/{tender_id}/ingest-gem-result", payload)
+            logging.info(
+                "ingested tender_id=%s bid=%s result_available=False status=%s reason=%s",
+                tender_id,
+                bid_number,
+                STATUS_NOT_AVAILABLE,
+                exc,
             )
             return payload
         except Exception as exc:
