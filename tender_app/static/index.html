@@ -1559,23 +1559,6 @@ body.col-resizing { cursor:col-resize !important; }
       <div class="workflow-page-hero-title">Upload &amp; Evaluate Tenders</div>
       <div class="workflow-page-hero-sub">Manual PDF upload and GeM auto scan now work from one page. Review extracted tenders below before approving them into All Tenders.</div>
     </div>
-    <div class="result-summary-card">
-      <div class="result-summary-grid">
-        <div>
-          <div class="result-summary-number" id="newResultsDeclaredCount">0</div>
-          <div class="result-summary-label">New GeM Alerts</div>
-          <div style="margin-top:10px;font-size:12px;color:var(--slate-500)">Fresh GeM alerts for saved tenders, including RA creation and result availability.</div>
-          <div style="margin-top:12px;display:grid;gap:5px;font-size:11.5px;color:var(--slate-500)">
-            <div><strong style="color:var(--slate-700)">Last watcher run:</strong> <span id="lastWatcherRunText">Not run yet</span></div>
-            <div><strong style="color:var(--slate-700)">Alerts created today:</strong> <span id="resultsFoundTodayText">0</span></div>
-          </div>
-        </div>
-        <div id="newResultsDeclaredList" class="result-summary-list">
-          <div class="notification-empty">No GeM alerts yet.</div>
-        </div>
-      </div>
-    </div>
-
     <!-- Upload Zone -->
     <div id="uploadZone" onclick="document.getElementById('unifiedFileInput').click()">
       <div class="upload-icon-wrap">
@@ -2637,8 +2620,8 @@ const PAGE_TITLES = {
   'gem-rejected-candidates': 'Rejected Tenders',
 };
 const PAGE_ACTIONS = {
-  upload:  '<button class="btn btn-outline btn-sm" id="checkAllPendingResultsBtn" onclick="runBrowserResultWatcherFromUi(event)">Check All Pending Results</button>',
-  list:    '<button class="btn btn-outline btn-sm" id="checkAllPendingResultsBtn" onclick="runBrowserResultWatcherFromUi(event)">Check All Pending Results</button><button class="btn btn-primary btn-sm" onclick="showView(\'upload\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Upload New</button>',
+  upload:  '',
+  list:    '<button class="btn btn-primary btn-sm" onclick="showView(\'upload\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Upload New</button>',
   review:  '<button class="btn btn-outline btn-sm" onclick="showView(\'list\')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg> Back to List</button>',
   library: '<button class="btn btn-primary btn-sm" onclick="toggleUploadForm()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg> Add Document</button>',
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
@@ -6622,6 +6605,22 @@ function renderNotificationPanel() {
     `;
   }).join('');
 }
+function showNewTenderNotificationToasts(newUnread) {
+  const items = Array.isArray(newUnread) ? newUnread : [];
+  if (!items.length) return;
+  const prioritized = items.filter((n) => ['RA_CREATED', 'RA_RESULT_AVAILABLE'].includes(String(n?.type || '').toUpperCase()));
+  const queue = prioritized.length ? prioritized : items;
+  queue.slice(0, 2).forEach((n) => {
+    const type = String(n?.type || '').toUpperCase();
+    if (type === 'RA_CREATED') {
+      toast(n.title || 'RA created for a tender', 'success');
+    } else if (type === 'RA_RESULT_AVAILABLE') {
+      toast(n.title || 'RA result available for a tender', 'success');
+    } else {
+      toast(n.title || 'New tender result available', 'success');
+    }
+  });
+}
 async function loadTenderNotifications(silent=false) {
   try {
     const res = await fetch('/api/tender-notifications');
@@ -6631,8 +6630,8 @@ async function loadTenderNotifications(silent=false) {
     const newUnread = data.filter(n => !n.is_read && !knownUnreadNotificationIds.has(n.id));
     tenderNotificationsCache = data;
     renderNotificationPanel();
-    if (!silent && knownUnreadNotificationIds.size && newUnread.length) {
-      toast(newUnread[0].title || 'New tender result available', 'success');
+    if (knownUnreadNotificationIds.size && newUnread.length) {
+      showNewTenderNotificationToasts(newUnread);
     }
     knownUnreadNotificationIds = unreadNow;
     loadResultWatcherSummary(true);
