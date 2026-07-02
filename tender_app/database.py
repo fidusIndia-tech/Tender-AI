@@ -1070,7 +1070,7 @@ def get_result_watcher_summary():
         cur.execute(
             """SELECT COUNT(*) AS results_found_today
                FROM tender_notifications
-               WHERE type = 'RESULT_AVAILABLE'
+               WHERE type IN ('RESULT_AVAILABLE', 'BID_RESULT_AVAILABLE', 'RA_CREATED', 'RA_RESULT_AVAILABLE')
                  AND created_at::date = CURRENT_DATE"""
         )
         today = cur.fetchone()

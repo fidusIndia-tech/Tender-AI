@@ -1563,15 +1563,15 @@ body.col-resizing { cursor:col-resize !important; }
       <div class="result-summary-grid">
         <div>
           <div class="result-summary-number" id="newResultsDeclaredCount">0</div>
-          <div class="result-summary-label">New Results Available</div>
-          <div style="margin-top:10px;font-size:12px;color:var(--slate-500)">Fresh GeM result alerts from tenders already saved in All Tenders.</div>
+          <div class="result-summary-label">New GeM Alerts</div>
+          <div style="margin-top:10px;font-size:12px;color:var(--slate-500)">Fresh GeM alerts for saved tenders, including RA creation and result availability.</div>
           <div style="margin-top:12px;display:grid;gap:5px;font-size:11.5px;color:var(--slate-500)">
             <div><strong style="color:var(--slate-700)">Last watcher run:</strong> <span id="lastWatcherRunText">Not run yet</span></div>
-            <div><strong style="color:var(--slate-700)">Results found today:</strong> <span id="resultsFoundTodayText">0</span></div>
+            <div><strong style="color:var(--slate-700)">Alerts created today:</strong> <span id="resultsFoundTodayText">0</span></div>
           </div>
         </div>
         <div id="newResultsDeclaredList" class="result-summary-list">
-          <div class="notification-empty">No result declarations yet.</div>
+          <div class="notification-empty">No GeM alerts yet.</div>
         </div>
       </div>
     </div>
@@ -6571,7 +6571,7 @@ function renderResultSummaryCard() {
   if (countEl) countEl.textContent = String(unread.length);
   if (!listEl) return;
   if (!unread.length) {
-    listEl.innerHTML = '<div class="notification-empty">No result declarations yet.</div>';
+    listEl.innerHTML = '<div class="notification-empty">No GeM alerts yet.</div>';
     return;
   }
   listEl.innerHTML = unread.slice(0, 4).map(n => {
