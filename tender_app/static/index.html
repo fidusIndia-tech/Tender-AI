@@ -1155,15 +1155,17 @@ body.col-resizing { cursor:col-resize !important; }
 #toast {
   position:fixed;bottom:28px;right:28px;
   padding:12px 18px 12px 14px;
-  border-radius:var(--radius);
+  border-radius:14px;
   font-size:13px;font-weight:500;
   z-index:9999;opacity:0;transform:translateY(10px);
   transition:all .25s ease;pointer-events:none;
   display:flex;align-items:center;gap:9px;
-  box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:360px;
+  box-shadow:0 12px 32px rgba(15,23,42,.18);max-width:360px;
+  border:1px solid transparent;
 }
 #toast.show { opacity:1;transform:translateY(0); }
 #toast.success { background:#0F172A;color:#fff; }
+#toast.notice  { background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%); color:#fff; border-color:rgba(148,163,184,.18); font-weight:600; }
 #toast.error   { background:#7f1d1d;color:#fecaca; }
 
 /* ── Spinner ─────────────────────────────────────────────────────────────── */
@@ -6493,6 +6495,8 @@ function toast(msg, type='success') {
   const el=document.getElementById('toast');
   const icon = type==='success'
     ? '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+    : type==='notice'
+    ? '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25h.008v.008H12V8.25zm-.75 3h1.5v4.5h-1.5v-4.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
     : '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>';
   el.innerHTML = icon + msg;
   el.className = type; el.classList.add('show');
@@ -6626,7 +6630,7 @@ function showUnreadNotificationSummaryToast(unreadCount) {
   const count = Number(unreadCount || 0);
   if (!count) return;
   const message = count === 1 ? '1 tender result is live.' : `${count} tender results are live.`;
-  toast(message, 'success');
+  toast(message, 'notice');
 }
 async function loadTenderNotifications(silent=false) {
   try {
