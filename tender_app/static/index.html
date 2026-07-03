@@ -6625,7 +6625,7 @@ function showNewTenderNotificationToasts(newUnread) {
 function showUnreadNotificationSummaryToast(unreadCount) {
   const count = Number(unreadCount || 0);
   if (!count) return;
-  const message = count === 1 ? '1 new result available.' : `${count} new results available.`;
+  const message = count === 1 ? '1 tender result is live.' : `${count} tender results are live.`;
   toast(message, 'success');
 }
 async function loadTenderNotifications(silent=false) {
@@ -6658,6 +6658,13 @@ async function loadResultWatcherSummary(silent=true) {
     const data = await res.json();
     const lastRunEl = document.getElementById('lastWatcherRunText');
     const todayEl = document.getElementById('resultsFoundTodayText');
+    if (!notificationBootstrapDone) {
+      const unreadToday = Number(data?.unread_notifications_today || 0);
+      if (unreadToday > 0) {
+        notificationBootstrapDone = true;
+        showUnreadNotificationSummaryToast(unreadToday);
+      }
+    }
     if (lastRunEl) {
       const last = data?.last_run;
       const when = last?.finished_at || last?.created_at || last?.started_at;
