@@ -20,6 +20,7 @@ from gem_watcher.scanner import (
 )
 from gem_bid_utils import getCanonicalGemBidNumber
 
+RESULT_STATUS_NOT_CHECKED = "NOT_CHECKED"
 RESULT_STATUS_PENDING = "PENDING"
 RESULT_STATUS_NOT_AVAILABLE = "NOT_AVAILABLE_YET"
 RESULT_STATUS_NOT_FOUND = "NOT_FOUND_ON_GEM"
@@ -30,6 +31,7 @@ RESULT_STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 RESULT_STATUS_FAILED = "FAILED_TO_CHECK"
 _RESULT_STATUS_PRIORITY = {
     RESULT_STATUS_FAILED: 0,
+    RESULT_STATUS_NOT_CHECKED: 1,
     RESULT_STATUS_PENDING: 1,
     RESULT_STATUS_NOT_AVAILABLE: 2,
     RESULT_STATUS_NOT_FOUND: 2,
@@ -78,6 +80,20 @@ POLL_SECONDS = int(os.environ.get("GEM_RESULT_WATCHER_POLL_SECONDS", "60"))
 _scheduler_started = False
 _scheduler_lock = threading.Lock()
 _watcher_last_slot = None
+AVAILABLE_RESULT_STATUSES = {
+    RESULT_STATUS_BID_AVAILABLE,
+    RESULT_STATUS_RA_CREATED,
+    RESULT_STATUS_RA_AVAILABLE,
+    RESULT_STATUS_BID_AND_RA_AVAILABLE,
+}
+NON_AVAILABLE_RESULT_STATUSES = {
+    RESULT_STATUS_NOT_CHECKED,
+    RESULT_STATUS_PENDING,
+    RESULT_STATUS_NOT_AVAILABLE,
+    RESULT_STATUS_NOT_FOUND,
+    RESULT_STATUS_FAILED,
+}
+RESULT_STATUS_REVIEW_REQUIRED = "REVIEW_REQUIRED"
 
 
 def _watcher_log(message: str):
@@ -341,7 +357,9 @@ def _save_debug_screenshot(page, bid_number: str, step: str) -> str | None:
 
 def _standardize_result_payload(result: dict | None) -> dict:
     payload = dict(result or {})
-    gem_result_status = payload.get("gem_result_status") or payload.get("status") or RESULT_STATUS_FAILED
+    gem_result_status = _normalize_space(payload.get("gem_result_status") or payload.get("status")).upper() or RESULT_STATUS_FAILED
+    if gem_result_status == RESULT_STATUS_PENDING:
+        gem_result_status = RESULT_STATUS_NOT_CHECKED
     payload["gem_result_status"] = gem_result_status
     payload["status"] = gem_result_status
     payload["result_available"] = bool(payload.get("result_available", False))
@@ -357,6 +375,11 @@ def _standardize_result_payload(result: dict | None) -> dict:
     payload.setdefault("gem_page_status", None)
     payload.setdefault("result_check_error", None)
     payload.setdefault("reason", "")
+    payload.setdefault("confidence", "medium")
+    payload.setdefault("source", "server")
+    payload.setdefault("raw_gem_response", None)
+    payload.setdefault("result_review_required", False)
+    payload.setdefault("result_check_warning", None)
     payload.setdefault("failure_details", [])
     return payload
 
@@ -365,34 +388,37 @@ def _result_status_priority(status: str | None) -> int:
     return _RESULT_STATUS_PRIORITY.get(_normalize_space(status).upper(), 0)
 
 
-def _merge_with_existing_result_state(existing: dict, result: dict) -> dict:
-    """Avoid downgrading a previously confirmed result when a later check is negative."""
-    if not existing:
-        return result
-    existing_confirmed = bool(
-        existing.get("result_available")
-        or existing.get("bid_result_available")
-        or existing.get("ra_result_available")
-    )
-    current_confirmed = bool(
-        result.get("result_available")
-        or result.get("bid_result_available")
-        or result.get("ra_result_available")
-    )
-    current_status = _normalize_space(result.get("gem_result_status")).upper()
-    if not existing_confirmed or current_confirmed:
-        return result
-    if current_status not in (RESULT_STATUS_FAILED, RESULT_STATUS_PENDING):
-        return result
+def _is_available_status(status: str | None) -> bool:
+    return _normalize_space(status).upper() in AVAILABLE_RESULT_STATUSES
 
+
+def _is_non_available_status(status: str | None) -> bool:
+    return _normalize_space(status).upper() in NON_AVAILABLE_RESULT_STATUSES
+
+
+def _extract_result_urls(payload: dict) -> dict:
+    return {
+        "gem_result_url": payload.get("gem_result_url"),
+        "gem_ra_url": payload.get("gem_ra_url"),
+        "gem_ra_result_url": payload.get("gem_ra_result_url"),
+        "gem_ra_number": payload.get("gem_ra_number"),
+        "ra_start_date": payload.get("ra_start_date"),
+        "ra_end_date": payload.get("ra_end_date"),
+    }
+
+
+def _preserve_existing_result_fields(existing: dict, result: dict) -> dict:
     merged = dict(result)
     merged["result_available"] = bool(existing.get("result_available"))
     merged["bid_result_available"] = bool(existing.get("bid_result_available"))
     merged["ra_created"] = bool(existing.get("ra_created"))
     merged["ra_result_available"] = bool(existing.get("ra_result_available"))
-    merged["gem_result_status"] = _normalize_space(existing.get("gem_result_status")).upper() or merged.get("gem_result_status")
+    merged["gem_result_status"] = (
+        _normalize_space(existing.get("gem_result_status")).upper()
+        or merged.get("gem_result_status")
+        or RESULT_STATUS_NOT_CHECKED
+    )
     merged["status"] = merged["gem_result_status"]
-
     for field in (
         "gem_result_url",
         "gem_ra_url",
@@ -403,16 +429,45 @@ def _merge_with_existing_result_state(existing: dict, result: dict) -> dict:
         "gem_page_status",
         "result_check_error",
     ):
-        if merged.get(field) in (None, "") and existing.get(field) not in (None, ""):
+        if existing.get(field) not in (None, ""):
             merged[field] = existing.get(field)
-
     if existing.get("result_declared"):
         merged["result_declared"] = True
     if existing.get("result_declared_at") and not merged.get("result_declared_at"):
         merged["result_declared_at"] = existing.get("result_declared_at")
-    merged["reason"] = result.get("reason") or existing.get("reason") or "Preserved previously confirmed result."
-    merged["preserved_existing_result"] = True
     return merged
+
+
+def _resolve_safe_result(existing: dict, result: dict, *, force_downgrade: bool = False) -> dict:
+    existing_status = _normalize_space(existing.get("gem_result_status")).upper() or RESULT_STATUS_NOT_CHECKED
+    new_status = _normalize_space(result.get("gem_result_status")).upper() or RESULT_STATUS_FAILED
+    confidence = _normalize_space(result.get("confidence")).upper() or "LOW"
+
+    final_result = dict(result)
+    for field in ("gem_result_url", "gem_ra_url", "gem_ra_result_url", "gem_ra_number", "ra_start_date", "ra_end_date"):
+        if final_result.get(field) in (None, "") and existing.get(field) not in (None, ""):
+            final_result[field] = existing.get(field)
+
+    downgrade_blocked = False
+    if _is_available_status(existing_status) and _is_non_available_status(new_status) and not force_downgrade and confidence != "HIGH":
+        final_result = _preserve_existing_result_fields(existing, final_result)
+        warning = (
+            f"New check tried to downgrade previous available status from {existing_status} to {new_status}."
+        )
+        final_result["result_review_required"] = True
+        final_result["result_check_warning"] = warning
+        final_result["downgrade_blocked"] = True
+        final_result["review_status"] = RESULT_STATUS_REVIEW_REQUIRED
+        final_result["reason"] = warning
+        downgrade_blocked = True
+    else:
+        final_result["result_review_required"] = False
+        final_result["result_check_warning"] = None
+        final_result["downgrade_blocked"] = False
+        final_result["review_status"] = None
+
+    final_result["preserved_existing_result"] = downgrade_blocked
+    return final_result
 
 
 def _parse_agent_checked_at(value):
@@ -781,10 +836,11 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
     result_status_text = _extract_doc_status_text(result_doc)
     result_direct_matches = result_bid_value == canonical_bid_number
     is_direct_bid = bool(result_direct_matches and not result_parent_bid_value)
-    # The all-bids-data API can expose evaluation-stage rows before the public GeM page
-    # shows a real "View Bid Results" button. To avoid false positives, the scheduled
-    # network watcher does not treat direct bid status text alone as a live result.
-    bid_result_available = False
+    bid_result_available = bool(
+        is_direct_bid
+        and result_direct_doc_id
+        and _is_evaluated_status_text(result_status_text)
+    )
 
     ongoing_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number"))).upper() or None
     ongoing_parent_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number_parent"))).upper() or None
@@ -878,6 +934,8 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
         "gem_result_status": status,
         "reason": reason,
         "result_check_error": None,
+        "confidence": "high" if result_available else ("medium" if matched_doc_found else "low"),
+        "raw_gem_response": {"result": result_data, "ongoing": ongoing_data},
         "page_text_snippet": _normalize_space(joined_text)[:3000],
         "opened_url": GEM_ALL_BIDS_DATA_URL,
         "failure_details": [],
@@ -1260,6 +1318,17 @@ def _detect_result_availability(page, bid_number: str):
         "page_has_bid_number": page_has_bid_number,
         "page_says_not_evaluated": page_says_not_evaluated,
     }
+
+
+def classifyGemResult(searchedBid: str, gemResponse: dict, optionalResultPageValidation: dict | None = None) -> dict:
+    ongoing = None
+    result_data = gemResponse
+    if isinstance(gemResponse, dict) and ("result" in gemResponse or "ongoing" in gemResponse):
+        result_data = gemResponse.get("result") or {}
+        ongoing = gemResponse.get("ongoing")
+    if optionalResultPageValidation and isinstance(optionalResultPageValidation, dict):
+        ongoing = optionalResultPageValidation.get("ongoing") if ongoing is None else ongoing
+    return parse_gem_result_response(searchedBid, result_data, ongoing)
 
 
 def _find_bid_ra_status_section(page):
@@ -1724,7 +1793,12 @@ def ingest_gem_result_from_agent(tender_id: int, payload: dict):
             "gem_page_status": payload.get("gemPageStatus") or payload.get("gem_page_status"),
             "matched_doc_json": payload.get("rawGemMatchedDoc") or payload.get("raw_gem_matched_doc"),
             "result_check_error": payload.get("resultCheckError") or payload.get("result_check_error"),
-            "reason": "Result data ingested from local GeM Result Watcher Agent.",
+            "reason": payload.get("reason") or "Result data ingested from local GeM Result Watcher Agent.",
+            "confidence": payload.get("confidence") or "high",
+            "source": payload.get("source") or "local_agent",
+            "raw_gem_response": payload.get("rawGemResponse") or payload.get("raw_gem_response"),
+            "force_downgrade": bool(payload.get("forceDowngrade") or payload.get("force_downgrade")),
+            "dry_run": bool(payload.get("dryRun") or payload.get("dry_run")),
             "network_debug": {
                 "method": "local_agent",
                 "checked_at": payload.get("checkedAt") or payload.get("checked_at"),
@@ -1732,7 +1806,13 @@ def ingest_gem_result_from_agent(tender_id: int, payload: dict):
             },
         }
     )
-    return check_tender_result(tender_id, precomputed_result=result)
+    return check_tender_result(
+        tender_id,
+        precomputed_result=result,
+        force_downgrade=bool(result.get("force_downgrade")),
+        dry_run=bool(result.get("dry_run")),
+        source=result.get("source") or "local_agent",
+    )
 
 
 def ingest_gem_result_error(tender_id: int, payload: dict):
@@ -1753,6 +1833,8 @@ def ingest_gem_result_error(tender_id: int, payload: dict):
         gem_result_status=RESULT_STATUS_FAILED,
         last_result_checked_at=checked_at,
         result_check_error=error_message,
+        result_review_required=False,
+        result_check_warning=None,
     )
     updated = database.get_tender(tender_id)
     return {
@@ -1806,12 +1888,27 @@ def list_recheck_result_watcher_tenders() -> list[dict]:
                 "bidEndDate": tender.get("bid_end_datetime"),
                 "organisation": tender.get("organization_name"),
                 "itemCategory": tender.get("make"),
+                "gemResultStatus": tender.get("gem_result_status"),
+                "resultAvailable": tender.get("result_available"),
+                "bidResultAvailable": tender.get("bid_result_available"),
+                "raCreated": tender.get("ra_created"),
+                "raResultAvailable": tender.get("ra_result_available"),
+                "notificationSent": tender.get("notification_sent"),
+                "resultReviewRequired": tender.get("result_review_required"),
+                "resultCheckWarning": tender.get("result_check_warning"),
             }
         )
     return items
 
 
-def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
+def check_tender_result(
+    tender_id: int,
+    precomputed_result: dict | None = None,
+    *,
+    force_downgrade: bool = False,
+    dry_run: bool = False,
+    source: str = "server",
+):
     tender = database.get_tender(tender_id)
     if not tender:
         raise ValueError("Tender not found")
@@ -1901,13 +1998,36 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
                     f"failure_details={result.get('failure_details')!r}; falling back to Playwright"
                 )
                 result = _standardize_result_payload(_run_with_playwright(tender, company_name))
-        result = _merge_with_existing_result_state(tender, result)
+        result["source"] = result.get("source") or source
+        result = _resolve_safe_result(tender, result, force_downgrade=force_downgrade)
         if result.get("preserved_existing_result"):
             _watcher_log(
                 f"preserved-confirmed-result bid={bid_number} "
                 f"existing_status={_normalize_space(tender.get('gem_result_status')).upper()!r} "
                 f"new_status={_normalize_space(result.get('gem_result_status')).upper()!r}"
             )
+        checked_at = _parse_agent_checked_at(result.get("checked_at") or (result.get("network_debug") or {}).get("checked_at"))
+        history = database.create_gem_result_check_history(
+            tender_id,
+            gem_bid_number=bid_number,
+            old_status=tender.get("gem_result_status"),
+            new_status=result.get("gem_result_status"),
+            old_result_available=bool(tender.get("result_available")),
+            new_result_available=bool(result.get("result_available")),
+            old_bid_result_available=bool(tender.get("bid_result_available")),
+            new_bid_result_available=bool(result.get("bid_result_available")),
+            old_ra_created=bool(tender.get("ra_created")),
+            new_ra_created=bool(result.get("ra_created")),
+            old_ra_result_available=bool(tender.get("ra_result_available")),
+            new_ra_result_available=bool(result.get("ra_result_available")),
+            old_urls=_extract_result_urls(tender),
+            new_urls=_extract_result_urls(result),
+            reason=result.get("reason"),
+            confidence=result.get("confidence"),
+            raw_gem_response=result.get("raw_gem_response") or result.get("matched_doc_json") or result.get("network_debug"),
+            checked_at=checked_at,
+            source=result.get("source") or source,
+        )
 
         _watcher_log(
             "check-result "
@@ -1932,6 +2052,8 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             f"ra_number={result.get('gem_ra_number')!r} "
             f"final_status_saved={result.get('gem_result_status')} "
             f"reason={result.get('reason')!r} "
+            f"confidence={result.get('confidence')!r} "
+            f"downgrade_blocked={result.get('downgrade_blocked')} "
             f"failure_details={result.get('failure_details')!r}"
         )
         debug.update(
@@ -1961,8 +2083,27 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
                 "bid_result_url": result.get("gem_result_url"),
                 "gem_ra_url": result.get("gem_ra_url"),
                 "ra_result_url": result.get("gem_ra_result_url"),
+                "history_id": history.get("id"),
+                "confidence": result.get("confidence"),
+                "downgrade_blocked": result.get("downgrade_blocked"),
             }
         )
+
+        if dry_run:
+            preview = database.get_tender(tender_id)
+            return {
+                "tender_id": tender_id,
+                "status": result.get("gem_result_status", RESULT_STATUS_FAILED),
+                "gem_result_status": result.get("gem_result_status", RESULT_STATUS_FAILED),
+                "result_found": result["result_available"],
+                "dry_run": True,
+                "downgrade_blocked": bool(result.get("downgrade_blocked")),
+                "review_required": bool(result.get("result_review_required")),
+                "history": history,
+                "tender": preview,
+                "proposed_tender_update": result,
+                "debug": debug,
+            }
 
         database.update_tender_result(
             tender_id,
@@ -1982,11 +2123,15 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
             gem_page_status=result.get("gem_page_status"),
             last_result_checked_at=now,
             result_check_error=result.get("result_check_error") or "",
+            result_review_required=bool(result.get("result_review_required")),
+            result_check_warning=result.get("result_check_warning"),
             l1_seller_name=result.get("l1_seller_name"),
             our_company_rank=result.get("our_company_rank"),
             our_company_status=result.get("our_company_status"),
             result_declared=result["result_available"],
             result_declared_at=(tender.get("result_declared_at") or now) if result["result_available"] else tender.get("result_declared_at"),
+            notification_sent=True if result["bid_result_available"] or result["ra_result_available"] else tender.get("notification_sent"),
+            ra_notified=True if result.get("ra_created") else tender.get("ra_notified"),
         )
 
         notifications: list[dict] = []
@@ -2020,8 +2165,20 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
 
         notification = notifications[-1] if notifications else None
         notification_created = bool(notifications)
+        invalidated_notifications = 0
+        if (
+            not result["bid_result_available"]
+            and not result["ra_created"]
+            and not result["ra_result_available"]
+            and result.get("confidence") == "HIGH"
+            and result.get("gem_result_status") in {RESULT_STATUS_NOT_AVAILABLE, RESULT_STATUS_NOT_FOUND}
+        ):
+            invalidated_notifications = database.invalidate_tender_notifications(
+                tender_id,
+                reason=f"Invalidated after confident repair check: {result.get('gem_result_status')}",
+                notification_types=["BID_RESULT_AVAILABLE", "RA_CREATED", "RA_RESULT_AVAILABLE", "RESULT_AVAILABLE"],
+            )
         if notification_created:
-            database.update_tender_result(tender_id, notification_sent=True)
             _watcher_log(f"result-found bid={bid_number} status={result['gem_result_status']}")
         else:
             _watcher_log(
@@ -2033,11 +2190,37 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
         )
 
         updated = database.get_tender(tender_id)
+        db_verified = bool(
+            updated
+            and updated.get("gem_result_status") == result.get("gem_result_status")
+            and bool(updated.get("result_available")) == bool(result.get("result_available"))
+            and bool(updated.get("bid_result_available")) == bool(result.get("bid_result_available"))
+            and bool(updated.get("ra_created")) == bool(result.get("ra_created"))
+            and bool(updated.get("ra_result_available")) == bool(result.get("ra_result_available"))
+        )
+        _watcher_log(
+            "db-verify "
+            f"tender_id={tender_id} "
+            f"saved_status={updated.get('gem_result_status') if updated else None!r} "
+            f"saved_result_available={updated.get('result_available') if updated else None!r} "
+            f"saved_bid_result_available={updated.get('bid_result_available') if updated else None!r} "
+            f"saved_ra_created={updated.get('ra_created') if updated else None!r} "
+            f"saved_ra_result_available={updated.get('ra_result_available') if updated else None!r} "
+            f"saved_urls={_extract_result_urls(updated or {})!r} "
+            f"invalidated_notifications={invalidated_notifications} "
+            f"verified={db_verified}"
+        )
         return {
             "tender_id": tender_id,
             "status": result.get("gem_result_status", RESULT_STATUS_FAILED),
             "gem_result_status": result.get("gem_result_status", RESULT_STATUS_FAILED),
             "result_found": result["result_available"],
+            "dry_run": False,
+            "downgrade_blocked": bool(result.get("downgrade_blocked")),
+            "review_required": bool(result.get("result_review_required")),
+            "db_verified": db_verified,
+            "invalidated_notifications": invalidated_notifications,
+            "history": history,
             "notification": notification,
             "tender": updated,
             "debug": debug,

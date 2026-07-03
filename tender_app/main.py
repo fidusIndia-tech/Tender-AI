@@ -24,7 +24,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import database
 import ai_extractor
@@ -60,12 +60,6 @@ try:
     database.fail_stale_running_scans()
 except Exception as e:
     print(f"[WARN] fail_stale_running_scans on startup: {type(e).__name__}: {e}")
-try:
-    repaired = database.repair_confirmed_result_flags_from_notifications()
-    if repaired:
-        print(f"[INFO] repaired {repaired} result row(s) from notifications on startup")
-except Exception as e:
-    print(f"[WARN] result repair on startup failed: {type(e).__name__}: {e}")
 try:
     start_result_watcher_scheduler()
 except Exception as e:
@@ -328,12 +322,49 @@ class GemResultIngestPayload(BaseModel):
     rawGemMatchedDoc: Optional[dict[str, Any]] = None
     checkedAt: Optional[str] = None
     resultCheckError: Optional[str] = None
+    rawGemResponse: Optional[dict[str, Any]] = None
+    confidence: Optional[str] = None
+    reason: Optional[str] = None
+    source: Optional[str] = None
+    dryRun: Optional[bool] = None
+    forceDowngrade: Optional[bool] = None
 
 
 class GemResultErrorPayload(BaseModel):
     bidNumber: Optional[str] = None
     error: str
     checkedAt: Optional[str] = None
+
+
+class GemResultSectionRow(BaseModel):
+    seller_name: Optional[str] = None
+    offered_item: Optional[str] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    title: Optional[str] = None
+    participated_on: Optional[str] = None
+    mse_mii_status: Optional[str] = None
+    status: Optional[str] = None
+    technical_status: Optional[str] = None
+    total_price: Optional[str] = None
+    rank: Optional[str] = None
+    financial_status: Optional[str] = None
+    raw_data: Optional[dict[str, Any]] = None
+
+
+class GemResultDetailsIngestPayload(BaseModel):
+    gemBidNumber: str
+    sourceType: str
+    sourceNumber: Optional[str] = None
+    resultUrl: Optional[str] = None
+    currentStage: str
+    participants: List[dict[str, Any]] = Field(default_factory=list)
+    technicalEvaluation: List[dict[str, Any]] = Field(default_factory=list)
+    financialEvaluation: List[dict[str, Any]] = Field(default_factory=list)
+    summary: dict[str, Any] = Field(default_factory=dict)
+    checkedAt: Optional[str] = None
+    parseError: Optional[str] = None
+    changesDetected: Optional[dict[str, Any]] = None
 
 
 class ResultWatcherRunLogPayload(BaseModel):
@@ -769,6 +800,38 @@ async def ingest_gem_result_error_now(tender_id: int, payload: GemResultErrorPay
         return await asyncio.to_thread(ingest_gem_result_error, tender_id, payload.dict(exclude_none=True))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/tenders/{tender_id}/ingest-gem-result-details")
+async def ingest_gem_result_details_now(tender_id: int, payload: GemResultDetailsIngestPayload, request: Request):
+    _require_watcher_or_admin(request)
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    data = payload.model_dump()
+    checked_at = _parse_optional_datetime(data.get("checkedAt"))
+    return await asyncio.to_thread(
+        database.save_tender_result_details,
+        tender_id,
+        gem_bid_number=data.get("gemBidNumber"),
+        source_type=data.get("sourceType"),
+        source_number=data.get("sourceNumber"),
+        result_url=data.get("resultUrl"),
+        current_stage=data.get("currentStage"),
+        participants=data.get("participants") or [],
+        technical_evaluation=data.get("technicalEvaluation") or [],
+        financial_evaluation=data.get("financialEvaluation") or [],
+        summary=data.get("summary") or {},
+        checked_at=checked_at,
+        parse_error=data.get("parseError"),
+        changes_detected=data.get("changesDetected") or {},
+    )
+
+
+@app.get("/api/tenders/{tender_id}/result-details")
+async def get_tender_result_details_now(tender_id: int):
+    if not database.get_tender(tender_id):
+        raise HTTPException(404, "Tender not found")
+    return await asyncio.to_thread(database.get_tender_result_details, tender_id)
 
 
 @app.post("/api/result-watcher/run")

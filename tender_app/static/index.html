@@ -3466,12 +3466,12 @@ function updateMakeFilterCount() {
   if (btn) btn.classList.toggle('active', n > 0);
 }
 function getTenderResultFilterGroup(tender) {
-  const status = String(tender?.gem_result_status || 'PENDING').toUpperCase();
-  const available = Boolean(tender?.result_available || tender?.bid_result_available || tender?.ra_result_available);
-  if (available || status === 'BID_RESULT_AVAILABLE' || status === 'RA_RESULT_AVAILABLE' || status === 'BID_AND_RA_RESULT_AVAILABLE') return 'available';
-  if (status === 'RA_CREATED' || status === 'NOT_FOUND_ON_GEM') return 'not_available';
+  const status = getEffectiveTenderResultStatus(tender);
+  if (status === 'REVIEW_REQUIRED') return 'failed';
+  if (status === 'BID_RESULT_AVAILABLE' || status === 'RA_RESULT_AVAILABLE' || status === 'BID_AND_RA_RESULT_AVAILABLE') return 'available';
+  if (status === 'RA_CREATED' || status === 'NOT_AVAILABLE_YET' || status === 'NOT_FOUND_ON_GEM') return 'not_available';
   if (status === 'FAILED_TO_CHECK') return 'failed';
-  if (status === 'PENDING' || !tender?.last_result_checked_at) return 'not_checked';
+  if (status === 'NOT_CHECKED' || status === 'PENDING' || !tender?.last_result_checked_at) return 'not_checked';
   return 'not_available';
 }
 function setResultFilter(mode, el) {
@@ -4090,6 +4090,9 @@ const _EXPAND_LOCAL_KEY = 'tender_expand_ui_v2';
 
 const EXPAND_SECTION_DEFS = [
   { key: 'participants', label: 'Participants', renderer: renderExpandParticipants },
+  { key: 'technical-evaluation', label: 'Technical Evaluation', renderer: renderExpandTechnicalEvaluation },
+  { key: 'financial-evaluation', label: 'Financial Evaluation', renderer: renderExpandFinancialEvaluation },
+  { key: 'results-summary', label: 'Results Summary', renderer: renderExpandResultsSummary },
   { key: 'results', label: 'Results', renderer: renderExpandResults },
   { key: 'boq', label: 'BOQ Table', renderer: renderExpandBoq },
 ];
@@ -4114,6 +4117,7 @@ let _gemBidplusResultFetch = document.documentElement?.dataset?.gemBidplusResult
 let _gemBidplusBrowserWatcher = document.documentElement?.dataset?.gemBidplusBrowserWatcher === '1';
 let _pendingGemResultsUrl = '';
 let _browserResultWatcherRunning = false;
+let _expandResultDetailsCache = {};
 const GEM_EXTENSION_SUPPORTED_VERSIONS = new Set(['1.1.0', '1.1.1', '1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6', '1.1.7']);
 const GEM_EXTENSION_BACKGROUND_BATCH_VERSION = '1.1.7';
 
@@ -4497,6 +4501,131 @@ function renderExpandResults(tenderId, content) {
   `;
 }
 
+async function loadExpandResultDetails(tenderId, force = false) {
+  if (!force && _expandResultDetailsCache[tenderId]) return _expandResultDetailsCache[tenderId];
+  const res = await fetch(`/api/tenders/${tenderId}/result-details`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Failed to load result details.');
+  _expandResultDetailsCache[tenderId] = data || {};
+  return _expandResultDetailsCache[tenderId];
+}
+
+function getCurrentSourceResultRows(data, key) {
+  const summary = data.summary || {};
+  const currentSource = String(summary.current_source_type || '').toUpperCase() || 'BID';
+  const currentNumber = String(summary.current_bid_or_ra_number || '');
+  return (data[key] || []).filter(row => (
+    String(row.source_type || '').toUpperCase() === currentSource
+    && String(row.source_number || '') === currentNumber
+  ));
+}
+
+function renderReadonlyResultTable(columns, rows, emptyText) {
+  if (!rows.length) return `<div class="expand-empty-state">${esc(emptyText)}</div>`;
+  return `
+    <div class="participant-table-wrap" style="margin:10px 12px">
+      <table class="participant-table">
+        <thead><tr>${columns.map(col => `<th>${esc(col.label)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${rows.map(row => `<tr>${columns.map(col => `<td>${esc(row[col.key] || '')}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function renderExpandTechnicalEvaluation(tenderId, content) {
+  content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading technical evaluation…</div>`;
+  try {
+    const data = await loadExpandResultDetails(tenderId);
+    const rows = getCurrentSourceResultRows(data, 'technical_evaluation');
+    content.innerHTML = renderReadonlyResultTable(
+      [
+        { key: 'seller_name', label: 'Seller Name' },
+        { key: 'offered_item', label: 'Offered Item' },
+        { key: 'participated_on', label: 'Participated On' },
+        { key: 'mse_mii_status', label: 'MSE/MII Status' },
+        { key: 'technical_status', label: 'Status' },
+        { key: 'make', label: 'Make' },
+        { key: 'model', label: 'Model' },
+        { key: 'title', label: 'Title' },
+        { key: 'source_type', label: 'Source' },
+      ],
+      rows,
+      'Technical evaluation is not available yet.'
+    );
+  } catch (err) {
+    content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load technical evaluation: ${esc(err.message)}</div>`;
+  }
+}
+
+async function renderExpandFinancialEvaluation(tenderId, content) {
+  content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading financial evaluation…</div>`;
+  try {
+    const data = await loadExpandResultDetails(tenderId);
+    const rows = getCurrentSourceResultRows(data, 'financial_evaluation');
+    content.innerHTML = renderReadonlyResultTable(
+      [
+        { key: 'seller_name', label: 'Seller Name' },
+        { key: 'offered_item', label: 'Offered Item' },
+        { key: 'total_price', label: 'Total Price' },
+        { key: 'rank', label: 'Rank' },
+        { key: 'financial_status', label: 'Status' },
+        { key: 'source_type', label: 'Source' },
+      ],
+      rows,
+      'Financial evaluation is not available yet.'
+    );
+  } catch (err) {
+    content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load financial evaluation: ${esc(err.message)}</div>`;
+  }
+}
+
+async function renderExpandResultsSummary(tenderId, content) {
+  content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading result summary…</div>`;
+  try {
+    const data = await loadExpandResultDetails(tenderId);
+    const summary = data.summary || {};
+    const history = data.history || [];
+    const raBanner = summary.current_source_type === 'RA' && summary.current_bid_or_ra_number
+      ? `<div class="badge badge-warning" style="margin:10px 12px 0;display:inline-flex">Tender revised to RA: ${esc(summary.current_bid_or_ra_number)}</div>`
+      : '';
+    const bidHistory = history.filter(item => String(item.source_type || '').toUpperCase() === 'BID');
+    content.innerHTML = `
+      ${raBanner}
+      <div class="table-card" style="margin:10px 12px">
+        <div style="padding:14px;font-size:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+          <div><strong>Current Stage:</strong> ${esc(summary.current_stage || 'NOT_CHECKED')}</div>
+          <div><strong>Current Source:</strong> ${esc(summary.current_source_type || 'BID')}</div>
+          <div><strong>Current Number:</strong> ${esc(summary.current_bid_or_ra_number || '')}</div>
+          <div><strong>Bid Result Available:</strong> ${summary.bid_result_available ? 'Yes' : 'No'}</div>
+          <div><strong>Bid Technical Available:</strong> ${summary.bid_technical_available ? 'Yes' : 'No'}</div>
+          <div><strong>Bid Financial Available:</strong> ${summary.bid_financial_available ? 'Yes' : 'No'}</div>
+          <div><strong>RA Created:</strong> ${summary.ra_created ? 'Yes' : 'No'}</div>
+          <div><strong>RA Result Available:</strong> ${summary.ra_result_available ? 'Yes' : 'No'}</div>
+          <div><strong>RA Technical Available:</strong> ${summary.ra_technical_available ? 'Yes' : 'No'}</div>
+          <div><strong>RA Financial Available:</strong> ${summary.ra_financial_available ? 'Yes' : 'No'}</div>
+          <div><strong>Our Company Participated:</strong> ${summary.our_company_participated ? 'Yes' : 'No'}</div>
+          <div><strong>Our Company Technical Status:</strong> ${esc(summary.our_company_technical_status || '')}</div>
+          <div><strong>Our Company Financial Rank:</strong> ${esc(summary.our_company_financial_rank || '')}</div>
+          <div><strong>Our Company Final Price:</strong> ${esc(summary.our_company_final_price || '')}</div>
+          <div><strong>Last Checked:</strong> ${esc(summary.last_checked_at || '')}</div>
+          <div><strong>Last Successful Parse:</strong> ${esc(summary.last_successful_parse_at || '')}</div>
+          <div><strong>Parse Error:</strong> ${esc(summary.parse_error || '')}</div>
+        </div>
+      </div>
+      <div class="table-card" style="margin:10px 12px">
+        <div style="padding:12px 14px;font-weight:600">Original BID Result History</div>
+        <div style="padding:0 14px 14px;font-size:12px;color:var(--slate-600)">
+          ${bidHistory.length ? bidHistory.map(item => `${esc(item.old_stage || '')} -> ${esc(item.new_stage || '')} (${esc(item.checked_at || '')})`).join('<br>') : 'No BID history saved yet.'}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load result summary: ${esc(err.message)}</div>`;
+  }
+}
+
 function renderExpandCustomSection(tenderId, content) {
   const sectionKey = _expandActiveTabByTender[tenderId];
   const section = getExpandCustomSection(tenderId, sectionKey);
@@ -4531,32 +4660,26 @@ function renderExpandCustomSection(tenderId, content) {
 }
 
 function renderExpandParticipants(tenderId, content) {
-  const cached = tenderListCache.find(t => t.id === tenderId);
-  if (!_expandParticipantGrids[tenderId]) {
-    let grid = parseParticipantTSV(cached ? cached.participant_text : '');
-    if (!grid.length) grid = getDefaultParticipantGrid();
-    _expandParticipantGrids[tenderId] = grid;
-  }
-  content.innerHTML = `
-    <div class="participant-toolbar" style="padding:10px 12px 0">
-      ${renderExpandToolbar([
-        { label: EXPAND_TEXT.addRow, onClick: `expandParticipantAddRow(${tenderId})` },
-        { label: EXPAND_TEXT.addColumn, onClick: `expandParticipantAddCol(${tenderId})` },
-        { label: EXPAND_TEXT.removeRow, onClick: `expandParticipantRemoveRow(${tenderId})` },
-        { label: EXPAND_TEXT.removeColumn, onClick: `expandParticipantRemoveCol(${tenderId})` },
-        { label: EXPAND_TEXT.clearAll, onClick: `expandParticipantClear(${tenderId})`, tone: 'danger' },
-      ])}
-      <div style="flex:1"></div>
-      <span class="participant-hint">${esc(EXPAND_TEXT.pasteHint)}</span>
-    </div>
-    <div class="participant-table-wrap" style="margin:10px 12px">
-      ${buildParticipantTableMarkup(tenderId)}
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 12px 12px">
-      <button class="btn btn-success btn-sm" onclick="saveExpandParticipantTable(${tenderId})">${esc(EXPAND_TEXT.save)}</button>
-    </div>
-  `;
-  renderExpandParticipantGrid(tenderId);
+  content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading participants...</div>`;
+  loadExpandResultDetails(tenderId).then(data => {
+    content.innerHTML = renderReadonlyResultTable(
+      [
+        { key: 'seller_name', label: 'Seller Name' },
+        { key: 'offered_item', label: 'Offered Item' },
+        { key: 'participated_on', label: 'Participated On' },
+        { key: 'mse_mii_status', label: 'MSE/MII Status' },
+        { key: 'status', label: 'Status' },
+        { key: 'make', label: 'Make' },
+        { key: 'model', label: 'Model' },
+        { key: 'title', label: 'Title' },
+        { key: 'source_type', label: 'Source' },
+      ],
+      getCurrentSourceResultRows(data, 'participants'),
+      'Participants are not available yet.'
+    );
+  }).catch(err => {
+    content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load participants: ${esc(err.message)}</div>`;
+  });
 }
 
 function renderExpandParticipantGrid(tenderId) {
@@ -6568,6 +6691,8 @@ function toast(msg, type='success') {
 }
 
 const RESULT_STATUS_META = {
+  REVIEW_REQUIRED: { label: 'Review Required', badge: 'badge-warning' },
+  NOT_CHECKED: { label: 'Not Checked', badge: 'badge-slate' },
   PENDING: { label: 'Not Checked Yet', badge: 'badge-slate' },
   NOT_AVAILABLE_YET: { label: 'Not Available Yet', badge: 'badge-slate' },
   NOT_FOUND_ON_GEM: { label: 'Not Found on GeM', badge: 'badge-warning' },
@@ -6598,8 +6723,21 @@ function resolveGemResultUrl(rawUrl, fallbackIdentifier) {
   if (url && !isGemDocumentDownloadUrl(url)) return url;
   return buildGemResultSearchUrl(fallbackIdentifier);
 }
+function getEffectiveTenderResultStatus(tender) {
+  if (tender?.result_review_required) return 'REVIEW_REQUIRED';
+  if (tender?.bid_result_available && tender?.ra_result_available) return 'BID_AND_RA_RESULT_AVAILABLE';
+  if (tender?.ra_result_available) return 'RA_RESULT_AVAILABLE';
+  if (tender?.ra_created) return 'RA_CREATED';
+  if (tender?.bid_result_available) return 'BID_RESULT_AVAILABLE';
+  const rawStatus = String(tender?.gem_result_status || '').toUpperCase();
+  if (rawStatus === 'NOT_AVAILABLE_YET') return 'NOT_AVAILABLE_YET';
+  if (rawStatus === 'NOT_FOUND_ON_GEM') return 'NOT_FOUND_ON_GEM';
+  if (rawStatus === 'FAILED_TO_CHECK') return 'FAILED_TO_CHECK';
+  if (!tender?.last_result_checked_at) return 'NOT_CHECKED';
+  return rawStatus || 'NOT_CHECKED';
+}
 function getResultStatusMeta(tender) {
-  const key = String(tender?.gem_result_status || 'PENDING').toUpperCase();
+  const key = getEffectiveTenderResultStatus(tender);
   return RESULT_STATUS_META[key] || RESULT_STATUS_META.PENDING;
 }
 function renderResultBadge(tender) {
@@ -6617,7 +6755,7 @@ function setNotificationCount(count) {
   el.textContent = count > 99 ? '99+' : String(count);
 }
 function renderResultSummaryCard() {
-  const unread = tenderNotificationsCache.filter(n => !n.is_read);
+  const unread = tenderNotificationsCache.filter(n => n.is_valid !== false && !n.is_read);
   const countEl = document.getElementById('newResultsDeclaredCount');
   const listEl = document.getElementById('newResultsDeclaredList');
   if (countEl) countEl.textContent = String(unread.length);
