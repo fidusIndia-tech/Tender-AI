@@ -379,12 +379,10 @@ def _merge_with_existing_result_state(existing: dict, result: dict) -> dict:
         or result.get("bid_result_available")
         or result.get("ra_result_available")
     )
+    current_status = _normalize_space(result.get("gem_result_status")).upper()
     if not existing_confirmed or current_confirmed:
         return result
-
-    existing_status = _normalize_space(existing.get("gem_result_status")).upper()
-    current_status = _normalize_space(result.get("gem_result_status")).upper()
-    if _result_status_priority(current_status) >= _result_status_priority(existing_status):
+    if current_status not in (RESULT_STATUS_FAILED, RESULT_STATUS_PENDING):
         return result
 
     merged = dict(result)
@@ -392,7 +390,7 @@ def _merge_with_existing_result_state(existing: dict, result: dict) -> dict:
     merged["bid_result_available"] = bool(existing.get("bid_result_available"))
     merged["ra_created"] = bool(existing.get("ra_created"))
     merged["ra_result_available"] = bool(existing.get("ra_result_available"))
-    merged["gem_result_status"] = existing_status or merged.get("gem_result_status")
+    merged["gem_result_status"] = _normalize_space(existing.get("gem_result_status")).upper() or merged.get("gem_result_status")
     merged["status"] = merged["gem_result_status"]
 
     for field in (
@@ -567,6 +565,18 @@ def _is_evaluated_status_text(text: str) -> bool:
         "bid awarded",
         "awarded",
         "contract",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
+def _is_not_evaluated_status_text(text: str) -> bool:
+    normalized = _normalize_for_compare(text)
+    if not normalized:
+        return False
+    phrases = (
+        "not evaluated",
+        "status: not evaluated",
+        "status not evaluated",
     )
     return any(phrase in normalized for phrase in phrases)
 
@@ -1105,7 +1115,9 @@ def _find_action_control(row, label: str):
     for locator in locators:
         try:
             if locator.count() > 0:
-                return locator.first
+                candidate = locator.first
+                if candidate.is_visible():
+                    return candidate
         except Exception:
             continue
     return None
@@ -1124,7 +1136,9 @@ def _find_action_control_in_page(page, label: str):
         for locator in locators:
             try:
                 if locator.count() > 0:
-                    return locator.first
+                    candidate = locator.first
+                    if candidate.is_visible():
+                        return candidate
             except Exception:
                 continue
     return None
@@ -1178,14 +1192,16 @@ def _detect_result_availability(page, bid_number: str):
     if not row:
         row, row_text, scope_name = _find_bid_container_by_text(page, bid_number)
 
-    bid_button_found = (
-        _page_text_has_phrase(page_text, "View Bid Results")
-        or _page_text_has_phrase(page_text, "View Bid Result")
-    )
-    ra_button_found = (
-        _page_text_has_phrase(page_text, "View RA Results")
-        or _page_text_has_phrase(page_text, "View RA Result")
-    )
+    page_says_not_evaluated = _is_not_evaluated_status_text(page_text)
+
+    bid_button_locator = _find_action_control_in_page(page, "View Bid Results") or _find_action_control_in_page(page, "View Bid Result")
+    ra_button_locator = _find_action_control_in_page(page, "View RA Results") or _find_action_control_in_page(page, "View RA Result")
+    if row:
+        bid_button_locator = bid_button_locator or _find_action_control(row, "View Bid Results") or _find_action_control(row, "View Bid Result")
+        ra_button_locator = ra_button_locator or _find_action_control(row, "View RA Results") or _find_action_control(row, "View RA Result")
+
+    bid_button_found = bid_button_locator is not None
+    ra_button_found = ra_button_locator is not None
 
     bid_result = _open_button_and_capture_url(page, row, "View Bid Results") if bid_button_found and row else None
     if not bid_result and bid_button_found:
@@ -1196,17 +1212,25 @@ def _detect_result_availability(page, bid_number: str):
     if not ra_result and ra_button_found:
         ra_result = _open_button_and_capture_url(page, page, "View RA Results")
 
-    result_available = bool(bid_button_found or ra_button_found)
-    if bid_button_found and ra_button_found:
+    if page_says_not_evaluated and not (bid_button_found or ra_button_found):
+        result_available = False
+        status = RESULT_STATUS_NOT_AVAILABLE
+    elif bid_button_found and ra_button_found:
+        result_available = True
         status = RESULT_STATUS_BID_AND_RA_AVAILABLE
     elif bid_button_found:
+        result_available = True
         status = RESULT_STATUS_BID_AVAILABLE
     elif ra_button_found:
+        result_available = True
         status = RESULT_STATUS_RA_AVAILABLE
     else:
+        result_available = False
         status = RESULT_STATUS_NOT_AVAILABLE
 
-    if result_available:
+    if page_says_not_evaluated and not result_available:
+        reason = "GeM page explicitly shows Not Evaluated, so no result is available yet."
+    elif result_available:
         if bid_button_found and ra_button_found:
             reason = "View Bid Results and View RA Results found on GeM page"
         elif bid_button_found:
@@ -1234,6 +1258,7 @@ def _detect_result_availability(page, bid_number: str):
         "reason": reason,
         "page_text_snippet": _normalize_space(page_text)[:1000],
         "page_has_bid_number": page_has_bid_number,
+        "page_says_not_evaluated": page_says_not_evaluated,
     }
 
 
@@ -1505,14 +1530,6 @@ def _open_result_page(page, bid_number: str):
             bid_found_after_search, body_text_after_search = _wait_for_bid_search_result(page, bid_number)
             body_text_snippet = _normalize_space(body_text_after_search)[:3000]
             search_screenshot = _save_debug_screenshot(page, bid_number, "04-search-result")
-            view_bid_results_found = (
-                "view bid results" in _normalize_for_compare(body_text_after_search)
-                or "view bid result" in _normalize_for_compare(body_text_after_search)
-            )
-            view_ra_results_found = (
-                "view ra results" in _normalize_for_compare(body_text_after_search)
-                or "view ra result" in _normalize_for_compare(body_text_after_search)
-            )
             _watcher_log(
                 "manual-search-debug "
                 f"bid={bid_number} "
@@ -1521,8 +1538,6 @@ def _open_result_page(page, bid_number: str):
                 f"input_filled={search_debug.get('input_filled')} "
                 f"search_button_clicked={search_debug.get('search_button_clicked')} "
                 f"final_bid_number_found={bid_found_after_search} "
-                f"view_bid_results_found={view_bid_results_found} "
-                f"view_ra_results_found={view_ra_results_found} "
                 f"body_text_after_search={body_text_snippet!r}"
             )
             try:
@@ -1539,23 +1554,9 @@ def _open_result_page(page, bid_number: str):
             result["search_button_clicked"] = search_debug.get("search_button_clicked")
             result["page_text_snippet"] = body_text_snippet
             result["card_found"] = bid_found_after_search
-            result["bid_result_available"] = view_bid_results_found
-            result["ra_result_available"] = view_ra_results_found
-            result["result_available"] = bool(view_bid_results_found or view_ra_results_found)
-            if view_bid_results_found and view_ra_results_found:
-                result["status"] = RESULT_STATUS_BID_AND_RA_AVAILABLE
-                result["reason"] = "View Bid Results and View RA Results found on GeM page"
-            elif view_bid_results_found:
-                result["status"] = RESULT_STATUS_BID_AVAILABLE
-                result["reason"] = "View Bid Results found on GeM page"
-            elif view_ra_results_found:
-                result["status"] = RESULT_STATUS_RA_AVAILABLE
-                result["reason"] = "View RA Results found on GeM page"
-            elif bid_found_after_search:
-                result["status"] = RESULT_STATUS_NOT_AVAILABLE
+            if bid_found_after_search and result.get("status") == RESULT_STATUS_NOT_AVAILABLE:
                 result["reason"] = "Tender card found but no result buttons were visible"
-            else:
-                result["status"] = RESULT_STATUS_NOT_AVAILABLE
+            elif not bid_found_after_search and result.get("status") == RESULT_STATUS_NOT_AVAILABLE:
                 result["reason"] = "Bid number and result buttons were not found on the loaded GeM page"
             if (not bid_found_after_search) and ("gem" not in _normalize_for_compare(body_text_after_search) or "bid ra status" not in _normalize_for_compare(body_text_after_search)):
                 result["status"] = RESULT_STATUS_FAILED
