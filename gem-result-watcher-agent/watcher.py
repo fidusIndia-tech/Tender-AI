@@ -238,6 +238,152 @@ def normalize_compare(value):
     return re.sub(r"[^a-z0-9]+", " ", normalize_text(value).lower()).strip()
 
 
+def extract_page_text(page):
+    try:
+        return page.locator("body").inner_text(timeout=5000)
+    except Exception:
+        pass
+    try:
+        return page.evaluate(
+            """() => Array.from(document.querySelectorAll('main, section, article, table, div'))
+                .map(el => (el.innerText || '').trim())
+                .filter(Boolean)
+                .slice(0, 30)
+                .join('\\n')"""
+        ) or ""
+    except Exception:
+        return ""
+
+
+def iter_scopes(page):
+    scopes = [page]
+    try:
+        scopes.extend([frame for frame in page.frames if frame != page.main_frame])
+    except Exception:
+        pass
+    return scopes
+
+
+def is_bid_listing_page(page):
+    text = normalize_compare(extract_page_text(page))
+    return ("bid listing" in text) or ("advance search" in text) or ("showing" in text and "records" in text)
+
+
+def ensure_bid_listing_page(page, gem_base_url):
+    all_bids_url = f"{gem_base_url}/all-bids"
+    if not page.url.startswith(all_bids_url):
+        page.goto(all_bids_url, wait_until="domcontentloaded", timeout=60000)
+        page.wait_for_timeout(1500)
+    if is_bid_listing_page(page):
+        return True
+
+    selectors = [
+        "a:has-text('Bids List')",
+        "a:has-text('List of Bids')",
+        "a[href*='all-bids']",
+        "a[href*='bidlists']",
+        "a:has-text('Bid Listing')",
+    ]
+    for selector in selectors:
+        try:
+            link = page.locator(selector).first
+            if link.count() == 0:
+                continue
+            link.click(timeout=4000)
+            try:
+                page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                page.wait_for_timeout(2500)
+            if is_bid_listing_page(page):
+                return True
+        except Exception:
+            continue
+    return is_bid_listing_page(page)
+
+
+def find_matching_card(page, bid_number):
+    target = normalize_compare(bid_number)
+    row_selectors = [".card", ".panel", ".list-group-item", "tr", "div", "li", "section", "article"]
+    for scope in iter_scopes(page):
+        for row_selector in row_selectors:
+            rows = scope.locator(row_selector)
+            try:
+                count = min(rows.count(), 160)
+            except Exception:
+                continue
+            for idx in range(count):
+                row = rows.nth(idx)
+                try:
+                    row_text = row.inner_text(timeout=1200)
+                except Exception:
+                    continue
+                if target and target in normalize_compare(row_text):
+                    return row
+    return None
+
+
+def find_action_control(container, label):
+    locators = [
+        container.get_by_role("button", name=label),
+        container.get_by_role("link", name=label),
+        container.locator(f"button:has-text('{label}')"),
+        container.locator(f"a:has-text('{label}')"),
+        container.locator(f"[role='button']:has-text('{label}')"),
+        container.locator(f"input[value='{label}']"),
+    ]
+    for locator in locators:
+        try:
+            if locator.count() > 0:
+                candidate = locator.first
+                if candidate.is_visible():
+                    return candidate
+        except Exception:
+            continue
+    return None
+
+
+def open_popup_or_click(locator, page):
+    try:
+        with page.expect_popup(timeout=5000) as popup_info:
+            locator.click(timeout=4000)
+        popup = popup_info.value
+        popup.wait_for_load_state("domcontentloaded", timeout=45000)
+        return popup, True
+    except Exception:
+        locator.click(timeout=4000)
+        page.wait_for_load_state("domcontentloaded", timeout=45000)
+        return page, False
+
+
+def open_result_page_from_listing(page, gem_base_url, bid_number, source_type):
+    search_url = f"{gem_base_url}/all-bids#bidrastatus-search-{urllib.parse.quote(bid_number)}"
+    page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
+    try:
+        page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        page.wait_for_timeout(2500)
+    if not ensure_bid_listing_page(page, gem_base_url):
+        raise RuntimeError("Could not reach the GeM bid listing page.")
+    page.wait_for_timeout(1500)
+
+    row = find_matching_card(page, bid_number)
+    container = row or page
+    labels = ["View RA Results", "View RA Result"] if source_type == "RA" else ["View Bid Results", "View Bid Result"]
+    for label in labels:
+        control = find_action_control(container, label)
+        if control is None and row is not None:
+            control = find_action_control(page, label)
+        if control is None:
+            continue
+        opened_page, opened_popup = open_popup_or_click(control, page)
+        try:
+            opened_page.wait_for_timeout(1500)
+        except Exception:
+            pass
+        return opened_page, opened_popup
+    raise RuntimeError(f"Could not find a visible result button for {bid_number} on the GeM listing page.")
+
+
 def build_result_url(gem_base_url, internal_id):
     value = str(first_value(internal_id) or "").strip()
     if not value:
@@ -629,17 +775,56 @@ def compute_current_stage(source_type, parsed_status, details):
     return STATUS_NOT_AVAILABLE
 
 
-def open_and_parse_result_details(page, url):
+def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, source_type="BID"):
     if not url:
         return {"participants": [], "technicalEvaluation": [], "financialEvaluation": [], "parseError": "Missing result URL"}
-    page.goto(url, wait_until="load", timeout=45000)
+
+    opened_page = page
+    opened_popup = False
+    navigation_method = "direct"
     try:
-        page.wait_for_load_state("networkidle", timeout=15000)
-    except Exception:
-        page.wait_for_timeout(2500)
-    details = parse_result_page_details(page)
-    details["pageUrl"] = page.url
-    return details
+        page.goto(url, wait_until="load", timeout=45000)
+        try:
+            page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            page.wait_for_timeout(2500)
+
+        current_url = page.url
+        if "getBidResultView" not in current_url and bid_number:
+            navigation_method = "listing_click"
+            opened_page, opened_popup = open_result_page_from_listing(page, gem_base_url, bid_number, source_type)
+            current_url = opened_page.url
+            try:
+                opened_page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                opened_page.wait_for_timeout(2500)
+        elif "getBidResultView" not in current_url:
+            return {
+                "participants": [],
+                "technicalEvaluation": [],
+                "financialEvaluation": [],
+                "detectedSections": {"participants": False, "technical": False, "financial": False},
+                "parseError": f"GeM redirected away from the result page to {current_url}",
+                "pageUrl": current_url,
+                "navigationMethod": navigation_method,
+            }
+
+        details = parse_result_page_details(opened_page)
+        details["pageUrl"] = current_url
+        details["navigationMethod"] = navigation_method
+        return details
+    finally:
+        if opened_popup and opened_page is not page:
+            try:
+                opened_page.close()
+            except Exception:
+                pass
+        elif navigation_method == "listing_click" and opened_page is page:
+            try:
+                page.go_back(wait_until="domcontentloaded", timeout=20000)
+                page.wait_for_timeout(1000)
+            except Exception:
+                pass
 
 
 def gem_payload(bid_number, bid_status_type):
@@ -828,7 +1013,13 @@ def check_one_tender_result_details(context, page, config, tender):
     details = {"participants": [], "technicalEvaluation": [], "financialEvaluation": [], "parseError": None}
     if result_url:
         try:
-            details = open_and_parse_result_details(page, result_url)
+            details = open_and_parse_result_details(
+                page,
+                result_url,
+                gem_base_url=config["gem_base_url"],
+                bid_number=bid_number,
+                source_type=source_type,
+            )
             if (
                 (parsed.get("bidResultAvailable") or parsed.get("raCreated") or parsed.get("raResultAvailable"))
                 and not any((details.get("detectedSections") or {}).values())
@@ -1121,7 +1312,13 @@ def run_test_result_url(config, result_url):
         browser, context, _launch_mode = launch_browser_context(p, config)
         page = context.pages[0] if context.pages else context.new_page()
         try:
-            details = open_and_parse_result_details(page, result_url)
+            details = open_and_parse_result_details(
+                page,
+                result_url,
+                gem_base_url=config["gem_base_url"],
+                bid_number=None,
+                source_type="BID",
+            )
             print(json.dumps(details, indent=2, default=str))
         finally:
             close_browser_context(browser, context)
