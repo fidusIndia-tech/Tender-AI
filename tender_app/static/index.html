@@ -4502,8 +4502,7 @@ function renderExpandResults(tenderId, content) {
 }
 
 async function loadExpandResultDetails(tenderId, force = false) {
-  if (!force && _expandResultDetailsCache[tenderId]) return _expandResultDetailsCache[tenderId];
-  const res = await fetch(`/api/tenders/${tenderId}/result-details`);
+  const res = await fetch(`/api/tenders/${tenderId}/result-details`, { cache: 'no-store' });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.detail || 'Failed to load result details.');
   _expandResultDetailsCache[tenderId] = data || {};
@@ -4534,12 +4533,23 @@ function renderReadonlyResultTable(columns, rows, emptyText) {
   `;
 }
 
+function renderParseWarning(data, emptyText) {
+  const parseError = String(data?.summary?.parse_error || '').trim();
+  if (!parseError) return `<div class="expand-empty-state">${esc(emptyText)}</div>`;
+  return `
+    <div class="expand-empty-state">
+      <strong>Result page found but section parsing failed.</strong><br>
+      Last error: ${esc(parseError)}
+    </div>
+  `;
+}
+
 async function renderExpandTechnicalEvaluation(tenderId, content) {
   content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading technical evaluation…</div>`;
   try {
     const data = await loadExpandResultDetails(tenderId);
     const rows = getCurrentSourceResultRows(data, 'technical_evaluation');
-    content.innerHTML = renderReadonlyResultTable(
+    content.innerHTML = rows.length ? renderReadonlyResultTable(
       [
         { key: 'seller_name', label: 'Seller Name' },
         { key: 'offered_item', label: 'Offered Item' },
@@ -4553,7 +4563,7 @@ async function renderExpandTechnicalEvaluation(tenderId, content) {
       ],
       rows,
       'Technical evaluation is not available yet.'
-    );
+    ) : renderParseWarning(data, 'Technical evaluation is not available yet.');
   } catch (err) {
     content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load technical evaluation: ${esc(err.message)}</div>`;
   }
@@ -4564,7 +4574,7 @@ async function renderExpandFinancialEvaluation(tenderId, content) {
   try {
     const data = await loadExpandResultDetails(tenderId);
     const rows = getCurrentSourceResultRows(data, 'financial_evaluation');
-    content.innerHTML = renderReadonlyResultTable(
+    content.innerHTML = rows.length ? renderReadonlyResultTable(
       [
         { key: 'seller_name', label: 'Seller Name' },
         { key: 'offered_item', label: 'Offered Item' },
@@ -4575,7 +4585,7 @@ async function renderExpandFinancialEvaluation(tenderId, content) {
       ],
       rows,
       'Financial evaluation is not available yet.'
-    );
+    ) : renderParseWarning(data, 'Financial evaluation is not available yet.');
   } catch (err) {
     content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load financial evaluation: ${esc(err.message)}</div>`;
   }
@@ -4662,7 +4672,8 @@ function renderExpandCustomSection(tenderId, content) {
 function renderExpandParticipants(tenderId, content) {
   content.innerHTML = `<div style="padding:18px;color:var(--slate-400);font-size:12px;text-align:center">Loading participants...</div>`;
   loadExpandResultDetails(tenderId).then(data => {
-    content.innerHTML = renderReadonlyResultTable(
+    const rows = getCurrentSourceResultRows(data, 'participants');
+    content.innerHTML = rows.length ? renderReadonlyResultTable(
       [
         { key: 'seller_name', label: 'Seller Name' },
         { key: 'offered_item', label: 'Offered Item' },
@@ -4674,9 +4685,9 @@ function renderExpandParticipants(tenderId, content) {
         { key: 'title', label: 'Title' },
         { key: 'source_type', label: 'Source' },
       ],
-      getCurrentSourceResultRows(data, 'participants'),
+      rows,
       'Participants are not available yet.'
-    );
+    ) : renderParseWarning(data, 'Participants are not available yet.');
   }).catch(err => {
     content.innerHTML = `<div class="expand-empty-state" style="color:var(--red-600)">Failed to load participants: ${esc(err.message)}</div>`;
   });

@@ -19,6 +19,10 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent
 LOG_DIR = ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
+SCREENSHOT_DIR = LOG_DIR / "screenshots"
+HTML_DIR = LOG_DIR / "html"
+SCREENSHOT_DIR.mkdir(exist_ok=True)
+HTML_DIR.mkdir(exist_ok=True)
 
 GEM_BID_RE = re.compile(r"\bGEM/\d{4}/B/\d+\b", re.I)
 GEM_RA_RE = re.compile(r"\bGEM/\d{4}/R/\d+\b", re.I)
@@ -37,6 +41,8 @@ STAGE_BID_FINANCIAL = "BID_FINANCIAL_EVALUATION_AVAILABLE"
 STAGE_RA_CREATED = "RA_CREATED"
 STAGE_RA_TECHNICAL = "RA_TECHNICAL_EVALUATION_AVAILABLE"
 STAGE_RA_FINANCIAL = "RA_FINANCIAL_EVALUATION_AVAILABLE"
+STAGE_BID_WARNING = "BID_RESULT_AVAILABLE_WITH_PARSE_WARNING"
+STAGE_RA_WARNING = "RA_CREATED_WITH_PARSE_WARNING"
 OUR_COMPANY_ALIASES = [
     "FIDUS INDIA AUTOMATION PRIVATE LIMITED",
     "FIDUS INDIA AUTOMATION PVT LTD",
@@ -106,12 +112,21 @@ def launch_browser_context(playwright, config):
 
     if use_persistent_profile:
         try:
+            persistent_kwargs = {
+                "headless": headless,
+                "viewport": viewport,
+            }
+            if browser_channel:
+                persistent_kwargs["channel"] = browser_channel
             context = playwright.chromium.launch_persistent_context(
                 profile_dir,
-                headless=headless,
-                viewport=viewport,
+                **persistent_kwargs,
             )
-            logging.info("Playwright browser launched using persistent profile: %s", profile_dir)
+            logging.info(
+                "Playwright browser launched using persistent profile: %s%s",
+                profile_dir,
+                f" with installed channel '{browser_channel}'" if browser_channel else "",
+            )
             return browser, context, launch_mode
         except Exception as exc:
             logging.warning(
@@ -216,6 +231,13 @@ def fetch_recheck_tenders(config):
     return data if isinstance(data, list) else []
 
 
+def fetch_all_tenders(config):
+    status, text, data = request_json("GET", f"{config['base_url']}/api/tenders")
+    if status < 200 or status >= 300:
+        raise RuntimeError(f"tenders fetch failed HTTP {status}: {text[:500]}")
+    return data if isinstance(data, list) else []
+
+
 def first_value(value):
     if isinstance(value, list):
         return value[0] if value else None
@@ -228,6 +250,17 @@ def values_for(doc, key):
         return [str(item).strip().upper() for item in raw if str(item or "").strip()]
     text = str(raw or "").strip().upper()
     return [text] if text else []
+
+
+def canonical_tender_bid_number(tender):
+    for key in ("tender_number", "bidNumber", "gemBidNumber", "gem_bidding_number"):
+        value = str((tender or {}).get(key) or "").strip().upper()
+        if not value:
+            continue
+        match = GEM_BID_RE.search(value)
+        if match:
+            return match.group(0).upper()
+    return ""
 
 
 def normalize_text(value):
@@ -255,6 +288,10 @@ def extract_page_text(page):
         return ""
 
 
+def safe_name(value):
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())[:120] or "page"
+
+
 def iter_scopes(page):
     scopes = [page]
     try:
@@ -267,6 +304,11 @@ def iter_scopes(page):
 def is_bid_listing_page(page):
     text = normalize_compare(extract_page_text(page))
     return ("bid listing" in text) or ("advance search" in text) or ("showing" in text and "records" in text)
+
+
+def is_gem_logged_out(page):
+    text = normalize_compare(extract_page_text(page))
+    return ("login" in text and "sign up" in text) and "logout" not in text
 
 
 def ensure_bid_listing_page(page, gem_base_url):
@@ -342,6 +384,132 @@ def find_action_control(container, label):
     return None
 
 
+def run_listing_search(page, bid_number):
+    input_selectors = [
+        "input[placeholder*='Search']",
+        "input[name*='search' i]",
+        "input[type='search']",
+        "input[type='text']",
+    ]
+    for selector in input_selectors:
+        try:
+            inputs = page.locator(selector)
+            count = min(inputs.count(), 8)
+            for idx in range(count):
+                candidate = inputs.nth(idx)
+                if not candidate.is_visible():
+                    continue
+                candidate.fill(bid_number, timeout=3000)
+                candidate.press("Enter", timeout=3000)
+                try:
+                    page.wait_for_load_state("networkidle", timeout=10000)
+                except Exception:
+                    page.wait_for_timeout(2500)
+                return True
+        except Exception:
+            continue
+
+    button_selectors = [
+        "button:has-text('Search')",
+        "button[type='submit']",
+        "input[type='submit']",
+        ".fa-search",
+        "i[class*='search']",
+    ]
+    for selector in button_selectors:
+        try:
+            button = page.locator(selector).first
+            if button.count() == 0 or not button.is_visible():
+                continue
+            button.click(timeout=3000)
+            try:
+                page.wait_for_load_state("networkidle", timeout=10000)
+            except Exception:
+                page.wait_for_timeout(2500)
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def configure_listing_result_search(page, bid_number):
+    try:
+        return bool(
+            page.evaluate(
+                """(bidNumber) => {
+                    if (!window.param || !window.filter || typeof window.loadBids !== 'function') {
+                        return false;
+                    }
+                    window.param.searchBid = bidNumber;
+                    window.param.searchType = 'exact';
+                    window.filter.byType = window.filter.byType || 'all';
+                    window.filter.highBidValue = window.filter.highBidValue || '';
+                    window.filter.byEndDate = window.filter.byEndDate || {from: '', to: ''};
+                    window.currentPage = 1;
+                    const searchInput = document.querySelector('#searchBid, input[name="searchBid"], input[type="text"]');
+                    if (searchInput) {
+                        searchInput.value = bidNumber;
+                    }
+                    if (typeof window.searchType === 'function') {
+                        window.searchType('exact');
+                    }
+                    const concept = document.querySelector('#search_concept');
+                    if (concept) {
+                        concept.textContent = 'Exact Search';
+                    }
+                    if (typeof window.bidStatusTypeFilter === 'function') {
+                        window.bidStatusTypeFilter('bidrastatus');
+                    } else {
+                        window.filter.bidStatusType = 'bidrastatus';
+                        window.filter.sort = 'Bid-End-Date-Latest';
+                        const ongoing = document.querySelector('#ongoing_bids');
+                        const status = document.querySelector('#bidrastatus');
+                        if (ongoing) ongoing.checked = false;
+                        if (status) status.checked = true;
+                        document.querySelectorAll('input.by_status').forEach((input) => input.removeAttribute('disabled'));
+                        window.loadBids();
+                    }
+                    return true;
+                }""",
+                bid_number,
+            )
+        )
+    except Exception as exc:
+        logging.debug("could not configure listing search in page script bid=%s error=%s", bid_number, exc)
+        return False
+
+
+def wait_for_listing_results(page, bid_number, timeout=35000):
+    try:
+        page.wait_for_function(
+            """(bidNumber) => {
+                const card = document.querySelector('#bidCard');
+                if (!card) {
+                    return false;
+                }
+                const text = (card.innerText || '').toLowerCase();
+                const html = card.innerHTML || '';
+                const target = String(bidNumber || '').toLowerCase();
+                if (target && text.includes(target)) {
+                    return true;
+                }
+                if (text.includes('0 records') || text.includes('no records') || text.includes('no data found')) {
+                    return true;
+                }
+                if (!html.includes('gemloader.gif') && text.trim().length > 20 && text.includes('showing')) {
+                    return true;
+                }
+                return false;
+            }""",
+            bid_number,
+            timeout=timeout,
+        )
+        return True
+    except Exception as exc:
+        logging.debug("listing results did not finish loading bid=%s error=%s", bid_number, exc)
+        return False
+
+
 def open_popup_or_click(locator, page):
     try:
         with page.expect_popup(timeout=5000) as popup_info:
@@ -364,7 +532,11 @@ def open_result_page_from_listing(page, gem_base_url, bid_number, source_type):
         page.wait_for_timeout(2500)
     if not ensure_bid_listing_page(page, gem_base_url):
         raise RuntimeError("Could not reach the GeM bid listing page.")
-    page.wait_for_timeout(1500)
+    configure_listing_result_search(page, bid_number)
+    wait_for_listing_results(page, bid_number)
+    if find_matching_card(page, bid_number) is None:
+        run_listing_search(page, bid_number)
+        wait_for_listing_results(page, bid_number)
 
     row = find_matching_card(page, bid_number)
     container = row or page
@@ -381,7 +553,28 @@ def open_result_page_from_listing(page, gem_base_url, bid_number, source_type):
         except Exception:
             pass
         return opened_page, opened_popup
-    raise RuntimeError(f"Could not find a visible result button for {bid_number} on the GeM listing page.")
+    artifacts = save_debug_artifacts(
+        page,
+        prefix=f"{bid_number}-listing-no-button",
+        error_message=f"Could not find a visible result button for {bid_number} on the GeM listing page.",
+        result_url=search_url,
+    )
+    logging.warning(
+        "result button not visible bid=%s page_url=%s title=%s screenshot=%s html=%s body_preview=%s",
+        bid_number,
+        page.url,
+        artifacts.get("title"),
+        artifacts.get("screenshot"),
+        artifacts.get("html"),
+        (artifacts.get("body_preview") or "")[:500],
+    )
+    session_hint = ""
+    if is_gem_logged_out(page):
+        session_hint = " GeM shows Login/Sign Up in this browser profile, so result details may require logging in first."
+    raise RuntimeError(
+        f"Could not find a visible result button for {bid_number} on the GeM listing page.{session_hint} "
+        f"Debug HTML: {artifacts.get('html') or 'not saved'}"
+    )
 
 
 def build_result_url(gem_base_url, internal_id):
@@ -389,6 +582,56 @@ def build_result_url(gem_base_url, internal_id):
     if not value:
         return None
     return f"{gem_base_url}/bidding/bid/getBidResultView/{value}"
+
+
+def save_debug_artifacts(page, *, prefix, error_message=None, result_url=None):
+    base = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{safe_name(prefix)}"
+    screenshot_path = SCREENSHOT_DIR / f"{base}.png"
+    html_path = HTML_DIR / f"{base}.html"
+    info_path = HTML_DIR / f"{base}.txt"
+    page_title = ""
+    body_text = ""
+    html = ""
+    try:
+        page_title = page.title()
+    except Exception:
+        pass
+    try:
+        body_text = extract_page_text(page)
+    except Exception:
+        pass
+    try:
+        html = page.content()
+    except Exception:
+        html = f"<html><body><pre>{body_text}</pre></body></html>"
+    try:
+        page.screenshot(path=str(screenshot_path), full_page=True)
+    except Exception:
+        screenshot_path = None
+    try:
+        html_path.write_text(html, encoding="utf-8")
+    except Exception:
+        html_path = None
+    try:
+        info_path.write_text(
+            "\n".join([
+                f"url={getattr(page, 'url', '')}",
+                f"result_url={result_url or ''}",
+                f"title={page_title}",
+                f"error={error_message or ''}",
+                "",
+                (body_text or "")[:2000],
+            ]),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+    return {
+        "screenshot": str(screenshot_path) if screenshot_path else None,
+        "html": str(html_path) if html_path else None,
+        "title": page_title,
+        "body_preview": (body_text or "")[:2000],
+    }
 
 
 def extract_status_text(doc):
@@ -690,6 +933,16 @@ def map_financial_row(row_dict):
     }
 
 
+def has_technical_status(row_dict):
+    status = normalize_compare(
+        row_dict.get("status")
+        or row_dict.get("technical status")
+        or row_dict.get("qualification status")
+        or ""
+    )
+    return status in {"qualified", "disqualified"} or "technically" in status
+
+
 def find_our_company(participants, technical, financial):
     result = {
         "ourCompanyParticipated": False,
@@ -719,7 +972,39 @@ def find_our_company(participants, technical, financial):
     return result
 
 
+def expand_result_sections(page):
+    selectors = [
+        "text='TECHNICAL EVALUATION'",
+        "text='FINANCIAL EVALUATION'",
+        "text='List Of Sellers Participated'",
+        "text='List Of Sellers Qualified'",
+        "text='List Of Sellers Qualified Financially'",
+    ]
+    for selector in selectors:
+        try:
+            locator = page.locator(selector).first
+            if locator.count() == 0:
+                continue
+            locator.click(timeout=1500)
+            page.wait_for_timeout(300)
+        except Exception:
+            continue
+
+
+def detect_sections_from_text(text):
+    normalized = normalize_compare(text)
+    sections = []
+    if "list of sellers participated" in normalized or "seller name" in normalized:
+        sections.append("participants")
+    if "technical evaluation" in normalized or "list of sellers qualified" in normalized:
+        sections.append("technical")
+    if "financial evaluation" in normalized or "list of sellers qualified financially" in normalized or "total price" in normalized or "rank" in normalized:
+        sections.append("financial")
+    return sections
+
+
 def parse_result_page_details(page):
+    expand_result_sections(page)
     tables = extract_result_tables(page)
     participants = []
     technical = []
@@ -742,34 +1027,95 @@ def parse_result_page_details(page):
             row_dict = canonical_row_dict(headers, row)
             if section == "participants":
                 participants.append(map_participant_row(row_dict) | {"raw_data": row_dict})
+                if has_technical_status(row_dict):
+                    detected_sections["technical"] = True
+                    technical.append(map_technical_row(row_dict) | {"raw_data": row_dict})
             elif section == "technical":
                 technical.append(map_technical_row(row_dict) | {"raw_data": row_dict})
             elif section == "financial":
                 financial.append(map_financial_row(row_dict) | {"raw_data": row_dict})
+    body_text = extract_page_text(page)
+    for section in detect_sections_from_text(body_text):
+        detected_sections[section] = True
     return {
         "participants": [row for row in participants if normalize_text(row.get("seller_name"))],
         "technicalEvaluation": [row for row in technical if normalize_text(row.get("seller_name"))],
         "financialEvaluation": [row for row in financial if normalize_text(row.get("seller_name"))],
         "detectedSections": detected_sections,
+        "sectionsDetected": [key for key, value in detected_sections.items() if value],
     }
 
 
+def fetch_public_result_html(url, referer):
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer": referer,
+    }
+    request = urllib.request.Request(url, headers=headers, method="GET")
+    with urllib.request.urlopen(request, timeout=45) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+def strip_executable_html(html):
+    text = str(html or "")
+    text = re.sub(r"<script\b[^>]*>.*?</script>", "", text, flags=re.I | re.S)
+    text = re.sub(r"<meta\b[^>]*http-equiv=[\"']?refresh[\"']?[^>]*>", "", text, flags=re.I)
+    return text
+
+
+def parse_result_details_from_public_html(context, url, *, gem_base_url, bid_number=None):
+    html = fetch_public_result_html(url, f"{gem_base_url}/all-bids")
+    if not html or len(html) < 1000:
+        return None
+    html_page = context.new_page()
+    try:
+        html_page.set_content(strip_executable_html(html), wait_until="domcontentloaded", timeout=45000)
+        details = parse_result_page_details(html_page)
+        details["pageUrl"] = url
+        details["navigationMethod"] = "public_html"
+        if bid_number:
+            path = HTML_DIR / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{safe_name(bid_number)}-public-result.html"
+            try:
+                path.write_text(html, encoding="utf-8")
+                details["debugArtifacts"] = {"html": str(path)}
+            except Exception:
+                pass
+        return details
+    finally:
+        try:
+            html_page.close()
+        except Exception:
+            pass
+
+
 def compute_current_stage(source_type, parsed_status, details):
-    detected_sections = details.get("detectedSections") or {}
     technical_rows = details.get("technicalEvaluation") or []
     financial_rows = details.get("financialEvaluation") or []
-    technical_available = bool(detected_sections.get("technical") or technical_rows)
-    financial_available = bool(detected_sections.get("financial") or financial_rows)
+    participant_rows = details.get("participants") or []
+    parse_error = str(details.get("parseError") or "").strip()
     if source_type == "RA":
-        if financial_available:
+        if financial_rows:
             return STAGE_RA_FINANCIAL
-        if technical_available:
+        if technical_rows:
             return STAGE_RA_TECHNICAL
+        if participant_rows:
+            return STAGE_RA_CREATED
+        if parse_error:
+            return STAGE_RA_WARNING
         return STAGE_RA_CREATED
-    if financial_available:
+    if financial_rows:
         return STAGE_BID_FINANCIAL
-    if technical_available:
+    if technical_rows:
         return STAGE_BID_TECHNICAL
+    if participant_rows:
+        return STAGE_BID_RESULT
+    if parse_error:
+        return STAGE_BID_WARNING
     if parsed_status in {STATUS_BID_AVAILABLE, STATUS_BID_AND_RA_AVAILABLE}:
         return STAGE_BID_RESULT
     return STATUS_NOT_AVAILABLE
@@ -778,53 +1124,130 @@ def compute_current_stage(source_type, parsed_status, details):
 def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, source_type="BID"):
     if not url:
         return {"participants": [], "technicalEvaluation": [], "financialEvaluation": [], "parseError": "Missing result URL"}
-
-    opened_page = page
-    opened_popup = False
-    navigation_method = "direct"
     try:
-        page.goto(url, wait_until="load", timeout=45000)
+        html_details = parse_result_details_from_public_html(page.context, url, gem_base_url=gem_base_url, bid_number=bid_number)
+        if html_details and any((html_details.get("participants") or [], html_details.get("technicalEvaluation") or [], html_details.get("financialEvaluation") or [])):
+            return html_details
+    except Exception as exc:
+        logging.warning("public result HTML parse failed bid=%s url=%s error=%s", bid_number, url, exc)
+    last_error = None
+    last_details = None
+    for attempt in range(1, 3):
+        opened_page = page.context.new_page()
+        navigation_method = "direct"
         try:
-            page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            page.wait_for_timeout(2500)
+            try:
+                opened_page.goto(f"{gem_base_url}/all-bids", wait_until="domcontentloaded", timeout=45000)
+                opened_page.wait_for_timeout(1200)
+            except Exception:
+                pass
+            opened_page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=45000,
+                referer=f"{gem_base_url}/all-bids",
+            )
+            try:
+                opened_page.wait_for_load_state("networkidle", timeout=30000)
+            except Exception:
+                opened_page.wait_for_timeout(3000)
 
-        current_url = page.url
-        if "getBidResultView" not in current_url and bid_number:
-            navigation_method = "listing_click"
-            opened_page, opened_popup = open_result_page_from_listing(page, gem_base_url, bid_number, source_type)
+            marker_selectors = [
+                "text='BID DETAILS'",
+                "text='RA DETAILS'",
+                "text='TECHNICAL EVALUATION'",
+                "text='FINANCIAL EVALUATION'",
+                "text='List Of Sellers Participated'",
+            ]
+            for selector in marker_selectors:
+                try:
+                    opened_page.locator(selector).first.wait_for(timeout=2000)
+                    break
+                except Exception:
+                    continue
+
             current_url = opened_page.url
-            try:
-                opened_page.wait_for_load_state("networkidle", timeout=15000)
-            except Exception:
-                opened_page.wait_for_timeout(2500)
-        elif "getBidResultView" not in current_url:
-            return {
-                "participants": [],
-                "technicalEvaluation": [],
-                "financialEvaluation": [],
-                "detectedSections": {"participants": False, "technical": False, "financial": False},
-                "parseError": f"GeM redirected away from the result page to {current_url}",
-                "pageUrl": current_url,
-                "navigationMethod": navigation_method,
-            }
+            if "getBidResultView" not in current_url and bid_number:
+                navigation_method = "listing_click"
+                try:
+                    opened_page.close()
+                except Exception:
+                    pass
+                opened_page, opened_popup = open_result_page_from_listing(page, gem_base_url, bid_number, source_type)
+                current_url = opened_page.url
+                try:
+                    opened_page.wait_for_load_state("networkidle", timeout=30000)
+                except Exception:
+                    opened_page.wait_for_timeout(3000)
+            elif "getBidResultView" not in current_url:
+                session_hint = ""
+                if is_gem_logged_out(opened_page):
+                    session_hint = " The current Playwright browser profile appears logged out of GeM."
+                details = {
+                    "participants": [],
+                    "technicalEvaluation": [],
+                    "financialEvaluation": [],
+                    "detectedSections": {"participants": False, "technical": False, "financial": False},
+                    "sectionsDetected": [],
+                    "parseError": f"GeM redirected away from the result page to {current_url}.{session_hint}",
+                    "pageUrl": current_url,
+                    "navigationMethod": navigation_method,
+                }
+                artifacts = save_debug_artifacts(opened_page, prefix=f"{bid_number or 'result'}-redirect", error_message=details["parseError"], result_url=url)
+                details["debugArtifacts"] = artifacts
+                return details
 
-        details = parse_result_page_details(opened_page)
-        details["pageUrl"] = current_url
-        details["navigationMethod"] = navigation_method
-        return details
-    finally:
-        if opened_popup and opened_page is not page:
             try:
-                opened_page.close()
+                details = parse_result_page_details(opened_page)
+            except Exception as exc:
+                last_error = exc
+                artifacts = save_debug_artifacts(opened_page, prefix=f"{bid_number or 'result'}-parse-{attempt}", error_message=str(exc), result_url=url)
+                if attempt == 1:
+                    logging.warning("parse retry bid=%s source=%s url=%s error=%s", bid_number, source_type, url, exc)
+                    try:
+                        if navigation_method == "listing_click" and opened_page is page:
+                            page.go_back(wait_until="domcontentloaded", timeout=20000)
+                            page.wait_for_timeout(1000)
+                    except Exception:
+                        pass
+                    continue
+                return {
+                    "participants": [],
+                    "technicalEvaluation": [],
+                    "financialEvaluation": [],
+                    "detectedSections": {"participants": False, "technical": False, "financial": False},
+                    "sectionsDetected": [],
+                    "parseError": str(exc),
+                    "pageUrl": current_url,
+                    "navigationMethod": navigation_method,
+                    "debugArtifacts": artifacts,
+                }
+
+            details["pageUrl"] = current_url
+            details["navigationMethod"] = navigation_method
+            details["parseError"] = details.get("parseError")
+            last_details = details
+            if any((details.get("participants") or [], details.get("technicalEvaluation") or [], details.get("financialEvaluation") or [])):
+                return details
+            if not any((details.get("detectedSections") or {}).values()) and attempt == 1:
+                logging.warning("no sections detected on first parse bid=%s url=%s; retrying once", bid_number, current_url)
+                save_debug_artifacts(opened_page, prefix=f"{bid_number or 'result'}-empty-{attempt}", error_message="No sections detected", result_url=url)
+                continue
+            return details
+        finally:
+            try:
+                if opened_page is not page:
+                    opened_page.close()
             except Exception:
                 pass
-        elif navigation_method == "listing_click" and opened_page is page:
-            try:
-                page.go_back(wait_until="domcontentloaded", timeout=20000)
-                page.wait_for_timeout(1000)
-            except Exception:
-                pass
+    return last_details or {
+        "participants": [],
+        "technicalEvaluation": [],
+        "financialEvaluation": [],
+        "detectedSections": {"participants": False, "technical": False, "financial": False},
+        "sectionsDetected": [],
+        "parseError": str(last_error or "Unknown parse failure"),
+    }
 
 
 def gem_payload(bid_number, bid_status_type):
@@ -896,7 +1319,7 @@ def fetch_gem_bid_status(context, page, config, bid_number, bid_status_type):
 
 def check_one_tender(context, page, config, tender, *, dry_run=False, force_downgrade=False, source="LOCAL_AGENT"):
     tender_id = tender.get("id")
-    bid_number = str(tender.get("bidNumber") or "").strip().upper()
+    bid_number = canonical_tender_bid_number(tender)
     if not tender_id or not GEM_BID_RE.fullmatch(bid_number):
         raise ValueError("Pending tender is missing a valid GeM bid number.")
 
@@ -983,7 +1406,7 @@ def check_one_tender(context, page, config, tender, *, dry_run=False, force_down
 
 def ingest_error(config, tender, error):
     tender_id = tender.get("id")
-    bid_number = str(tender.get("bidNumber") or "").strip().upper()
+    bid_number = canonical_tender_bid_number(tender)
     post_json(
         config,
         f"/api/tenders/{tender_id}/ingest-gem-result-error",
@@ -995,9 +1418,9 @@ def ingest_error(config, tender, error):
     )
 
 
-def check_one_tender_result_details(context, page, config, tender):
+def check_one_tender_result_details(context, page, config, tender, *, apply_changes=True):
     tender_id = tender.get("id")
-    bid_number = str(tender.get("bidNumber") or "").strip().upper()
+    bid_number = canonical_tender_bid_number(tender)
     if not tender_id or not GEM_BID_RE.fullmatch(bid_number):
         raise ValueError("Tender is missing a valid GeM bid number.")
     result_raw = fetch_gem_bid_status(context, page, config, bid_number, RESULT_FILTER_TYPE)
@@ -1057,6 +1480,7 @@ def check_one_tender_result_details(context, page, config, tender):
         "sourceType": source_type,
         "sourceNumber": source_number,
         "resultUrl": result_url,
+        "stage": stage,
         "currentStage": stage,
         "participants": details.get("participants") or [],
         "technicalEvaluation": details.get("technicalEvaluation") or [],
@@ -1073,9 +1497,45 @@ def check_one_tender_result_details(context, page, config, tender):
             "financial_detected": bool((details.get("detectedSections") or {}).get("financial")),
         },
     }
-    response = post_json(config, f"/api/tenders/{tender_id}/ingest-gem-result-details", payload)
+    if apply_changes:
+        response = post_json(config, f"/api/tenders/{tender_id}/ingest-gem-result-details", payload)
+    else:
+        response = {
+            "success": True,
+            "summary_saved": False,
+            "participants_saved": 0,
+            "technical_saved": 0,
+            "financial_saved": 0,
+            "participants_count": len(payload["participants"]),
+            "technical_count": len(payload["technicalEvaluation"]),
+            "financial_count": len(payload["financialEvaluation"]),
+            "dry_run": True,
+        }
+    def saved_count(response_data, saved_key, count_key):
+        if not isinstance(response_data, dict):
+            return 0
+        if saved_key in response_data:
+            return int(response_data.get(saved_key) or 0)
+        if apply_changes and count_key in response_data:
+            return int(response_data.get(count_key) or 0)
+        return 0
+
+    participants_saved = saved_count(response, "participants_saved", "participants_count")
+    technical_saved = saved_count(response, "technical_saved", "technical_count")
+    financial_saved = saved_count(response, "financial_saved", "financial_count")
+    backend_success = bool((response or {}).get("success")) or (
+        apply_changes
+        and isinstance(response, dict)
+        and int(response.get("tender_id") or 0) == int(tender_id)
+        and "parse_error" in response
+    )
+    db_mismatch = any([
+        participants_saved not in {0, len(payload["participants"])} if not apply_changes else participants_saved != len(payload["participants"]),
+        technical_saved not in {0, len(payload["technicalEvaluation"])} if not apply_changes else technical_saved != len(payload["technicalEvaluation"]),
+        financial_saved not in {0, len(payload["financialEvaluation"])} if not apply_changes else financial_saved != len(payload["financialEvaluation"]),
+    ])
     logging.info(
-        "result-details tender_id=%s bid=%s ra=%s current_source=%s participants=%s technical=%s financial=%s our_found=%s our_tech=%s our_rank=%s stage=%s parse_error=%s",
+        "result-details tender_id=%s bid=%s ra=%s current_source=%s participants=%s technical=%s financial=%s our_found=%s our_tech=%s our_rank=%s stage=%s parse_error=%s backend_save_success=%s participants_saved=%s technical_saved=%s financial_saved=%s%s",
         tender_id,
         bid_number,
         parsed.get("raNumber"),
@@ -1088,6 +1548,11 @@ def check_one_tender_result_details(context, page, config, tender):
         summary.get("ourCompanyFinancialRank"),
         stage,
         payload.get("parseError"),
+        backend_success,
+        participants_saved,
+        technical_saved,
+        financial_saved,
+        " DB_SAVE_MISMATCH" if db_mismatch else "",
     )
     return response if isinstance(response, dict) else payload
 
@@ -1122,7 +1587,7 @@ def run_pending(config):
                 except Exception as exc:
                     summary["checked"] += 1
                     summary["failed"] += 1
-                    logging.exception("failed tender_id=%s bid=%s", tender.get("id"), tender.get("bidNumber"))
+                    logging.exception("failed tender_id=%s bid=%s", tender.get("id"), canonical_tender_bid_number(tender))
                     try:
                         ingest_error(config, tender, exc)
                     except Exception:
@@ -1149,7 +1614,7 @@ def run_pending(config):
     return summary
 
 
-def run_result_detail_checks(config):
+def run_result_detail_checks(config, *, apply_changes=False):
     started_at = utc_now_iso()
     pending = fetch_recheck_tenders(config)
     if config["max_tenders"] > 0:
@@ -1168,7 +1633,7 @@ def run_result_detail_checks(config):
         try:
             for index, tender in enumerate(pending):
                 try:
-                    result = check_one_tender_result_details(context, page, config, tender)
+                    result = check_one_tender_result_details(context, page, config, tender, apply_changes=apply_changes)
                     summary["checked"] += 1
                     summary["participants_rows"] += int(result.get("participants_count") or 0)
                     summary["technical_rows"] += int(result.get("technical_count") or 0)
@@ -1176,7 +1641,7 @@ def run_result_detail_checks(config):
                 except Exception:
                     summary["checked"] += 1
                     summary["failed"] += 1
-                    logging.exception("failed result details tender_id=%s bid=%s", tender.get("id"), tender.get("bidNumber"))
+                    logging.exception("failed result details tender_id=%s bid=%s", tender.get("id"), canonical_tender_bid_number(tender))
                 if index < len(pending) - 1:
                     delay = max(0, config["delay"] + random.uniform(-2, 2))
                     time.sleep(delay)
@@ -1189,7 +1654,7 @@ def run_result_detail_checks(config):
         {
             "started_at": started_at,
             "finished_at": finished_at,
-            "run_source": "LOCAL_AGENT_RESULT_DETAILS",
+            "run_source": "LOCAL_AGENT_RESULT_DETAILS" if apply_changes else "LOCAL_AGENT_RESULT_DETAILS_DRY_RUN",
             "checked": summary["checked"],
             "failed": summary["failed"],
             "total_pending": summary["total_tenders"],
@@ -1264,7 +1729,7 @@ def run_recheck_and_fix_statuses(config, *, dry_run=False, force_downgrade=False
                 except Exception as exc:
                     summary["checked"] += 1
                     summary["failed"] += 1
-                    logging.exception("failed tender_id=%s bid=%s", tender.get("id"), tender.get("bidNumber"))
+                    logging.exception("failed tender_id=%s bid=%s", tender.get("id"), canonical_tender_bid_number(tender))
                     try:
                         ingest_error(config, tender, exc)
                     except Exception:
@@ -1307,6 +1772,42 @@ def run_test_bid(config, bid_number):
             close_browser_context(browser, context)
 
 
+def find_tender_by_bid(config, bid_number):
+    bid = str(bid_number or "").strip().upper()
+    bid_suffix = bid.split("/")[-1] if "/" in bid else bid
+    for tender in fetch_all_tenders(config):
+        canonical = canonical_tender_bid_number(tender)
+        if canonical == bid:
+            return tender
+        candidates = [
+            str(tender.get("gem_bidding_number") or "").strip().upper(),
+            str(tender.get("bidNumber") or "").strip().upper(),
+            str(tender.get("tender_number") or "").strip().upper(),
+        ]
+        if bid in candidates:
+            return tender
+        if bid_suffix and any(candidate == bid_suffix or candidate.endswith(f"/{bid_suffix}") for candidate in candidates if candidate):
+            return tender
+    return None
+
+
+def run_test_result_details(config, bid_number, *, apply_changes=False):
+    bid = str(bid_number or "").strip().upper()
+    if not GEM_BID_RE.fullmatch(bid):
+        raise SystemExit("Use a valid bid number like GEM/2026/B/7636848")
+    tender = find_tender_by_bid(config, bid)
+    if not tender:
+        raise SystemExit(f"No tender found in Tender AI for {bid}")
+    with sync_playwright() as p:
+        browser, context, _launch_mode = launch_browser_context(p, config)
+        page = context.pages[0] if context.pages else context.new_page()
+        try:
+            result = check_one_tender_result_details(context, page, config, tender, apply_changes=apply_changes)
+            print(json.dumps(result, indent=2, default=str))
+        finally:
+            close_browser_context(browser, context)
+
+
 def run_test_result_url(config, result_url):
     with sync_playwright() as p:
         browser, context, _launch_mode = launch_browser_context(p, config)
@@ -1324,13 +1825,43 @@ def run_test_result_url(config, result_url):
             close_browser_context(browser, context)
 
 
+def run_open_gem_login(config):
+    if not config.get("use_persistent_profile"):
+        logging.warning(
+            "USE_PERSISTENT_PROFILE is false. Login cookies will not be reused by later watcher runs. "
+            "Set USE_PERSISTENT_PROFILE=true in gem-result-watcher-agent/.env."
+        )
+    with sync_playwright() as p:
+        browser, context, _launch_mode = launch_browser_context(p, config)
+        page = context.pages[0] if context.pages else context.new_page()
+        try:
+            page.goto(f"{config['gem_base_url']}/all-bids", wait_until="domcontentloaded", timeout=60000)
+            print("")
+            print("GeM browser opened with the watcher profile.")
+            print("Log in to GeM in that browser window, then press Enter here to save/reuse the session.")
+            input()
+            try:
+                page.goto(f"{config['gem_base_url']}/all-bids", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(1500)
+            except Exception:
+                pass
+            if is_gem_logged_out(page):
+                print("Still looks logged out. Please complete GeM login in the opened browser profile and run this again.")
+            else:
+                print("GeM session looks logged in for this watcher profile.")
+        finally:
+            close_browser_context(browser, context)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Local GeM Result Watcher Agent")
     parser.add_argument("--run-now", action="store_true", help="Run all pending tenders now")
     parser.add_argument("--check-results", action="store_true", help="Run the basic result status checker for pending tenders")
     parser.add_argument("--check-result-details", action="store_true", help="Open result pages and ingest participants/technical/financial details")
+    parser.add_argument("--test-result-details", help="Test one GeM bid number end-to-end for result details")
     parser.add_argument("--test-bid", help="Test one GeM bid number without ingesting to Tender AI")
     parser.add_argument("--test-result-url", help="Test one GeM result URL and print parsed tables")
+    parser.add_argument("--open-gem-login", action="store_true", help="Open the persistent watcher browser profile so you can log in to GeM once")
     parser.add_argument("--recheck-and-fix-statuses", action="store_true", help="Recheck all ended tenders and fix old result statuses")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without saving tender rows")
     parser.add_argument("--apply", action="store_true", help="Apply repair updates to the database")
@@ -1338,17 +1869,23 @@ def main():
     parser.add_argument("--repair-result-statuses", action="store_true", help="Prioritize suspicious result regressions for repair")
     args = parser.parse_args()
 
-    config = load_config(require_api=not (args.test_bid or args.test_result_url))
+    config = load_config(require_api=not (args.test_bid or args.test_result_url or args.open_gem_login))
     setup_logging(config["log_level"])
 
+    if args.open_gem_login:
+        run_open_gem_login(config)
+        return
     if args.test_result_url:
         run_test_result_url(config, args.test_result_url)
+        return
+    if args.test_result_details:
+        run_test_result_details(config, args.test_result_details, apply_changes=not args.dry_run)
         return
     if args.test_bid:
         run_test_bid(config, args.test_bid)
         return
     if args.check_result_details:
-        run_result_detail_checks(config)
+        run_result_detail_checks(config, apply_changes=args.apply and not args.dry_run)
         return
     if args.repair_result_statuses:
         run_recheck_and_fix_statuses(

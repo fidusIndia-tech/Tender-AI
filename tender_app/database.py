@@ -1631,9 +1631,14 @@ def save_tender_result_details(
         )
     conn.commit()
     conn.close()
+    saved_summary["success"] = True
+    saved_summary["summary_saved"] = True
     saved_summary["participants_count"] = len(participants)
     saved_summary["technical_count"] = len(technical_evaluation)
     saved_summary["financial_count"] = len(financial_evaluation)
+    saved_summary["participants_saved"] = len(participants) if (not parse_error and replace_participants) else 0
+    saved_summary["technical_saved"] = len(technical_evaluation) if (not parse_error and replace_technical) else 0
+    saved_summary["financial_saved"] = len(financial_evaluation) if (not parse_error and replace_financial) else 0
     return saved_summary
 
 
@@ -1668,6 +1673,8 @@ def get_tender_result_details(tender_id: int):
         "participants": participants,
         "technical_evaluation": technical,
         "financial_evaluation": financial,
+        "technicalEvaluation": technical,
+        "financialEvaluation": financial,
         "history": history,
     }
 

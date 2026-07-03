@@ -358,6 +358,7 @@ class GemResultDetailsIngestPayload(BaseModel):
     sourceNumber: Optional[str] = None
     resultUrl: Optional[str] = None
     currentStage: str
+    stage: Optional[str] = None
     participants: List[dict[str, Any]] = Field(default_factory=list)
     technicalEvaluation: List[dict[str, Any]] = Field(default_factory=list)
     financialEvaluation: List[dict[str, Any]] = Field(default_factory=list)
@@ -816,7 +817,7 @@ async def ingest_gem_result_details_now(tender_id: int, payload: GemResultDetail
         source_type=data.get("sourceType"),
         source_number=data.get("sourceNumber"),
         result_url=data.get("resultUrl"),
-        current_stage=data.get("currentStage"),
+        current_stage=data.get("currentStage") or data.get("stage"),
         participants=data.get("participants") or [],
         technical_evaluation=data.get("technicalEvaluation") or [],
         financial_evaluation=data.get("financialEvaluation") or [],
