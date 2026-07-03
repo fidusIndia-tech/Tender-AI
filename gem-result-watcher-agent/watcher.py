@@ -636,23 +636,29 @@ def save_debug_artifacts(page, *, prefix, error_message=None, result_url=None):
 
 def extract_status_text(doc):
     parts = []
-    for key in ("b_status", "status", "status_text", "evaluation_status"):
+    buyer_status = first_value((doc or {}).get("b_buyer_status"))
+    buyer_status_text = str(buyer_status if buyer_status is not None else "").strip()
+    if buyer_status_text:
+        parts.append(GEM_STATUS_CODE_LABELS.get(buyer_status_text) or buyer_status_text)
+    for key in ("status_text", "evaluation_status"):
         raw = (doc or {}).get(key)
         if isinstance(raw, list):
             for item in raw:
                 text = str(item or "").strip()
                 if text:
-                    parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
+                    parts.append(text)
         else:
             text = str(raw or "").strip()
             if text:
-                parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
+                parts.append(text)
     return " | ".join(parts)
 
 
 def is_evaluated_status_text(text):
     normalized = str(text or "").strip().lower()
     if not normalized:
+        return False
+    if "not evaluated" in normalized:
         return False
     return any(
         phrase in normalized
