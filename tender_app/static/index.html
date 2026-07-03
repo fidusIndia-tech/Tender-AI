@@ -1849,7 +1849,7 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-expand"  style="width:30px">
           <col id="col-sel"     style="width:30px">
           <col id="col-num"     style="width:32px">
-          <col id="col-upload"  style="width:110px">
+          <col id="col-upload"  style="width:150px">
           <col id="col-gem"     style="width:140px">
           <col id="col-tn"      style="width:140px">
           <col id="col-org"     style="width:180px">
@@ -1871,7 +1871,7 @@ body.col-resizing { cursor:col-resize !important; }
             <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;position:relative">
               Upload Date<span style="display:inline-block">
-                <span class="th-filter-btn" id="uploadDateBtn" onclick="toggleUploadCalendar(event)" title="Filter by upload date range">
+                <span class="th-filter-btn active" id="uploadDateBtn" onclick="toggleUploadCalendar(event)" title="Filter by upload date range">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 </span>
                 <div class="th-filter-menu" id="uploadDateFilterMenu" style="min-width:244px;padding:0;" onclick="event.stopPropagation()">
