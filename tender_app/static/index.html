@@ -1871,14 +1871,6 @@ body.col-resizing { cursor:col-resize !important; }
             <th class="has-resize" style="text-align:center;color:var(--slate-400);font-weight:500;position:relative">#<div class="col-resize-handle" onpointerdown="startColResize('num',event)" ondblclick="resetColWidth('num')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="white-space:nowrap;position:relative">
               Upload Date<span style="display:inline-block">
-                <span class="th-filter-btn active" id="uploadFilterBtn" onclick="toggleFilterMenu('upload',event)" title="Sort by tender upload date">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21l3.75-3.75"/></svg>
-                </span>
-                <div class="th-filter-menu" id="uploadFilterMenu">
-                  <div class="th-filter-option selected" onclick="setUploadSort('desc',this)">Descending</div>
-                  <div class="th-filter-option" onclick="setUploadSort('asc',this)">Ascending</div>
-                </div>
-              </span><span style="display:inline-block">
                 <span class="th-filter-btn" id="uploadDateBtn" onclick="toggleUploadCalendar(event)" title="Filter by upload date range">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 </span>
