@@ -1715,7 +1715,7 @@ body.col-resizing { cursor:col-resize !important; }
     </div>
     <div class="action-bar">
       <button class="btn btn-outline" onclick="showView('list')">Cancel</button>
-      <button class="btn btn-success" id="saveBtn" onclick="saveTender()">
+      <button class="btn btn-success tender-save-btn" id="saveBtn" data-default-label="Save Tender" onclick="saveTender()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
         Save Tender
       </button>
@@ -1741,7 +1741,7 @@ body.col-resizing { cursor:col-resize !important; }
     </div>
     <div class="action-bar">
       <button class="btn btn-outline" onclick="showView('list')">Cancel</button>
-      <button class="btn btn-success" onclick="saveTender()">Save Tender</button>
+      <button class="btn btn-success tender-save-btn" data-default-label="Save Tender" onclick="saveTender()">Save Tender</button>
     </div>
   </div>
 
@@ -1760,7 +1760,7 @@ body.col-resizing { cursor:col-resize !important; }
     </div>
     <div class="action-bar">
       <button class="btn btn-outline" onclick="showView('list')">Cancel</button>
-      <button class="btn btn-success" onclick="saveTender()">Save Tender</button>
+      <button class="btn btn-success tender-save-btn" data-default-label="Save Tender" onclick="saveTender()">Save Tender</button>
     </div>
   </div>
 
@@ -3124,6 +3124,37 @@ let bidDateTo    = null;   // null or 'YYYY-MM-DD' — range end
 let _calPickFrom = true;   // true = next click sets From, false = sets To
 let _calYear  = new Date().getFullYear();
 let _calMonth = new Date().getMonth();
+
+function _setTenderSaveButtons(label, disabled) {
+  document.querySelectorAll('.tender-save-btn').forEach(btn => {
+    btn.textContent = label;
+    btn.disabled = !!disabled;
+  });
+}
+
+function _getTenderSaveDefaultLabel() {
+  return currentTenderId ? 'Update Tender' : 'Save Tender';
+}
+
+function markTenderReviewDirty() {
+  if (!document.getElementById('view-review')?.classList.contains('active')) return;
+  _setTenderSaveButtons(_getTenderSaveDefaultLabel(), false);
+}
+
+function _setPrimaryUploadButtonState(label, disabled) {
+  const btn = document.getElementById('uploadStartBtn');
+  if (!btn) return;
+  btn.textContent = label;
+  btn.disabled = !!disabled;
+}
+
+document.addEventListener('input', (event) => {
+  if (event.target.closest('#view-review')) markTenderReviewDirty();
+});
+
+document.addEventListener('change', (event) => {
+  if (event.target.closest('#view-review')) markTenderReviewDirty();
+});
 
 const _CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -4977,7 +5008,9 @@ function renderSelectedAttachments() {
   const btn = document.getElementById('attachmentUploadBtn');
   if (!list || !btn) return;
   btn.disabled = !_attachmentTenderId || _attachmentSelectedFiles.length === 0;
+  if (_attachmentSelectedFiles.length) btn.textContent = 'Upload';
   if (!_attachmentSelectedFiles.length) {
+    if (btn.textContent.trim() !== 'Uploaded') btn.textContent = 'Upload';
     list.innerHTML = '<div style="font-size:11px;color:var(--slate-400);margin-top:8px">No files selected</div>';
     return;
   }
@@ -5042,12 +5075,16 @@ async function uploadTenderAttachments() {
     if (input) input.value = '';
     renderSelectedAttachments();
     await loadTenderAttachments();
+    btn.textContent = 'Uploaded';
+    btn.disabled = true;
     toast('Attachments uploaded', 'success');
   } catch (err) {
     toast('Attachment upload failed: ' + err.message, 'error');
   } finally {
-    btn.textContent = 'Upload';
-    btn.disabled = !_attachmentTenderId || _attachmentSelectedFiles.length === 0;
+    if (btn.textContent.trim() !== 'Uploaded') {
+      btn.textContent = 'Upload';
+      btn.disabled = !_attachmentTenderId || _attachmentSelectedFiles.length === 0;
+    }
   }
 }
 
@@ -5059,9 +5096,7 @@ function addToUploadQueue(files) {
   renderUploadQueue();
   document.getElementById('uploadActions').style.display = 'flex';
   document.getElementById('uploadSummary').style.display = 'none';
-  const btn = document.getElementById('uploadStartBtn');
-  btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg> ' + (uploadQueue.length === 1 ? 'Upload' : 'Upload All');
-  btn.disabled = false;
+  _setPrimaryUploadButtonState('Upload', false);
 }
 
 function renderUploadQueue() {
@@ -5090,7 +5125,7 @@ function setQueueItemStatus(index, status, error) {
 
 async function startUnifiedUpload() {
   const btn = document.getElementById('uploadStartBtn');
-  btn.disabled = true; btn.textContent = 'Uploading…';
+  btn.disabled = true; btn.textContent = 'Uploading...';
   document.getElementById('uploadSummary').style.display = 'none';
 
   // Single file — extract then open review
@@ -5105,6 +5140,7 @@ async function startUnifiedUpload() {
       if (res.status === 409) throw new Error(data.detail || 'This tender already exists.');
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       setQueueItemStatus(0, 'completed', null);
+      _setPrimaryUploadButtonState('Uploaded', true);
       recordWorkflowManualExtraction(data, item.file);
       pendingExtraction = data; currentTenderId = null;
       setTimeout(async () => {
@@ -5116,7 +5152,7 @@ async function startUnifiedUpload() {
       }, 600);
     } catch (err) {
       setQueueItemStatus(0, 'failed', err.message);
-      btn.disabled = false; btn.textContent = 'Retry';
+      _setPrimaryUploadButtonState('Retry', false);
     }
     return;
   }
@@ -5151,7 +5187,8 @@ async function startUnifiedUpload() {
   const summary = document.getElementById('uploadSummary');
   summary.innerHTML = 'Done — ' + parts.join(', ');
   summary.style.display = 'block';
-  btn.disabled = false; btn.textContent = 'Upload All';
+  if (!fails && (done || dups)) _setPrimaryUploadButtonState('Uploaded', true);
+  else _setPrimaryUploadButtonState('Upload', false);
 }
 
 function clearUploadQueue() {
@@ -5159,6 +5196,7 @@ function clearUploadQueue() {
   renderUploadQueue();
   document.getElementById('uploadActions').style.display = 'none';
   document.getElementById('uploadSummary').style.display = 'none';
+  _setPrimaryUploadButtonState('Upload', true);
 }
 
 // ── Review ─────────────────────────────────────────────────────────────────
@@ -5171,8 +5209,7 @@ function openReviewWithData(data, id) {
   document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===0));
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-review').classList.add('active');
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) saveBtn.textContent = id ? 'Update Tender' : 'Save Tender';
+  _setTenderSaveButtons(id ? 'Update Tender' : 'Save Tender', false);
 
   setField('f_gem_bidding_number', data.gem_bidding_number);
   setField('f_tender_number', data.tender_number);
@@ -5205,6 +5242,9 @@ function addBOQRow(item={}) {
     <td><input type="text" value="${esc(item.quantity)}" placeholder="0"></td>
     <td><button class="btn btn-ghost btn-xs" style="color:var(--red-600)" onclick="this.closest('tr').remove()">✕</button></td>`;
   document.getElementById('boqBody').appendChild(tr);
+  const removeBtn = tr.querySelector('button');
+  if (removeBtn) removeBtn.onclick = () => { tr.remove(); markTenderReviewDirty(); };
+  markTenderReviewDirty();
 }
 function addDocRow(doc={}) {
   const div = document.createElement('div'); div.className = 'doc-row';
@@ -5212,6 +5252,9 @@ function addDocRow(doc={}) {
   div.innerHTML = `<input type="text" value="${esc(label)}" placeholder="Document name">
     <button class="btn btn-ghost btn-xs" style="color:var(--red-600)" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('docsList').appendChild(div);
+  const removeBtn = div.querySelector('button');
+  if (removeBtn) removeBtn.onclick = () => { div.remove(); markTenderReviewDirty(); };
+  markTenderReviewDirty();
 }
 function collectBOQ() {
   return Array.from(document.getElementById('boqBody').querySelectorAll('tr')).map(tr => {
@@ -5243,6 +5286,7 @@ function buildTenderPayload() {
 async function saveTender() {
   const saveBtn = document.getElementById('saveBtn');
   if (saveBtn) { saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner"></span>&nbsp;Saving…'; }
+  _setTenderSaveButtons('Saving...', true);
   const payload = buildTenderPayload();
   try {
     let res;
@@ -5269,10 +5313,17 @@ async function saveTender() {
       cached.tender_number       = payload.tender_number;
     }
     toast('Tender saved successfully', 'success');
+    _setTenderSaveButtons('Saved', true);
     setTimeout(() => showView('list'), 500);
-  } catch (err) { toast('Error: ' + err.message, 'error'); }
+  } catch (err) {
+    _setTenderSaveButtons(_getTenderSaveDefaultLabel(), false);
+    toast('Error: ' + err.message, 'error');
+  }
   finally {
-    if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent = currentTenderId ? 'Update Tender' : 'Save Tender'; }
+    if (saveBtn && saveBtn.textContent.trim() !== 'Saved') {
+      saveBtn.disabled = false;
+      saveBtn.textContent = currentTenderId ? 'Update Tender' : 'Save Tender';
+    }
   }
 }
 
