@@ -1030,6 +1030,8 @@ body.col-resizing { cursor:col-resize !important; }
 .status-select:focus { outline:none;border-color:var(--blue-500);box-shadow:0 0 0 2px rgba(16,185,129,.12); }
 .status-select[value="IN PROGRESS"] { background-color:#FEF3C7;color:#B45309;border-color:#FCD34D; }
 .status-select[value="FILED"]       { background-color:#DCFCE7;color:#15803d;border-color:#86efac; }
+.status-select[value="QUALIFIED"]   { background-color:#DBEAFE;color:#1D4ED8;border-color:#93C5FD; }
+.status-select[value="DISQUALIFIED"] { background-color:#FEE2E2;color:#B91C1C;border-color:#FCA5A5; }
 .status-select[value="WON"]         { background-color:#D1FAE5;color:#065F46;border-color:#6EE7B7; }
 .status-select[value="LOST"]        { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
 .status-select[value="FAILED"]      { background-color:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
@@ -1963,6 +1965,8 @@ body.col-resizing { cursor:col-resize !important; }
                   <div class="filter-options-scroll" id="statusFilterList">
                     <label class="filter-check-option"><input type="checkbox" value="IN PROGRESS" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> In Progress</label>
                     <label class="filter-check-option"><input type="checkbox" value="FILED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Filed</label>
+                    <label class="filter-check-option"><input type="checkbox" value="QUALIFIED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Qualified</label>
+                    <label class="filter-check-option"><input type="checkbox" value="DISQUALIFIED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Disqualified</label>
                     <label class="filter-check-option"><input type="checkbox" value="WON" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Won</label>
                     <label class="filter-check-option"><input type="checkbox" value="LOST" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Lost</label>
                     <label class="filter-check-option"><input type="checkbox" value="FAILED" onchange="toggleStatusValue(this.value,this.checked)" onclick="event.stopPropagation()"> Failed</label>
@@ -3062,6 +3066,8 @@ const SEARCH_STATUS_LABELS = {
   new: 'IN PROGRESS',
   'IN PROGRESS': 'IN PROGRESS',
   FILED: 'FILED',
+  QUALIFIED: 'QUALIFIED',
+  DISQUALIFIED: 'DISQUALIFIED',
   WON: 'WON',
   LOST: 'LOST',
   FAILED: 'FAILED',
@@ -3683,7 +3689,7 @@ function _dateKeyFromTs(ts) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function _deadlineGroupForTender(t, now = new Date()) {
-  if (['FILED','WON','LOST','FAILED'].includes(_deadlineStatus(t))) return null;
+  if (['FILED','QUALIFIED','DISQUALIFIED','WON','LOST','FAILED'].includes(_deadlineStatus(t))) return null;
   const ts = parseBidEndDate(t.bid_end_datetime);
   if (!ts || ts <= now.getTime()) return null;
   const today = _dateKeyFromTs(now.getTime());
@@ -3882,6 +3888,8 @@ function _renderCurrentPage() {
             <select class="status-select" value="${esc(st)}" onchange="updateTenderStatus(${t.id}, this)">
               <option value="IN PROGRESS"${st==='IN PROGRESS'?' selected':''}>In Progress</option>
               <option value="FILED"${st==='FILED'?' selected':''}>Filed</option>
+              <option value="QUALIFIED"${st==='QUALIFIED'?' selected':''}>Qualified</option>
+              <option value="DISQUALIFIED"${st==='DISQUALIFIED'?' selected':''}>Disqualified</option>
               <option value="WON"${st==='WON'?' selected':''}>Won</option>
               <option value="LOST"${st==='LOST'?' selected':''}>Lost</option>
               <option value="FAILED"${st==='FAILED'?' selected':''}>Failed</option>
