@@ -28,6 +28,12 @@ RESULT_STATUS_RA_CREATED = "RA_CREATED"
 RESULT_STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 RESULT_STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 RESULT_STATUS_FAILED = "FAILED_TO_CHECK"
+GEM_STATUS_CODE_LABELS = {
+    "0": "Not Evaluated",
+    "1": "Technical Evaluation",
+    "2": "Financial Evaluation",
+    "3": "Bid Awarded",
+}
 GEM_RA_NUMBER_PATTERN = re.compile(r"\b(GEM/\d{4}/R/\d+)\b", re.I)
 GEM_BID_NUMBER_TEXT_PATTERN = re.compile(r"\bGEM/\d{4}/B/\d+\b", re.I)
 DEBUG_SCREENSHOT_DIR = Path(__file__).resolve().parent / "debug-screenshots"
@@ -472,11 +478,15 @@ def _extract_doc_status_text(doc: dict | None) -> str:
     for key in ("b_status", "status", "status_text", "evaluation_status"):
         raw = doc.get(key)
         if isinstance(raw, list):
-            parts.extend(_normalize_space(item) for item in raw if _normalize_space(item))
+            for item in raw:
+                text = _normalize_space(item)
+                if not text:
+                    continue
+                parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
         else:
             text = _normalize_space(raw)
             if text:
-                parts.append(text)
+                parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
     return " | ".join(parts)
 
 
@@ -695,9 +705,7 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
     result_status_text = _extract_doc_status_text(result_doc)
     result_direct_matches = result_bid_value == canonical_bid_number
     is_direct_bid = bool(result_direct_matches and not result_parent_bid_value)
-    # GeM sometimes returns opaque status values like "1" even when the Bid/RA Status
-    # filter already exposes a direct result row with a valid result document id.
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id)
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id and _is_evaluated_status_text(result_status_text))
 
     ongoing_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number"))).upper() or None
     ongoing_parent_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number_parent"))).upper() or None

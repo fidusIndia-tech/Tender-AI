@@ -31,6 +31,12 @@ STATUS_RA_CREATED = "RA_CREATED"
 STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 STATUS_FAILED = "FAILED_TO_CHECK"
+GEM_STATUS_CODE_LABELS = {
+    "0": "Not Evaluated",
+    "1": "Technical Evaluation",
+    "2": "Financial Evaluation",
+    "3": "Bid Awarded",
+}
 RESULT_FILTER_TYPE = os.getenv("GEM_RESULT_FILTER_TYPE", "bidrastatus").strip() or "bidrastatus"
 ONGOING_FILTER_TYPE = os.getenv("GEM_ONGOING_FILTER_TYPE", "bidra").strip() or "bidra"
 
@@ -225,11 +231,14 @@ def extract_status_text(doc):
     for key in ("b_status", "status", "status_text", "evaluation_status"):
         raw = (doc or {}).get(key)
         if isinstance(raw, list):
-            parts.extend(str(item).strip() for item in raw if str(item or "").strip())
+            for item in raw:
+                text = str(item or "").strip()
+                if text:
+                    parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
         else:
             text = str(raw or "").strip()
             if text:
-                parts.append(text)
+                parts.append(GEM_STATUS_CODE_LABELS.get(text) or text)
     return " | ".join(parts)
 
 
@@ -327,10 +336,7 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
     bid_parent_id = first_value((result_doc or {}).get("b_id_parent"))
     result_status_text = extract_status_text(result_doc)
     is_direct_bid = bool(result_bid_value == bid and not result_parent_value)
-    # The Bid/RA Status result feed can expose a valid direct bid result row while the
-    # raw status field is just an opaque code such as "1". In that case the result is
-    # still available because GeM returned the exact bid with a result document id.
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id)
+    bid_result_available = bool(is_direct_bid and result_direct_doc_id and is_evaluated_status_text(result_status_text))
 
     ongoing_bid_value = str(first_value((ongoing_doc or {}).get("b_bid_number")) or "").strip().upper()
     ongoing_parent_value = str(first_value((ongoing_doc or {}).get("b_bid_number_parent")) or "").strip().upper()
