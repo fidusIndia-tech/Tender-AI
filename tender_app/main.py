@@ -251,7 +251,15 @@ class RequiredDocument(BaseModel):
     label: Optional[str] = None
 
 
-ALLOWED_PARTICIPATION_STATUSES = {"IN PROGRESS", "WON", "LOST", "FAILED", "FILED"}
+ALLOWED_PARTICIPATION_STATUSES = {
+    "IN PROGRESS",
+    "FILED",
+    "QUALIFIED",
+    "DISQUALIFIED",
+    "WON",
+    "LOST",
+    "FAILED",
+}
 
 
 class TenderPayload(BaseModel):
