@@ -1860,6 +1860,7 @@ body.col-resizing { cursor:col-resize !important; }
           <col id="col-result"  style="width:180px">
           <col id="col-actions" style="width:180px">
           <col id="col-status"  style="width:120px">
+          <col id="col-acmanager" style="width:150px">
           <col id="col-remark"  style="width:140px">
           <col id="col-del"     style="width:46px">
         </colgroup>
@@ -1976,6 +1977,7 @@ body.col-resizing { cursor:col-resize !important; }
               </span>
               <div class="col-resize-handle" onpointerdown="startColResize('status',event)" ondblclick="resetColWidth('status')" title="Drag to resize - Double-click to reset"></div>
             </th>
+            <th class="has-resize" style="position:relative">A/C Manager<div class="col-resize-handle" onpointerdown="startColResize('acmanager',event)" ondblclick="resetColWidth('acmanager')" title="Drag to resize - Double-click to reset"></div></th>
             <th class="has-resize" style="position:relative">Remark<div class="col-resize-handle" onpointerdown="startColResize('remark',event)" ondblclick="resetColWidth('remark')" title="Drag to resize - Double-click to reset"></div></th>
             <th style="text-align:center"></th>
           </tr>
@@ -3092,6 +3094,7 @@ function getTenderSearchText(t) {
     t.participant_text,
     t.uploaded_at,
     t.filed_date,
+    t.ac_manager,
     t.remark,
     t.status,
     statusText,
@@ -3611,6 +3614,7 @@ function exportToExcel() {
       'VoT'              : t.tender_approx_value   || '',
       'Qty'              : t.total_quantity != null ? t.total_quantity : '',
       'Status'           : st,
+      'A/C Manager'      : t.ac_manager             || '',
       'Participant'      : t.participant_text       || '',
       'Remark'           : t.remark                 || '',
     };
@@ -3900,6 +3904,9 @@ function _renderCurrentPage() {
           </div>
           <div class="filed-date-display" style="font-size:9.5px;color:#15803D;margin-top:2px;${st==='FILED'&&t.filed_date?'':'display:none'}">${st==='FILED'&&t.filed_date?'Filed: '+_fmtFiledDate(t.filed_date):''}</div>
         </td>
+        <td class="col-acmanager" onclick="event.stopPropagation()">
+          <input type="text" class="record-input" data-record-field="ac_manager" value="${esc(t.ac_manager)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Add A/C manager…">
+        </td>
         <td class="col-rmk" onclick="event.stopPropagation()">
           <input type="text" class="record-input" data-record-field="remark" value="${esc(t.remark)}" onblur="saveRecordField(${t.id})" onkeydown="handleRecordInputKeydown(event,${t.id})" placeholder="Add remark…">
         </td>
@@ -3910,7 +3917,7 @@ function _renderCurrentPage() {
         </td>
       </tr>
       <tr class="expand-row" id="expandRow-${t.id}" style="display:none">
-        <td colspan="16" style="padding:0">
+        <td colspan="17" style="padding:0">
           <div class="expand-panel">
             <div class="expand-tabs" id="expandTabs-${t.id}">
               ${renderExpandTabs(t.id)}
@@ -7633,6 +7640,7 @@ const _COL_DEFS = {
   qty:     { def: 80,  min: 80  },
   actions: { def: 120, min: 80  },
   status:  { def: 120, min: 80  },
+  acmanager: { def: 150, min: 90 },
   remark:  { def: 140, min: 80  },
   part:    { def: 130, min: 80  },
 };

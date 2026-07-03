@@ -143,6 +143,7 @@ def init_db():
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_data BYTEA")
         cur.execute("ALTER TABLE tender_prepared_documents ADD COLUMN IF NOT EXISTS generated_file_name TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ac_manager TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS expand_sections_json JSONB")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_available BOOLEAN DEFAULT FALSE")
@@ -779,7 +780,7 @@ def list_tenders():
                       t.gem_ra_number, t.gem_ra_url, t.gem_ra_result_url, t.ra_start_date, t.ra_end_date, t.gem_page_status,
                       t.last_result_checked_at, t.notification_sent, t.result_check_error, t.l1_seller_name,
                       t.our_company_rank, t.our_company_status,
-                      t.filed_date, t.remark,
+                      t.filed_date, t.ac_manager, t.remark,
                       COALESCE(a.attachment_count, 0) AS attachment_count,
                       COALESCE(i.item_search_text, '') AS item_search_text,
                       COALESCE(d.required_document_search_text, '') AS required_document_search_text
@@ -863,7 +864,15 @@ def get_tender_attachment(attachment_id):
     return dict(row) if row else None
 
 
-def update_tender_record_fields(tender_id, won_text, lost_text, participant_text, remark=None, expand_sections_json=None):
+def update_tender_record_fields(
+    tender_id,
+    won_text,
+    lost_text,
+    participant_text,
+    ac_manager=None,
+    remark=None,
+    expand_sections_json=None,
+):
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
@@ -871,6 +880,7 @@ def update_tender_record_fields(tender_id, won_text, lost_text, participant_text
                SET won_text=%s,
                    lost_text=%s,
                    participant_text=%s,
+                   ac_manager=%s,
                    remark=%s,
                    expand_sections_json=COALESCE(%s, expand_sections_json)
                WHERE id=%s""",
@@ -878,6 +888,7 @@ def update_tender_record_fields(tender_id, won_text, lost_text, participant_text
                 won_text,
                 lost_text,
                 participant_text,
+                ac_manager,
                 remark,
                 psycopg2.extras.Json(expand_sections_json) if expand_sections_json is not None else None,
                 tender_id,
