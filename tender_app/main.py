@@ -61,6 +61,12 @@ try:
 except Exception as e:
     print(f"[WARN] fail_stale_running_scans on startup: {type(e).__name__}: {e}")
 try:
+    repaired = database.repair_confirmed_result_flags_from_notifications()
+    if repaired:
+        print(f"[INFO] repaired {repaired} result row(s) from notifications on startup")
+except Exception as e:
+    print(f"[WARN] result repair on startup failed: {type(e).__name__}: {e}")
+try:
     start_result_watcher_scheduler()
 except Exception as e:
     print(f"[WARN] result watcher scheduler startup failed: {type(e).__name__}: {e}")

@@ -1104,6 +1104,127 @@ def get_result_watcher_summary():
     }
 
 
+def repair_confirmed_result_flags_from_notifications():
+    """Restore confirmed result state from stored notifications.
+
+    This is intentionally conservative: it only repairs tenders that currently
+    look unconfirmed, and only when a matching result notification exists.
+    """
+    conn = get_db()
+    repaired = 0
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """
+            SELECT tender_id,
+                   BOOL_OR(type IN ('RESULT_AVAILABLE', 'BID_RESULT_AVAILABLE', 'RA_CREATED', 'RA_RESULT_AVAILABLE')) AS has_result,
+                   BOOL_OR(type = 'BID_RESULT_AVAILABLE') AS has_bid,
+                   BOOL_OR(type = 'RA_CREATED') AS has_ra_created,
+                   BOOL_OR(type = 'RA_RESULT_AVAILABLE') AS has_ra_result,
+                   MAX(created_at) AS last_notified_at
+            FROM tender_notifications
+            GROUP BY tender_id
+            """
+        )
+        notification_rows = cur.fetchall()
+
+        for row in notification_rows:
+            tender_id = row.get("tender_id")
+            if not tender_id or not row.get("has_result"):
+                continue
+
+            cur.execute(
+                """
+                SELECT result_available, bid_result_available, ra_created, ra_result_available,
+                       gem_result_status, result_declared, result_declared_at,
+                       gem_result_url, gem_ra_url, gem_ra_result_url, gem_ra_number,
+                       ra_start_date, ra_end_date, gem_page_status
+                FROM tenders
+                WHERE id=%s
+                """,
+                (tender_id,),
+            )
+            tender = cur.fetchone()
+            if not tender:
+                continue
+
+            current_status = str(tender.get("gem_result_status") or "").upper()
+            if bool(
+                tender.get("result_available")
+                or tender.get("bid_result_available")
+                or tender.get("ra_result_available")
+                or current_status in ("BID_RESULT_AVAILABLE", "RA_CREATED", "RA_RESULT_AVAILABLE", "BID_AND_RA_RESULT_AVAILABLE")
+            ):
+                continue
+
+            has_bid = bool(row.get("has_bid"))
+            has_ra_created = bool(row.get("has_ra_created"))
+            has_ra_result = bool(row.get("has_ra_result"))
+
+            if has_bid and has_ra_result:
+                status = "BID_AND_RA_RESULT_AVAILABLE"
+                result_available = True
+                bid_result_available = True
+                ra_created = True
+                ra_result_available = True
+            elif has_ra_result:
+                status = "RA_RESULT_AVAILABLE"
+                result_available = True
+                bid_result_available = False
+                ra_created = True
+                ra_result_available = True
+            elif has_bid:
+                status = "BID_RESULT_AVAILABLE"
+                result_available = True
+                bid_result_available = True
+                ra_created = bool(has_ra_created)
+                ra_result_available = False
+            elif has_ra_created:
+                status = "RA_CREATED"
+                result_available = False
+                bid_result_available = False
+                ra_created = True
+                ra_result_available = False
+            else:
+                status = "BID_RESULT_AVAILABLE"
+                result_available = True
+                bid_result_available = True
+                ra_created = False
+                ra_result_available = False
+
+            cur.execute(
+                """
+                UPDATE tenders
+                   SET result_available=%s,
+                       bid_result_available=%s,
+                       ra_created=%s,
+                       ra_result_available=%s,
+                       gem_result_status=%s,
+                       result_declared=%s,
+                       result_declared_at=COALESCE(result_declared_at, %s),
+                       notification_sent=TRUE,
+                       last_result_checked_at=COALESCE(last_result_checked_at, %s),
+                       result_check_error=NULL
+                 WHERE id=%s
+                """,
+                (
+                    result_available,
+                    bid_result_available,
+                    ra_created,
+                    ra_result_available,
+                    status,
+                    result_available,
+                    row.get("last_notified_at"),
+                    row.get("last_notified_at"),
+                    tender_id,
+                ),
+            )
+            repaired += 1
+
+    conn.commit()
+    conn.close()
+    return repaired
+
+
 def create_tender_notification(tender_id, title, message, notification_type="RESULT_AVAILABLE"):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

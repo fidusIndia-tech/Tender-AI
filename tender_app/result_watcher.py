@@ -28,6 +28,16 @@ RESULT_STATUS_RA_CREATED = "RA_CREATED"
 RESULT_STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 RESULT_STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 RESULT_STATUS_FAILED = "FAILED_TO_CHECK"
+_RESULT_STATUS_PRIORITY = {
+    RESULT_STATUS_FAILED: 0,
+    RESULT_STATUS_PENDING: 1,
+    RESULT_STATUS_NOT_AVAILABLE: 2,
+    RESULT_STATUS_NOT_FOUND: 2,
+    RESULT_STATUS_RA_CREATED: 3,
+    RESULT_STATUS_BID_AVAILABLE: 4,
+    RESULT_STATUS_RA_AVAILABLE: 5,
+    RESULT_STATUS_BID_AND_RA_AVAILABLE: 6,
+}
 GEM_STATUS_CODE_LABELS = {
     "0": "Not Evaluated",
     "1": "Technical Evaluation",
@@ -349,6 +359,62 @@ def _standardize_result_payload(result: dict | None) -> dict:
     payload.setdefault("reason", "")
     payload.setdefault("failure_details", [])
     return payload
+
+
+def _result_status_priority(status: str | None) -> int:
+    return _RESULT_STATUS_PRIORITY.get(_normalize_space(status).upper(), 0)
+
+
+def _merge_with_existing_result_state(existing: dict, result: dict) -> dict:
+    """Avoid downgrading a previously confirmed result when a later check is negative."""
+    if not existing:
+        return result
+    existing_confirmed = bool(
+        existing.get("result_available")
+        or existing.get("bid_result_available")
+        or existing.get("ra_result_available")
+    )
+    current_confirmed = bool(
+        result.get("result_available")
+        or result.get("bid_result_available")
+        or result.get("ra_result_available")
+    )
+    if not existing_confirmed or current_confirmed:
+        return result
+
+    existing_status = _normalize_space(existing.get("gem_result_status")).upper()
+    current_status = _normalize_space(result.get("gem_result_status")).upper()
+    if _result_status_priority(current_status) >= _result_status_priority(existing_status):
+        return result
+
+    merged = dict(result)
+    merged["result_available"] = bool(existing.get("result_available"))
+    merged["bid_result_available"] = bool(existing.get("bid_result_available"))
+    merged["ra_created"] = bool(existing.get("ra_created"))
+    merged["ra_result_available"] = bool(existing.get("ra_result_available"))
+    merged["gem_result_status"] = existing_status or merged.get("gem_result_status")
+    merged["status"] = merged["gem_result_status"]
+
+    for field in (
+        "gem_result_url",
+        "gem_ra_url",
+        "gem_ra_result_url",
+        "gem_ra_number",
+        "ra_start_date",
+        "ra_end_date",
+        "gem_page_status",
+        "result_check_error",
+    ):
+        if merged.get(field) in (None, "") and existing.get(field) not in (None, ""):
+            merged[field] = existing.get(field)
+
+    if existing.get("result_declared"):
+        merged["result_declared"] = True
+    if existing.get("result_declared_at") and not merged.get("result_declared_at"):
+        merged["result_declared_at"] = existing.get("result_declared_at")
+    merged["reason"] = result.get("reason") or existing.get("reason") or "Preserved previously confirmed result."
+    merged["preserved_existing_result"] = True
+    return merged
 
 
 def _parse_agent_checked_at(value):
@@ -1834,6 +1900,13 @@ def check_tender_result(tender_id: int, precomputed_result: dict | None = None):
                     f"failure_details={result.get('failure_details')!r}; falling back to Playwright"
                 )
                 result = _standardize_result_payload(_run_with_playwright(tender, company_name))
+        result = _merge_with_existing_result_state(tender, result)
+        if result.get("preserved_existing_result"):
+            _watcher_log(
+                f"preserved-confirmed-result bid={bid_number} "
+                f"existing_status={_normalize_space(tender.get('gem_result_status')).upper()!r} "
+                f"new_status={_normalize_space(result.get('gem_result_status')).upper()!r}"
+            )
 
         _watcher_log(
             "check-result "
