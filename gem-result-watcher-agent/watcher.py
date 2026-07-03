@@ -336,7 +336,9 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
     bid_parent_id = first_value((result_doc or {}).get("b_id_parent"))
     result_status_text = extract_status_text(result_doc)
     is_direct_bid = bool(result_bid_value == bid and not result_parent_value)
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id and is_evaluated_status_text(result_status_text))
+    # The GeM API can report evaluation-stage rows before the public portal exposes
+    # an actual View Bid Results action. Avoid marking these as live results.
+    bid_result_available = False
 
     ongoing_bid_value = str(first_value((ongoing_doc or {}).get("b_bid_number")) or "").strip().upper()
     ongoing_parent_value = str(first_value((ongoing_doc or {}).get("b_bid_number_parent")) or "").strip().upper()
@@ -415,7 +417,7 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
                 if status == STATUS_RA_CREATED
                 else "Direct original bid result is available from the matched GeM document."
                 if status == STATUS_BID_AVAILABLE
-                else "Exact GeM document matched, but no bid result and no RA were available."
+                else "Exact GeM document matched, but no confirmed result button-equivalent and no RA were available."
             ),
             "doc_status_text": result_status_text or ongoing_status_text or None,
         },

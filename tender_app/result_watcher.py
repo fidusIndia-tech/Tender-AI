@@ -705,7 +705,10 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
     result_status_text = _extract_doc_status_text(result_doc)
     result_direct_matches = result_bid_value == canonical_bid_number
     is_direct_bid = bool(result_direct_matches and not result_parent_bid_value)
-    bid_result_available = bool(is_direct_bid and result_direct_doc_id and _is_evaluated_status_text(result_status_text))
+    # The all-bids-data API can expose evaluation-stage rows before the public GeM page
+    # shows a real "View Bid Results" button. To avoid false positives, the scheduled
+    # network watcher does not treat direct bid status text alone as a live result.
+    bid_result_available = False
 
     ongoing_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number"))).upper() or None
     ongoing_parent_bid_value = _normalize_space(_first((ongoing_doc or {}).get("b_bid_number_parent"))).upper() or None
@@ -741,7 +744,7 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
         reason = "Direct original bid result is available from the matched GeM document."
     elif matched_doc_found:
         status = RESULT_STATUS_NOT_AVAILABLE
-        reason = "Exact GeM document matched, but no bid result and no RA were available."
+        reason = "Exact GeM document matched, but no confirmed result button-equivalent and no RA were available."
     else:
         status = RESULT_STATUS_NOT_FOUND
         reason = "Searched bid number was not present in GeM result documents."
