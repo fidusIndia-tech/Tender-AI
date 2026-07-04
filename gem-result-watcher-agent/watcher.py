@@ -577,11 +577,17 @@ def open_result_page_from_listing(page, gem_base_url, bid_number, source_type):
     )
 
 
-def build_result_url(gem_base_url, internal_id):
+def build_result_url(gem_base_url, internal_id, *, single_packet=False, schedule=False):
     value = str(first_value(internal_id) or "").strip()
     if not value:
         return None
-    return f"{gem_base_url}/bidding/bid/getBidResultView/{value}"
+    if schedule:
+        page = "getBidResultViewSchedule"
+    elif single_packet:
+        page = "getSinglePacketResultView"
+    else:
+        page = "getBidResultView"
+    return f"{gem_base_url}/bidding/bid/{page}/{value}"
 
 
 def save_debug_artifacts(page, *, prefix, error_message=None, result_url=None):
@@ -781,9 +787,16 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
     else:
         status = STATUS_NOT_AVAILABLE
 
+    result_is_single_packet = str(first_value((result_doc or {}).get("ba_is_single_packet")) or "").strip() == "1"
+    result_is_schedule = str(first_value((result_doc or {}).get("b_eval_type")) or "").strip() not in {"", "0"}
     bid_result_url = None
     if is_direct_bid and bid_result_available:
-        bid_result_url = build_result_url(gem_base_url, result_direct_doc_id)
+        bid_result_url = build_result_url(
+            gem_base_url,
+            result_direct_doc_id,
+            single_packet=result_is_single_packet,
+            schedule=result_is_schedule,
+        )
     elif bid_result_available:
         bid_result_url = build_result_url(gem_base_url, bid_parent_id)
 
@@ -1099,6 +1112,28 @@ def parse_result_details_from_public_html(context, url, *, gem_base_url, bid_num
             pass
 
 
+def is_gem_result_view_url(url):
+    text = str(url or "")
+    return "/bidding/bid/" in text and "ResultView" in text
+
+
+def normalize_result_parse_error(error):
+    text = str(error or "").strip()
+    if not text:
+        return None
+    lowered = text.lower()
+    transient_markers = (
+        "execution context was destroyed",
+        "most likely because of a navigation",
+        "target closed",
+        "page closed",
+        "frame was detached",
+    )
+    if any(marker in lowered for marker in transient_markers):
+        return "Temporary GeM page navigation interrupted parsing. The watcher will retry this tender on the next run."
+    return text
+
+
 def compute_current_stage(source_type, parsed_status, details):
     technical_rows = details.get("technicalEvaluation") or []
     financial_rows = details.get("financialEvaluation") or []
@@ -1178,7 +1213,7 @@ def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, s
                     continue
 
             current_url = opened_page.url
-            if "getBidResultView" not in current_url and bid_number:
+            if not is_gem_result_view_url(current_url) and bid_number:
                 navigation_method = "listing_click"
                 try:
                     opened_page.close()
@@ -1190,7 +1225,7 @@ def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, s
                     opened_page.wait_for_load_state("networkidle", timeout=30000)
                 except Exception:
                     opened_page.wait_for_timeout(3000)
-            elif "getBidResultView" not in current_url:
+            elif not is_gem_result_view_url(current_url):
                 session_hint = ""
                 if is_gem_logged_out(opened_page):
                     session_hint = " The current Playwright browser profile appears logged out of GeM."
@@ -1228,7 +1263,7 @@ def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, s
                     "financialEvaluation": [],
                     "detectedSections": {"participants": False, "technical": False, "financial": False},
                     "sectionsDetected": [],
-                    "parseError": str(exc),
+                    "parseError": normalize_result_parse_error(exc),
                     "pageUrl": current_url,
                     "navigationMethod": navigation_method,
                     "debugArtifacts": artifacts,
@@ -1241,6 +1276,11 @@ def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, s
             if any((details.get("participants") or [], details.get("technicalEvaluation") or [], details.get("financialEvaluation") or [])):
                 return details
             if not any((details.get("detectedSections") or {}).values()) and attempt == 1:
+                if is_gem_result_view_url(current_url):
+                    details["parseError"] = (
+                        "GeM result page is reachable, but seller/result rows are not published in the public result page yet."
+                    )
+                    return details
                 logging.warning("no sections detected on first parse bid=%s url=%s; retrying once", bid_number, current_url)
                 save_debug_artifacts(opened_page, prefix=f"{bid_number or 'result'}-empty-{attempt}", error_message="No sections detected", result_url=url)
                 continue
@@ -1458,14 +1498,16 @@ def check_one_tender_result_details(context, page, config, tender, *, apply_chan
                 (parsed.get("bidResultAvailable") or parsed.get("raCreated") or parsed.get("raResultAvailable"))
                 and not any((details.get("detectedSections") or {}).values())
             ):
-                details["parseError"] = "Result page opened but no result sections were detected."
+                details["parseError"] = (
+                    "GeM result page is reachable, but seller/result rows are not published in the public result page yet."
+                )
         except Exception as exc:
             details = {
                 "participants": [],
                 "technicalEvaluation": [],
                 "financialEvaluation": [],
                 "detectedSections": {},
-                "parseError": str(exc),
+                "parseError": normalize_result_parse_error(exc),
             }
     stage = compute_current_stage(source_type, parsed.get("gemResultStatus"), details)
     ours = find_our_company(
