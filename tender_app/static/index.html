@@ -4183,21 +4183,19 @@ function renderLocalGemCalendar() {
 }
 
 function setLocalGemRunnerAvailability(enabled) {
-  localGemRunnerEnabled = Boolean(enabled);
+  localGemRunnerEnabled = true;
   const runAllBtn = document.getElementById('localGemRunAllBtn');
   const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
   const help = document.getElementById('localGemRunHelp');
   if (runKeywordBtn) {
     runKeywordBtn.style.display = '';
-    runKeywordBtn.textContent = enabled ? 'Run Selected Search' : 'Prepare Local Run';
+    runKeywordBtn.textContent = 'Run Selected Search';
   }
   if (runAllBtn) {
-    runAllBtn.style.display = enabled ? '' : 'none';
+    runAllBtn.style.display = '';
   }
   if (help) {
-    help.textContent = enabled
-      ? 'Runs the local agent on this PC with the selected date/keyword.'
-      : 'Live mode: this saves date/keyword, then shows the office PC command that uses your local IP.';
+    help.textContent = 'Choose keyword/date and click Run. Tender AI will search GeM and save discovered tenders.';
   }
 }
 
@@ -4319,11 +4317,6 @@ async function runLocalGemAgentNow(useTypedKeyword = false) {
     if (!savedConfig) return;
   } catch (err) {
     return toast(err.message || 'Could not prepare search', 'error');
-  }
-
-  if (!localGemRunnerEnabled) {
-    showLocalGemOfficeCommand(keyword);
-    return;
   }
 
   if (status) status.textContent = useTypedKeyword ? `Searching ${keyword}...` : 'Searching active keywords...';

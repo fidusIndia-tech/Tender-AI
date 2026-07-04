@@ -1143,7 +1143,7 @@ async def gem_search_stats(user=Depends(_require_admin)):
 @app.get("/api/gem-search/admin/config")
 async def admin_get_gem_search_config(user=Depends(_require_admin)):
     config = database.get_gem_search_settings()
-    config["localAgentRunnerEnabled"] = os.environ.get("ENABLE_LOCAL_GEM_AGENT_RUNNER", "false").strip().lower() in {"1", "true", "yes", "on"}
+    config["localAgentRunnerEnabled"] = True
     return config
 
 
@@ -1185,6 +1185,8 @@ def _run_local_gem_agent(keyword: str | None = None):
         cmd += ["--search-new-tenders"]
     env = os.environ.copy()
     env["DRY_RUN"] = "false"
+    if not env.get("TENDER_AI_BASE_URL"):
+        env["TENDER_AI_BASE_URL"] = f"http://127.0.0.1:{env.get('PORT', '8000')}"
     proc = subprocess.run(
         cmd,
         cwd=str(agent_dir),
@@ -1201,8 +1203,6 @@ def _run_local_gem_agent(keyword: str | None = None):
 
 @app.post("/api/gem-search/admin/run-local-agent")
 async def admin_run_local_gem_agent(payload: GemSearchRunRequest, user=Depends(_require_admin)):
-    if os.environ.get("ENABLE_LOCAL_GEM_AGENT_RUNNER", "false").strip().lower() not in {"1", "true", "yes", "on"}:
-        raise HTTPException(403, "Run the GeM local agent from the office PC. Server-side runner is disabled.")
     keyword = (payload.keyword or "").strip()
     if keyword:
         database.upsert_gem_search_keyword(keyword)
