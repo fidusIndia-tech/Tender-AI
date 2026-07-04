@@ -1461,10 +1461,6 @@ body.col-resizing { cursor:col-resize !important; }
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
     Upload &amp; Evaluate
   </div>
-  <div class="nav-item" id="nav-gem-candidates" onclick="showView('gem-candidates')">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5M3.75 9.75h16.5M3.75 14.25h16.5M3.75 18.75h16.5"/></svg>
-    Extracted &amp; Evaluated
-  </div>
   <div class="nav-item" id="nav-list" onclick="showView('list')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
     All Tenders
@@ -1492,10 +1488,6 @@ body.col-resizing { cursor:col-resize !important; }
   <div class="nav-item" id="nav-gem-watcher" onclick="showView('gem-watcher')" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
     GeM Watcher
-  </div>
-  <div class="nav-item" id="nav-gem-candidates-legacy" onclick="showView('gem-candidates')" style="display:none">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.286z"/></svg>
-    GeM Tenders
   </div>
   <div class="nav-item" id="nav-gem-review-candidates" onclick="showView('gem-review-candidates')" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
@@ -1559,10 +1551,6 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="view active" id="view-upload">
   <div style="max-width:1280px;margin:0 auto;padding-top:8px">
-    <div class="workflow-page-hero">
-      <div class="workflow-page-hero-title">Upload &amp; Evaluate Tenders</div>
-      <div class="workflow-page-hero-sub">Manual PDF upload and GeM auto scan now work from one page. Review extracted tenders below before approving them into All Tenders.</div>
-    </div>
     <!-- Upload Zone -->
     <div id="uploadZone" onclick="document.getElementById('unifiedFileInput').click()">
       <div class="upload-icon-wrap">
@@ -1613,13 +1601,7 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="upload-summary" id="uploadSummary"></div>
 
     <!-- ── OR: Scan GeM automatically ──────────────────────────────────────── -->
-    <div style="display:flex;align-items:center;gap:12px;margin:26px 0 18px">
-      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
-      <span style="font-size:12px;font-weight:600;color:var(--slate-400)">OR</span>
-      <div style="flex:1;height:1px;background:var(--slate-200)"></div>
-    </div>
-
-    <div class="card" style="margin:0">
+    <div class="card" style="margin:0;display:none">
       <div class="card-header">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
         GeM Auto Scan
@@ -2440,42 +2422,6 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <!-- GEM CANDIDATES VIEW                                                     -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="view" id="view-gem-candidates">
-  <div class="table-card">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;gap:8px;align-items:center">
-      <span id="gemCandidatesSectionTitle" style="font-size:13px;font-weight:600;color:var(--slate-600)">Extracted &amp; Evaluated Tenders</span>
-      <div style="flex:1"></div>
-      <select id="gemCandidateStatusFilter" onchange="loadGemCandidates()" style="padding:6px 10px;border:1.5px solid var(--slate-200);border-radius:var(--radius-sm);font-size:12px">
-        <option value="">All Statuses</option>
-        <option>QUEUED</option>
-        <option>FOUND</option>
-        <option>DOWNLOADING_PDF</option>
-        <option>PDF_DOWNLOADED</option>
-        <option>EXTRACTING</option>
-        <option>KEYWORD_EVALUATING</option>
-        <option>EVALUATING</option>
-        <option>EVALUATED</option>
-        <option>REVIEW</option>
-        <option>APPROVED</option>
-        <option>REJECTED</option>
-        <option>ERROR</option>
-      </select>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Search Run</th><th>Matched Keywords</th><th>GeM Bid No</th><th>Title</th><th>Buyer</th>
-            <th>Bid End</th><th>PDF</th><th>Keyword Score</th><th>Final Score</th><th>Stage</th><th>Status</th><th>Reason</th><th style="width:280px">Action</th>
-          </tr>
-        </thead>
-        <tbody id="gemCandidatesBody"></tbody>
-      </table>
-    </div>
-    <div id="gemCandidatesEmpty" class="empty-state" style="display:none"><p>No extracted or evaluated tenders yet</p></div>
-  </div>
-</div>
-
   </main>
 </div><!-- end #app -->
 
@@ -8305,6 +8251,7 @@ function workflowCandidateRow(candidate) {
 }
 
 function ensureUnifiedWorkflowUI() {
+  return;
   const uploadView = document.getElementById('view-upload');
   if (!uploadView) return;
 
