@@ -1165,14 +1165,10 @@ def compute_current_stage(source_type, parsed_status, details):
 def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, source_type="BID"):
     if not url:
         return {"participants": [], "technicalEvaluation": [], "financialEvaluation": [], "parseError": "Missing result URL"}
+    html_details = None
     try:
         html_details = parse_result_details_from_public_html(page.context, url, gem_base_url=gem_base_url, bid_number=bid_number)
         if html_details and any((html_details.get("participants") or [], html_details.get("technicalEvaluation") or [], html_details.get("financialEvaluation") or [])):
-            return html_details
-        if html_details:
-            html_details["parseError"] = (
-                "GeM result page is reachable, but seller/result rows are not published in the public result page yet."
-            )
             return html_details
     except Exception as exc:
         logging.warning("public result HTML parse failed bid=%s url=%s error=%s", bid_number, url, exc)
@@ -1291,7 +1287,14 @@ def open_and_parse_result_details(page, url, *, gem_base_url, bid_number=None, s
                     opened_page.close()
             except Exception:
                 pass
-    return last_details or {
+    if last_details:
+        return last_details
+    if html_details:
+        html_details["parseError"] = (
+            "GeM result page is reachable, but seller/result rows are not published in the public result page yet."
+        )
+        return html_details
+    return {
         "participants": [],
         "technicalEvaluation": [],
         "financialEvaluation": [],

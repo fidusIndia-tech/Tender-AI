@@ -4536,6 +4536,15 @@ function renderReadonlyResultTable(columns, rows, emptyText) {
 function renderParseWarning(data, emptyText) {
   const parseError = String(data?.summary?.parse_error || '').trim();
   if (!parseError) return `<div class="expand-empty-state">${esc(emptyText)}</div>`;
+  const isPendingPublication = parseError.toLowerCase().includes('seller/result rows are not published');
+  if (isPendingPublication) {
+    return `
+      <div class="expand-empty-state">
+        <strong>Result details not published yet.</strong><br>
+        GeM is showing the result page/status, but seller evaluation rows are not public on the result page yet.
+      </div>
+    `;
+  }
   return `
     <div class="expand-empty-state">
       <strong>Result page found but section parsing failed.</strong><br>
@@ -4621,7 +4630,7 @@ async function renderExpandResultsSummary(tenderId, content) {
           <div><strong>Our Company Final Price:</strong> ${esc(summary.our_company_final_price || '')}</div>
           <div><strong>Last Checked:</strong> ${esc(summary.last_checked_at || '')}</div>
           <div><strong>Last Successful Parse:</strong> ${esc(summary.last_successful_parse_at || '')}</div>
-          <div><strong>Parse Error:</strong> ${esc(summary.parse_error || '')}</div>
+          <div><strong>Result Detail Note:</strong> ${esc(summary.parse_error || '')}</div>
         </div>
       </div>
       <div class="table-card" style="margin:10px 12px">
