@@ -307,6 +307,32 @@ def run_keywords(config, keywords, dry_run):
     return summary
 
 
+def select_keywords_for_run(config, args):
+    if args.test_keyword:
+        if not args.date:
+            fetched_config = fetch_search_config(config)
+            logging.info("loaded backend scan config=%s", fetched_config)
+        return [{"keyword": args.test_keyword}]
+
+    keywords = fetch_keywords(config)
+    if not args.date:
+        fetched_config = fetch_search_config(config)
+        logging.info("loaded backend scan config=%s", fetched_config)
+    if not keywords:
+        logging.info("No active keywords returned by Tender AI.")
+    return keywords
+
+
+def run_once(config, args, dry_run):
+    keywords = select_keywords_for_run(config, args)
+    if not keywords:
+        return {"keywords": 0, "discovered": 0, "sent": 0, "failed": 0}
+    summary = run_keywords(config, keywords, dry_run=dry_run)
+    logging.info("summary=%s", summary)
+    print(json.dumps(summary, indent=2))
+    return summary
+
+
 def main():
     load_env_file(ROOT / ".env")
     setup_logging()
@@ -316,6 +342,8 @@ def main():
     parser.add_argument("--run-all", action="store_true", help="Alias for --search-new-tenders")
     parser.add_argument("--dry-run", action="store_true", help="Print discoveries without sending to Tender AI")
     parser.add_argument("--date", help="Override scan date for this run, format YYYY-MM-DD")
+    parser.add_argument("--loop", action="store_true", help="Keep running automatically on this PC")
+    parser.add_argument("--interval-minutes", type=float, default=float(os.getenv("LOOP_INTERVAL_MINUTES", "30")), help="Minutes between automatic runs in --loop mode")
     args = parser.parse_args()
 
     config = Config()
@@ -325,25 +353,24 @@ def main():
         config.search_date_mode = "date"
     dry_run = args.dry_run or config.dry_run
 
-    if args.test_keyword:
-        if not args.date:
-            fetched_config = fetch_search_config(config)
-            logging.info("loaded backend scan config=%s", fetched_config)
-        keywords = [{"keyword": args.test_keyword}]
-    elif args.search_new_tenders or args.run_all:
-        keywords = fetch_keywords(config)
-        if not args.date:
-            fetched_config = fetch_search_config(config)
-            logging.info("loaded backend scan config=%s", fetched_config)
-        if not keywords:
-            logging.info("No active keywords returned by Tender AI.")
-            return
-    else:
-        parser.error("Use --test-keyword Siemens, --search-new-tenders, or --run-all")
+    if not (args.test_keyword or args.search_new_tenders or args.run_all or args.loop):
+        parser.error("Use --test-keyword Siemens, --search-new-tenders, --run-all, or --loop")
 
-    summary = run_keywords(config, keywords, dry_run=dry_run)
-    logging.info("summary=%s", summary)
-    print(json.dumps(summary, indent=2))
+    if args.loop:
+        interval_seconds = max(60, int(args.interval_minutes * 60))
+        logging.info("starting loop mode interval_minutes=%s dry_run=%s", args.interval_minutes, dry_run)
+        while True:
+            try:
+                run_once(config, args, dry_run=dry_run)
+            except KeyboardInterrupt:
+                logging.info("loop stopped by user")
+                raise
+            except Exception:
+                logging.exception("loop run failed")
+            logging.info("sleeping %s seconds before next run", interval_seconds)
+            time.sleep(interval_seconds)
+    else:
+        run_once(config, args, dry_run=dry_run)
 
 
 if __name__ == "__main__":

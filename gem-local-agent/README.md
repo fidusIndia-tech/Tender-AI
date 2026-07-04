@@ -36,7 +36,20 @@ python agent.py --search-new-tenders
 python agent.py --run-all
 python agent.py --dry-run
 python agent.py --test-keyword Siemens --date 2026-07-04 --dry-run
+python agent.py --loop --interval-minutes 30
 ```
+
+## Run Automatically
+
+For normal use, keep one office/local PC as the GeM search worker.
+
+1. Set `DRY_RUN=false` in `gem-local-agent/.env`.
+2. Double-click `start-agent-loop.bat`.
+3. Leave that window open.
+
+The loop fetches the latest active keywords and selected date/range from live Tender AI each time it runs. If another user changes the keyword/date on the website, the next loop run will use the new settings automatically.
+
+If you want Windows to start it after reboot, add `start-agent-loop.bat` to Windows Task Scheduler.
 
 ## Flow
 

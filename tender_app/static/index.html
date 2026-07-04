@@ -4299,8 +4299,9 @@ function showLocalGemOfficeCommand(keyword) {
   const command = keyword
     ? `cd gem-local-agent; python agent.py --test-keyword ${localGemShellQuote(keyword)}`
     : 'cd gem-local-agent; python agent.py --search-new-tenders';
+  const loopCommand = 'cd gem-local-agent; python agent.py --loop --interval-minutes 30';
   if (status) {
-    status.innerHTML = `Saved. Now run this on the office PC:<br><code>${esc(command)}</code>`;
+    status.innerHTML = `Saved. For one-time search on the office PC:<br><code>${esc(command)}</code><br>For automatic running:<br><code>${esc(loopCommand)}</code>`;
   }
   toast('Saved. Run the shown command on the office PC.', 'success');
 }
