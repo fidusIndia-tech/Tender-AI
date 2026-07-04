@@ -10,7 +10,10 @@ import os
 import re
 from datetime import date, datetime
 
-from evaluation import _money_to_number, _range_contains, evaluate_tender_against_capability
+try:
+    from ..evaluation import _money_to_number, _range_contains, evaluate_tender_against_capability
+except ImportError:
+    from evaluation import _money_to_number, _range_contains, evaluate_tender_against_capability
 
 MIN_DEADLINE_DAYS = int(os.environ.get("GEM_MIN_DEADLINE_DAYS", "3"))
 AUTO_APPROVE_THRESHOLD = float(os.environ.get("GEM_AUTO_APPROVE_SCORE_THRESHOLD", "8"))

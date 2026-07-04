@@ -500,6 +500,48 @@ def init_db():
             )
         """)
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_search_keywords (
+                id SERIAL PRIMARY KEY,
+                keyword TEXT NOT NULL UNIQUE,
+                active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_scanned_at TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_search_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_discovered_tenders (
+                id SERIAL PRIMARY KEY,
+                gem_bid_number TEXT NOT NULL UNIQUE,
+                keyword_matched TEXT,
+                raw_title TEXT,
+                raw_organisation TEXT,
+                raw_department TEXT,
+                raw_quantity TEXT,
+                bid_start_date TEXT,
+                bid_end_date TEXT,
+                gem_pdf_url TEXT,
+                stored_pdf_file_id TEXT,
+                raw_gem_data JSONB,
+                extracted_data JSONB,
+                evaluation_score NUMERIC,
+                evaluation_decision TEXT,
+                evaluation_reason TEXT,
+                action_taken TEXT DEFAULT 'DISCOVERED',
+                all_tender_id INTEGER REFERENCES tenders(id) ON DELETE SET NULL,
+                source TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS tender_evaluations (
                 id SERIAL PRIMARY KEY,
                 candidate_id INTEGER REFERENCES gem_candidate_tenders(id) ON DELETE CASCADE,
@@ -2019,6 +2061,267 @@ def clear_prepared_documents(tender_id):
         cur.execute("DELETE FROM tender_prepared_documents WHERE tender_id=%s", (tender_id,))
     conn.commit()
     conn.close()
+
+
+# Local GeM Search Agent helpers
+
+def list_gem_search_keywords(include_inactive: bool = True):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        where = "" if include_inactive else "WHERE active=TRUE"
+        cur.execute(
+            f"""
+            SELECT k.*,
+                   COALESCE(today.discovered_today, 0) AS new_tenders_found_today,
+                   COALESCE(today.inserted_today, 0) AS inserted_today,
+                   COALESCE(today.rejected_today, 0) AS rejected_today
+            FROM gem_search_keywords k
+            LEFT JOIN (
+                SELECT keyword_matched,
+                       COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE) AS discovered_today,
+                       COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date = CURRENT_DATE) AS inserted_today,
+                       COUNT(*) FILTER (WHERE action_taken='REJECTED_NOT_SUITABLE' AND last_checked_at::date = CURRENT_DATE) AS rejected_today
+                FROM gem_discovered_tenders
+                GROUP BY keyword_matched
+            ) today ON LOWER(today.keyword_matched)=LOWER(k.keyword)
+            {where}
+            ORDER BY active DESC, keyword ASC
+            """
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def upsert_gem_search_keyword(keyword: str):
+    keyword = str(keyword or "").strip()
+    if not keyword:
+        raise ValueError("Keyword cannot be empty")
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO gem_search_keywords (keyword, active)
+               VALUES (%s, TRUE)
+               ON CONFLICT (keyword) DO UPDATE SET active=TRUE, updated_at=CURRENT_TIMESTAMP
+               RETURNING *""",
+            (keyword,),
+        )
+        row = dict(cur.fetchone())
+    conn.commit()
+    conn.close()
+    return row
+
+
+def update_gem_search_keyword(keyword_id: int, *, keyword=_UNSET, active=_UNSET):
+    updates = []
+    values = []
+    if keyword is not _UNSET:
+        text = str(keyword or "").strip()
+        if not text:
+            raise ValueError("Keyword cannot be empty")
+        updates.append("keyword=%s")
+        values.append(text)
+    if active is not _UNSET:
+        updates.append("active=%s")
+        values.append(bool(active))
+    if not updates:
+        return None
+    updates.append("updated_at=CURRENT_TIMESTAMP")
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"UPDATE gem_search_keywords SET {', '.join(updates)} WHERE id=%s RETURNING *",
+            values + [keyword_id],
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def delete_gem_search_keyword(keyword_id: int):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gem_search_keywords WHERE id=%s", (keyword_id,))
+        deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted > 0
+
+
+def touch_gem_search_keyword(keyword: str):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE gem_search_keywords SET last_scanned_at=CURRENT_TIMESTAMP WHERE LOWER(keyword)=LOWER(%s)",
+            (keyword,),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_gem_search_settings():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT key, value FROM gem_search_settings")
+        rows = cur.fetchall()
+    conn.close()
+    settings = {row["key"]: row["value"] for row in rows}
+    target_date = settings.get("scan_target_date") or datetime.now().strftime("%Y-%m-%d")
+    return {
+        "scanTargetDate": target_date,
+        "scanDateFrom": settings.get("scan_date_from") or target_date,
+        "scanDateTo": settings.get("scan_date_to") or target_date,
+        "searchDateMode": settings.get("search_date_mode") or "date",
+    }
+
+
+def update_gem_search_settings(*, scan_target_date=_UNSET, scan_date_from=_UNSET, scan_date_to=_UNSET, search_date_mode=_UNSET):
+    updates = {}
+    if scan_target_date is not _UNSET:
+        updates["scan_target_date"] = str(scan_target_date or "").strip()
+    if scan_date_from is not _UNSET:
+        updates["scan_date_from"] = str(scan_date_from or "").strip()
+    if scan_date_to is not _UNSET:
+        updates["scan_date_to"] = str(scan_date_to or "").strip()
+    if search_date_mode is not _UNSET:
+        updates["search_date_mode"] = str(search_date_mode or "date").strip() or "date"
+    if not updates:
+        return get_gem_search_settings()
+    conn = get_db()
+    with conn.cursor() as cur:
+        for key, value in updates.items():
+            cur.execute(
+                """INSERT INTO gem_search_settings (key, value, updated_at)
+                   VALUES (%s, %s, CURRENT_TIMESTAMP)
+                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP""",
+                (key, value),
+            )
+    conn.commit()
+    conn.close()
+    return get_gem_search_settings()
+
+
+def get_discovered_tender_by_bid(gem_bid_number: str):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO gem_discovered_tenders (
+                   gem_bid_number, keyword_matched, raw_title, raw_organisation, raw_department,
+                   raw_quantity, bid_start_date, bid_end_date, gem_pdf_url, raw_gem_data,
+                   source, action_taken, last_checked_at
+               ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)
+               ON CONFLICT (gem_bid_number) DO UPDATE SET
+                   keyword_matched=COALESCE(EXCLUDED.keyword_matched, gem_discovered_tenders.keyword_matched),
+                   raw_title=COALESCE(EXCLUDED.raw_title, gem_discovered_tenders.raw_title),
+                   raw_organisation=COALESCE(EXCLUDED.raw_organisation, gem_discovered_tenders.raw_organisation),
+                   raw_department=COALESCE(EXCLUDED.raw_department, gem_discovered_tenders.raw_department),
+                   raw_quantity=COALESCE(EXCLUDED.raw_quantity, gem_discovered_tenders.raw_quantity),
+                   bid_start_date=COALESCE(EXCLUDED.bid_start_date, gem_discovered_tenders.bid_start_date),
+                   bid_end_date=COALESCE(EXCLUDED.bid_end_date, gem_discovered_tenders.bid_end_date),
+                   gem_pdf_url=COALESCE(EXCLUDED.gem_pdf_url, gem_discovered_tenders.gem_pdf_url),
+                   raw_gem_data=COALESCE(EXCLUDED.raw_gem_data, gem_discovered_tenders.raw_gem_data),
+                   source=COALESCE(EXCLUDED.source, gem_discovered_tenders.source),
+                   last_checked_at=CURRENT_TIMESTAMP
+               RETURNING *""",
+            (
+                payload.get("gemBidNumber"),
+                payload.get("keywordMatched"),
+                payload.get("title"),
+                payload.get("organisation"),
+                payload.get("department"),
+                payload.get("quantity"),
+                payload.get("bidStartDate"),
+                payload.get("bidEndDate"),
+                payload.get("gemPdfUrl"),
+                psycopg2.extras.Json(payload.get("rawGemData") or {}),
+                payload.get("source") or "LOCAL_GEM_AGENT",
+                action_taken,
+            ),
+        )
+        row = dict(cur.fetchone())
+    conn.commit()
+    conn.close()
+    return row
+
+
+def update_discovered_tender(gem_bid_number: str, **fields):
+    if not fields:
+        return get_discovered_tender_by_bid(gem_bid_number)
+    json_fields = {"raw_gem_data", "extracted_data"}
+    set_parts = []
+    values = []
+    for key, value in fields.items():
+        set_parts.append(f"{key}=%s")
+        values.append(psycopg2.extras.Json(value) if key in json_fields else value)
+    set_parts.append("last_checked_at=CURRENT_TIMESTAMP")
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"UPDATE gem_discovered_tenders SET {', '.join(set_parts)} WHERE gem_bid_number=%s RETURNING *",
+            values + [gem_bid_number],
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_gem_discovered_tenders(keyword=None, action_taken=None, inserted=None, date_from=None, date_to=None):
+    where = []
+    values = []
+    if keyword:
+        where.append("LOWER(keyword_matched)=LOWER(%s)")
+        values.append(keyword)
+    if action_taken:
+        where.append("action_taken=%s")
+        values.append(action_taken)
+    if inserted is not None:
+        where.append("all_tender_id IS NOT NULL" if inserted else "all_tender_id IS NULL")
+    if date_from:
+        where.append("created_at::date >= %s")
+        values.append(date_from)
+    if date_to:
+        where.append("created_at::date <= %s")
+        values.append(date_to)
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"""SELECT * FROM gem_discovered_tenders
+                {where_sql}
+                ORDER BY last_checked_at DESC NULLS LAST, created_at DESC
+                LIMIT 500""",
+            values,
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_gem_search_dashboard_stats():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT
+                   COUNT(*) FILTER (WHERE created_at::date=CURRENT_DATE) AS discovered_today,
+                   COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date=CURRENT_DATE) AS inserted_today,
+                   COUNT(*) FILTER (WHERE action_taken='REJECTED_NOT_SUITABLE' AND last_checked_at::date=CURRENT_DATE) AS rejected_today,
+                   COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date=CURRENT_DATE) AS suitable_today
+               FROM gem_discovered_tenders"""
+        )
+        row = dict(cur.fetchone() or {})
+    conn.close()
+    return row
 
 
 def save_prepared_document_file(doc_id, file_data, file_name):

@@ -930,6 +930,37 @@ td input:focus { border-color: var(--blue-500); background: #fff; outline: none;
   gap:8px;
   margin-bottom:6px;
 }
+.result-detail-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:10px 14px;
+  padding:14px;
+  font-size:12px;
+}
+.result-detail-field {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:8px 10px;
+  border:1px solid var(--slate-100);
+  border-radius:10px;
+  background:#fff;
+}
+.result-detail-label {
+  color:var(--slate-500);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.result-detail-value {
+  color:var(--slate-800);
+  font-weight:600;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
 @media (max-width: 900px) {
   .result-summary-grid { grid-template-columns:1fr; }
 }
@@ -1457,13 +1488,17 @@ body.col-resizing { cursor:col-resize !important; }
     <img src="/logo%20FIAPL.png" alt="FIAPL" style="height:32px;width:auto;object-fit:contain;">
   </div>
 
-  <div class="nav-item active" id="nav-upload" onclick="showView('upload')">
+  <div class="nav-item" id="nav-upload" onclick="showView('upload')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
     Upload &amp; Evaluate
   </div>
   <div class="nav-item" id="nav-list" onclick="showView('list')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
     All Tenders
+  </div>
+  <div class="nav-item active" id="nav-gem-local-agent" onclick="showView('gem-local-agent')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    GeM Local Agent
   </div>
   <div class="nav-item" id="nav-portals-legacy" onclick="openPortalsModal()" style="display:none">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/></svg>
@@ -1549,7 +1584,7 @@ body.col-resizing { cursor:col-resize !important; }
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <!-- UPLOAD VIEW                                                             -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="view active" id="view-upload">
+<div class="view" id="view-upload">
   <div style="max-width:1280px;margin:0 auto;padding-top:8px">
     <!-- Upload Zone -->
     <div id="uploadZone" onclick="document.getElementById('unifiedFileInput').click()">
@@ -2380,6 +2415,76 @@ body.col-resizing { cursor:col-resize !important; }
   </div>
 </div>
 
+<div class="view active" id="view-gem-local-agent">
+  <div style="max-width:1180px;margin:0 auto;display:grid;gap:16px">
+    <div class="card">
+      <div class="card-header">GeM Local Search</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Keyword Search</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="localGemKeywordInput" list="localGemKeywordOptions" placeholder="Type new keyword or choose saved keyword" style="flex:1;min-width:240px">
+            <datalist id="localGemKeywordOptions"></datalist>
+            <button class="btn btn-primary btn-sm" onclick="saveLocalGemKeyword()">Save Keyword</button>
+            <button class="btn btn-success btn-sm" id="localGemRunKeywordBtn" onclick="runLocalGemAgentNow(true)">Search This Keyword</button>
+          </div>
+        </div>
+        <div class="form-group full" style="position:relative;max-width:360px">
+          <label>Search Date</label>
+          <input type="hidden" id="localGemScanDate">
+          <input type="hidden" id="localGemScanDateFrom">
+          <input type="hidden" id="localGemScanDateTo">
+          <button type="button" class="btn btn-outline btn-sm" id="localGemDatePickerBtn" onclick="toggleLocalGemCalendar(event)" style="width:100%;justify-content:space-between;padding:9px 12px">
+            <span id="localGemDateLabel">Choose date</span>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400);flex-shrink:0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0120.25 6.75v12A1.5 1.5 0 0118.75 20.25H5.25A1.5 1.5 0 013.75 18.75v-12A1.5 1.5 0 015.25 5.25z"/>
+            </svg>
+          </button>
+          <div id="localGemCalendarMenu" style="display:none;position:absolute;z-index:5000;top:64px;left:0;background:#fff;border:1px solid var(--slate-200);border-radius:10px;box-shadow:0 14px 36px rgba(15,23,42,.16);padding:11px 12px 10px" onclick="event.stopPropagation()">
+            <div id="localGemCalendarWidget"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="saveLocalGemConfig()">Save Search Settings</button>
+        <button class="btn btn-success btn-sm" id="localGemRunAllBtn" onclick="runLocalGemAgentNow()">Run Search Now</button>
+        <button class="btn btn-outline btn-sm" onclick="loadLocalGemAgentPage()">Refresh</button>
+        <span class="muted-small" id="localGemRunHelp">Run the local agent from the office PC to search GeM.</span>
+      </div>
+      <div id="localGemRunStatus" class="muted-small" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Saved Keywords</div>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr><th>Keyword</th><th>Status</th><th>Found Today</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="localGemKeywordsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <span>Discovered Tenders</span>
+        <button class="btn btn-outline btn-sm" onclick="loadLocalGemDiscovered()">Refresh</button>
+      </div>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>GeM Bid No</th><th>Keyword</th><th>Title</th><th>Buyer</th><th>Bid End</th><th>Score</th><th>Decision</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="localGemDiscoveredBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="view" id="view-gem-result-debug">
   <div style="max-width:1180px;margin:0 auto;display:grid;gap:18px">
     <div class="workflow-page-hero">
@@ -2561,6 +2666,7 @@ const PAGE_TITLES = {
   profile:'Company Profile',
   reports:'Reports',
   'tender-portals': 'Tender Portals',
+  'gem-local-agent': 'GeM Local Agent',
   'gem-watcher':    'GeM Tender Watcher',
   'gem-review-candidates': 'Review Tenders',
   'gem-rejected-candidates': 'Rejected Tenders',
@@ -2573,6 +2679,7 @@ const PAGE_ACTIONS = {
   profile: '<button class="btn btn-success btn-sm" onclick="saveProfile()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Save Profile</button>',
   reports: '',
   'tender-portals': '',
+  'gem-local-agent': '',
   'gem-watcher': '',
   'gem-candidates': '',
   'gem-result-debug': '',
@@ -3942,6 +4049,7 @@ function showView(name) {
   if (effectiveName === 'profile') loadProfile();
   if (effectiveName === 'reports') loadReports();
   if (effectiveName === 'tender-portals') loadTenderPortals();
+  if (effectiveName === 'gem-local-agent') loadLocalGemAgentPage();
   if (effectiveName === 'upload') {
     loadUnifiedWorkflow();
   }
@@ -3951,6 +4059,321 @@ function showView(name) {
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
+async function loadLocalGemAgentPage() {
+  await Promise.all([loadLocalGemConfig(), loadLocalGemKeywords(), loadLocalGemDiscovered()]);
+}
+
+let localGemDateFrom = '';
+let localGemDateTo = '';
+let localGemCalPickFrom = true;
+let localGemCalYear = new Date().getFullYear();
+let localGemCalMonth = new Date().getMonth();
+
+function formatLocalGemDateLabel() {
+  const fmt = ds => ds ? ds.split('-').reverse().join('-') : '';
+  if (localGemDateFrom && localGemDateTo) return `${fmt(localGemDateFrom)} to ${fmt(localGemDateTo)}`;
+  if (localGemDateFrom) return fmt(localGemDateFrom);
+  return 'Choose date';
+}
+
+function syncLocalGemDateInputs() {
+  const single = document.getElementById('localGemScanDate');
+  const from = document.getElementById('localGemScanDateFrom');
+  const to = document.getElementById('localGemScanDateTo');
+  const label = document.getElementById('localGemDateLabel');
+  if (single) single.value = localGemDateFrom || '';
+  if (from) from.value = localGemDateFrom || '';
+  if (to) to.value = localGemDateTo || '';
+  if (label) label.textContent = formatLocalGemDateLabel();
+}
+
+function toggleLocalGemCalendar(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById('localGemCalendarMenu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' || !menu.style.display ? 'block' : 'none';
+  renderLocalGemCalendar();
+}
+
+document.addEventListener('click', (event) => {
+  const menu = document.getElementById('localGemCalendarMenu');
+  const btn = document.getElementById('localGemDatePickerBtn');
+  if (!menu || menu.style.display === 'none') return;
+  if (menu.contains(event.target) || btn?.contains(event.target)) return;
+  menu.style.display = 'none';
+});
+
+function navLocalGemCalendar(delta) {
+  localGemCalMonth += delta;
+  if (localGemCalMonth < 0) { localGemCalMonth = 11; localGemCalYear -= 1; }
+  if (localGemCalMonth > 11) { localGemCalMonth = 0; localGemCalYear += 1; }
+  renderLocalGemCalendar();
+}
+
+function selectLocalGemCalendarDate(ds) {
+  if (localGemCalPickFrom) {
+    localGemDateFrom = ds;
+    if (localGemDateTo && localGemDateTo < localGemDateFrom) localGemDateTo = '';
+    localGemCalPickFrom = false;
+  } else {
+    if (localGemDateFrom && ds < localGemDateFrom) {
+      localGemDateTo = localGemDateFrom;
+      localGemDateFrom = ds;
+    } else {
+      localGemDateTo = ds;
+    }
+    localGemCalPickFrom = true;
+  }
+  syncLocalGemDateInputs();
+  renderLocalGemCalendar();
+}
+
+function clearLocalGemCalendar() {
+  localGemDateFrom = '';
+  localGemDateTo = '';
+  localGemCalPickFrom = true;
+  syncLocalGemDateInputs();
+  renderLocalGemCalendar();
+}
+
+function renderLocalGemCalendar() {
+  const el = document.getElementById('localGemCalendarWidget');
+  if (!el) return;
+  const today = new Date();
+  const todayStr = _dateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const firstDow = new Date(localGemCalYear, localGemCalMonth, 1).getDay();
+  const daysInMonth = new Date(localGemCalYear, localGemCalMonth + 1, 0).getDate();
+  const fmtD = ds => ds ? ds.slice(5).replace('-', '/') : '-';
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-day cal-other"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = _dateStr(localGemCalYear, localGemCalMonth + 1, d);
+    let cls = 'cal-day';
+    const isFrom = ds === localGemDateFrom;
+    const isTo = ds === localGemDateTo;
+    const inRange = localGemDateFrom && localGemDateTo && ds > localGemDateFrom && ds < localGemDateTo;
+    if (isFrom && isTo) cls += ' cal-range-start cal-range-end';
+    else if (isFrom) cls += ' cal-range-start';
+    else if (isTo) cls += ' cal-range-end';
+    else if (inRange) cls += ' cal-range-mid';
+    else if (ds === todayStr) cls += ' cal-today';
+    cells += `<div class="${cls}" onclick="selectLocalGemCalendarDate('${ds}')">${d}</div>`;
+  }
+  el.innerHTML = `
+    <div class="cal-pick-row">
+      <button type="button" class="cal-pick-btn${localGemCalPickFrom ? ' picking' : ''}" onclick="localGemCalPickFrom=true;renderLocalGemCalendar()">From<br><b>${fmtD(localGemDateFrom)}</b></button>
+      <span class="cal-pick-arr">&#8594;</span>
+      <button type="button" class="cal-pick-btn${!localGemCalPickFrom ? ' picking' : ''}" onclick="localGemCalPickFrom=false;renderLocalGemCalendar()">To<br><b>${fmtD(localGemDateTo)}</b></button>
+    </div>
+    <div class="cal-header">
+      <button type="button" class="cal-nav" onclick="navLocalGemCalendar(-1)">&#8249;</button>
+      <span class="cal-month-label">${_CAL_MONTHS[localGemCalMonth]} ${localGemCalYear}</span>
+      <button type="button" class="cal-nav" onclick="navLocalGemCalendar(1)">&#8250;</button>
+    </div>
+    <div class="cal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-clear" onclick="clearLocalGemCalendar()">Clear dates</div>
+  `;
+}
+
+function setLocalGemRunnerAvailability(enabled) {
+  const runAllBtn = document.getElementById('localGemRunAllBtn');
+  const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
+  const help = document.getElementById('localGemRunHelp');
+  [runAllBtn, runKeywordBtn].forEach(btn => {
+    if (!btn) return;
+    btn.style.display = enabled ? '' : 'none';
+  });
+  if (help) {
+    help.textContent = enabled
+      ? 'Runs the local agent on this PC.'
+      : 'Live mode: run gem-local-agent on the office PC to search GeM using local IP.';
+  }
+}
+
+async function loadLocalGemConfig() {
+  const dateInput = document.getElementById('localGemScanDate');
+  const fromInput = document.getElementById('localGemScanDateFrom');
+  const toInput = document.getElementById('localGemScanDateTo');
+  if (!dateInput) return;
+  try {
+    const res = await fetch('/api/gem-search/admin/config');
+    if (!res.ok) throw new Error('Failed to load scan date');
+    const config = await res.json();
+    localGemDateFrom = config.searchDateMode === 'range' ? (config.scanDateFrom || '') : (config.scanTargetDate || new Date().toISOString().slice(0, 10));
+    localGemDateTo = config.searchDateMode === 'range' ? (config.scanDateTo || '') : '';
+    if (localGemDateFrom) {
+      const parts = localGemDateFrom.split('-').map(Number);
+      if (parts.length === 3) { localGemCalYear = parts[0]; localGemCalMonth = parts[1] - 1; }
+    }
+    syncLocalGemDateInputs();
+    setLocalGemRunnerAvailability(Boolean(config.localAgentRunnerEnabled));
+  } catch (err) {
+    toast(err.message || 'Could not load scan date', 'error');
+  }
+}
+
+async function saveLocalGemConfig() {
+  const scanTargetDate = document.getElementById('localGemScanDate')?.value;
+  const scanDateFrom = document.getElementById('localGemScanDateFrom')?.value;
+  const scanDateTo = document.getElementById('localGemScanDateTo')?.value;
+  const hasRange = Boolean(scanDateFrom && scanDateTo);
+  const searchDateMode = hasRange ? 'range' : 'date';
+  if (searchDateMode === 'date' && !scanTargetDate) return toast('Choose a scan date first', 'error');
+  const res = await fetch('/api/gem-search/admin/config', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({scanTargetDate, scanDateFrom, scanDateTo, searchDateMode}),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return toast(data.detail || 'Could not save scan date', 'error');
+  }
+  toast('Scan date saved', 'success');
+  await loadLocalGemConfig();
+}
+
+async function loadLocalGemKeywords() {
+  const body = document.getElementById('localGemKeywordsBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="4" style="padding:18px;color:var(--slate-400)">Loading...</td></tr>';
+  try {
+    const res = await fetch('/api/gem-search/admin/keywords');
+    if (!res.ok) throw new Error('Failed to load keywords');
+    const rows = await res.json();
+    const options = document.getElementById('localGemKeywordOptions');
+    if (options) options.innerHTML = rows.map(k => `<option value="${esc(k.keyword || '')}"></option>`).join('');
+    body.innerHTML = rows.length ? rows.map(k => `<tr>
+      <td><input class="record-input" value="${esc(k.keyword || '')}" data-local-gem-keyword="${k.id}"></td>
+      <td><span class="badge ${k.active ? 'badge-success' : 'badge-slate'}">${k.active ? 'Active' : 'Inactive'}</span></td>
+      <td>${esc(k.new_tenders_found_today || 0)}</td>
+      <td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="updateLocalGemKeyword(${k.id}, ${k.active ? 'false' : 'true'})">${k.active ? 'Pause' : 'Activate'}</button> <button class="btn btn-outline btn-xs" onclick="renameLocalGemKeyword(${k.id})">Save</button> <button class="btn btn-danger btn-xs" onclick="deleteLocalGemKeyword(${k.id})">Delete</button></td>
+    </tr>`).join('') : '<tr><td colspan="4" style="padding:18px;color:var(--slate-400)">No keywords yet.</td></tr>';
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="4" style="padding:18px;color:var(--red-600)">${esc(err.message)}</td></tr>`;
+  }
+}
+
+async function saveLocalGemKeyword() {
+  const input = document.getElementById('localGemKeywordInput');
+  const keyword = input?.value?.trim();
+  if (!keyword) return toast('Enter a keyword first', 'error');
+  const res = await fetch('/api/gem-search/admin/keywords', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({keyword}) });
+  if (!res.ok) return toast('Could not save keyword', 'error');
+  input.value = '';
+  toast('Keyword saved', 'success');
+  await loadLocalGemKeywords();
+}
+
+async function runLocalGemAgentNow(useTypedKeyword = false) {
+  const status = document.getElementById('localGemRunStatus');
+  const runAllBtn = document.getElementById('localGemRunAllBtn');
+  const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
+  const keyword = useTypedKeyword ? (document.getElementById('localGemKeywordInput')?.value?.trim() || '') : '';
+  if (useTypedKeyword && !keyword) return toast('Enter a keyword to add and run', 'error');
+
+  await saveLocalGemConfig();
+  if (status) status.textContent = useTypedKeyword ? `Searching ${keyword}...` : 'Searching active keywords...';
+  if (runAllBtn) runAllBtn.disabled = true;
+  if (runKeywordBtn) runKeywordBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/gem-search/admin/run-local-agent', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keyword}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Local agent run failed');
+    const summaryMatch = String(data.output || '').match(/\{\s*"keywords"[\s\S]*?\}\s*$/);
+    if (status) status.textContent = summaryMatch ? `Search complete: ${summaryMatch[0]}` : 'Search complete. Refreshing results...';
+    toast('GeM search complete', 'success');
+    if (useTypedKeyword) document.getElementById('localGemKeywordInput').value = '';
+    await Promise.all([loadLocalGemKeywords(), loadLocalGemDiscovered()]);
+  } catch (err) {
+    if (status) status.textContent = err.message || 'Local agent run failed';
+    toast(err.message || 'Local agent run failed', 'error');
+  } finally {
+    if (runAllBtn) runAllBtn.disabled = false;
+    if (runKeywordBtn) runKeywordBtn.disabled = false;
+  }
+}
+
+async function updateLocalGemKeyword(id, active) {
+  const res = await fetch(`/api/gem-search/admin/keywords/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({active}) });
+  if (!res.ok) return toast('Could not update keyword', 'error');
+  await loadLocalGemKeywords();
+}
+
+async function renameLocalGemKeyword(id) {
+  const input = document.querySelector(`[data-local-gem-keyword="${id}"]`);
+  const keyword = input?.value?.trim();
+  if (!keyword) return toast('Keyword cannot be blank', 'error');
+  const res = await fetch(`/api/gem-search/admin/keywords/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({keyword}) });
+  if (!res.ok) return toast('Could not rename keyword', 'error');
+  toast('Keyword updated', 'success');
+  await loadLocalGemKeywords();
+}
+
+async function deleteLocalGemKeyword(id) {
+  if (!confirm('Delete this GeM search keyword?')) return;
+  const res = await fetch(`/api/gem-search/admin/keywords/${id}`, {method: 'DELETE'});
+  if (!res.ok) return toast('Could not delete keyword', 'error');
+  await loadLocalGemKeywords();
+}
+
+async function loadLocalGemDiscovered() {
+  const body = document.getElementById('localGemDiscoveredBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">Loading...</td></tr>';
+  const params = new URLSearchParams();
+  try {
+    const res = await fetch(`/api/gem-search/discovered-tenders?${params.toString()}`);
+    if (!res.ok) throw new Error('Failed to load discovered tenders');
+    const rows = await res.json();
+    body.innerHTML = rows.length ? rows.map(r => {
+      const score = Number(r.evaluation_score);
+      let decision = 'Pending';
+      let decisionBadge = 'badge-slate';
+      if (r.evaluation_decision === 'NOT_RECOMMENDED' || r.action_taken === 'REJECTED_NOT_SUITABLE') {
+        decision = 'Do Not Bid';
+        decisionBadge = 'badge-danger';
+      } else if (r.evaluation_decision === 'RECOMMENDED' && Number.isFinite(score) && score >= 8.5) {
+        decision = 'Strongly Bid';
+        decisionBadge = 'badge-success';
+      } else if (r.evaluation_decision === 'RECOMMENDED') {
+        decision = 'Bid After Checking';
+        decisionBadge = 'badge-info';
+      }
+      return `<tr>
+        <td>${esc(r.gem_bid_number || '')}</td><td>${esc(r.keyword_matched || '')}</td><td title="${esc(r.raw_title || '')}">${esc(r.raw_title || '')}</td>
+        <td>${esc(r.raw_organisation || r.raw_department || '')}</td><td>${esc(r.bid_end_date || '')}</td>
+        <td>${r.evaluation_score != null ? `<span class="badge badge-info">${esc(r.evaluation_score)}/10</span>` : '<span class="muted-small">Pending</span>'}</td>
+        <td><span class="badge ${decisionBadge}">${esc(decision)}</span></td>
+        <td><span class="badge ${r.action_taken === 'INSERTED_TO_ALL_TENDERS' ? 'badge-success' : r.action_taken === 'REJECTED_NOT_SUITABLE' ? 'badge-danger' : 'badge-slate'}">${esc(r.all_tender_id ? 'Inserted' : (r.action_taken || 'Discovered'))}</span></td>
+        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">No discovered tenders yet.</td></tr>';
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="9" style="padding:18px;color:var(--red-600)">${esc(err.message)}</td></tr>`;
+  }
+}
+
+async function reEvaluateLocalGemTender(bid) {
+  const res = await fetch(`/api/gem-search/discovered-tenders/${encodeURIComponent(bid)}/re-evaluate`, {method: 'POST'});
+  if (!res.ok) return toast('Re-evaluation failed', 'error');
+  toast('Re-evaluated', 'success');
+  await loadLocalGemAgentPage();
+}
+
+async function manualInsertLocalGemTender(bid) {
+  if (!confirm('Manually insert this discovered tender into All Tenders?')) return;
+  const res = await fetch(`/api/gem-search/discovered-tenders/${encodeURIComponent(bid)}/manual-insert`, {method: 'POST'});
+  if (!res.ok) return toast('Manual insert failed', 'error');
+  toast('Inserted into All Tenders', 'success');
+  await loadLocalGemAgentPage();
+}
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -4552,6 +4975,12 @@ async function renderExpandResultsSummary(tenderId, content) {
     const data = await loadExpandResultDetails(tenderId);
     const summary = data.summary || {};
     const history = data.history || [];
+    const resultField = (label, value) => `
+      <div class="result-detail-field">
+        <div class="result-detail-label">${esc(label)}</div>
+        <div class="result-detail-value">${esc(value ?? '')}</div>
+      </div>
+    `;
     const raBanner = summary.current_source_type === 'RA' && summary.current_bid_or_ra_number
       ? `<div class="badge badge-warning" style="margin:10px 12px 0;display:inline-flex">Tender revised to RA: ${esc(summary.current_bid_or_ra_number)}</div>`
       : '';
@@ -4559,24 +4988,24 @@ async function renderExpandResultsSummary(tenderId, content) {
     content.innerHTML = `
       ${raBanner}
       <div class="table-card" style="margin:10px 12px">
-        <div style="padding:14px;font-size:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-          <div><strong>Current Stage:</strong> ${esc(summary.current_stage || 'NOT_CHECKED')}</div>
-          <div><strong>Current Source:</strong> ${esc(summary.current_source_type || 'BID')}</div>
-          <div><strong>Current Number:</strong> ${esc(summary.current_bid_or_ra_number || '')}</div>
-          <div><strong>Bid Result Available:</strong> ${summary.bid_result_available ? 'Yes' : 'No'}</div>
-          <div><strong>Bid Technical Available:</strong> ${summary.bid_technical_available ? 'Yes' : 'No'}</div>
-          <div><strong>Bid Financial Available:</strong> ${summary.bid_financial_available ? 'Yes' : 'No'}</div>
-          <div><strong>RA Created:</strong> ${summary.ra_created ? 'Yes' : 'No'}</div>
-          <div><strong>RA Result Available:</strong> ${summary.ra_result_available ? 'Yes' : 'No'}</div>
-          <div><strong>RA Technical Available:</strong> ${summary.ra_technical_available ? 'Yes' : 'No'}</div>
-          <div><strong>RA Financial Available:</strong> ${summary.ra_financial_available ? 'Yes' : 'No'}</div>
-          <div><strong>Our Company Participated:</strong> ${summary.our_company_participated ? 'Yes' : 'No'}</div>
-          <div><strong>Our Company Technical Status:</strong> ${esc(summary.our_company_technical_status || '')}</div>
-          <div><strong>Our Company Financial Rank:</strong> ${esc(summary.our_company_financial_rank || '')}</div>
-          <div><strong>Our Company Final Price:</strong> ${esc(summary.our_company_final_price || '')}</div>
-          <div><strong>Last Checked:</strong> ${esc(summary.last_checked_at || '')}</div>
-          <div><strong>Last Successful Parse:</strong> ${esc(summary.last_successful_parse_at || '')}</div>
-          <div><strong>Result Detail Note:</strong> ${esc(summary.parse_error || '')}</div>
+        <div class="result-detail-grid">
+          ${resultField('Current Stage', summary.current_stage || 'NOT_CHECKED')}
+          ${resultField('Current Source', summary.current_source_type || 'BID')}
+          ${resultField('Current Number', summary.current_bid_or_ra_number || '')}
+          ${resultField('Bid Result Available', summary.bid_result_available ? 'Yes' : 'No')}
+          ${resultField('Bid Technical Available', summary.bid_technical_available ? 'Yes' : 'No')}
+          ${resultField('Bid Financial Available', summary.bid_financial_available ? 'Yes' : 'No')}
+          ${resultField('RA Created', summary.ra_created ? 'Yes' : 'No')}
+          ${resultField('RA Result Available', summary.ra_result_available ? 'Yes' : 'No')}
+          ${resultField('RA Technical Available', summary.ra_technical_available ? 'Yes' : 'No')}
+          ${resultField('RA Financial Available', summary.ra_financial_available ? 'Yes' : 'No')}
+          ${resultField('Our Company Participated', summary.our_company_participated ? 'Yes' : 'No')}
+          ${resultField('Our Company Technical Status', summary.our_company_technical_status || '')}
+          ${resultField('Our Company Financial Rank', summary.our_company_financial_rank || '')}
+          ${resultField('Our Company Final Price', summary.our_company_final_price || '')}
+          ${resultField('Last Checked', summary.last_checked_at || '')}
+          ${resultField('Last Successful Parse', summary.last_successful_parse_at || '')}
+          ${resultField('Result Detail Note', summary.parse_error || '')}
         </div>
       </div>
       <div class="table-card" style="margin:10px 12px">
@@ -7209,12 +7638,13 @@ function startNotificationPolling() {
 (function bootstrapInitialView() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/gem-watcher') { setTimeout(() => showView('gem-watcher'), 0); return; }
+  if (path === '/gem-local-agent') { setTimeout(() => showView('gem-local-agent'), 0); return; }
   if (path === '/gem-result-debug') { setTimeout(() => showView('gem-result-debug'), 0); return; }
   if (path === '/gem-candidates') { setTimeout(() => showView('gem-candidates'), 0); return; }
   if (path === '/gem-review-candidates') { setTimeout(() => showView('gem-review-candidates'), 0); return; }
   if (path === '/gem-rejected-candidates') { setTimeout(() => showView('gem-rejected-candidates'), 0); return; }
   if (path === '/tender-portals') { setTimeout(() => showView('tender-portals'), 0); return; }
-  setTimeout(() => showView('upload'), 0);
+  setTimeout(() => showView('gem-local-agent'), 0);
 })();
 loadStartupDeadlineReminder();
 

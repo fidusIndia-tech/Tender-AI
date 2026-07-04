@@ -7,6 +7,8 @@ import asyncio
 import os
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -16,8 +18,11 @@ from pathlib import Path
 from typing import Any, List, Optional
 from urllib.parse import quote, urlparse
 from dotenv import load_dotenv
-load_dotenv()
 
+HERE = Path(__file__).parent
+load_dotenv(HERE / ".env")
+
+import httpx
 from cryptography.fernet import Fernet, InvalidToken
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
@@ -26,25 +31,40 @@ from fastapi.responses import FileResponse, JSONResponse, Response, RedirectResp
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-import database
-import ai_extractor
-import doc_matcher
-import doc_generator
-from evaluation import evaluate_tender_against_capability
-from gem_watcher.routes import router as gem_watcher_router
-from result_watcher import (
-    check_tender_result,
-    debug_gem_exact_result_search,
-    ingest_gem_result,
-    ingest_gem_result_error,
-    ingest_gem_result_from_agent,
-    list_pending_result_watcher_tenders,
-    list_recheck_result_watcher_tenders,
-    run_result_watcher_for_eligible_tenders,
-    start_result_watcher_scheduler,
-)
+try:
+    from . import database, ai_extractor, doc_matcher, doc_generator
+    from .evaluation import evaluate_tender_against_capability
+    from .gem_watcher.routes import router as gem_watcher_router
+    from .result_watcher import (
+        check_tender_result,
+        debug_gem_exact_result_search,
+        ingest_gem_result,
+        ingest_gem_result_error,
+        ingest_gem_result_from_agent,
+        list_pending_result_watcher_tenders,
+        list_recheck_result_watcher_tenders,
+        run_result_watcher_for_eligible_tenders,
+        start_result_watcher_scheduler,
+    )
+except ImportError:
+    import database
+    import ai_extractor
+    import doc_matcher
+    import doc_generator
+    from evaluation import evaluate_tender_against_capability
+    from gem_watcher.routes import router as gem_watcher_router
+    from result_watcher import (
+        check_tender_result,
+        debug_gem_exact_result_search,
+        ingest_gem_result,
+        ingest_gem_result_error,
+        ingest_gem_result_from_agent,
+        list_pending_result_watcher_tenders,
+        list_recheck_result_watcher_tenders,
+        run_result_watcher_for_eligible_tenders,
+        start_result_watcher_scheduler,
+    )
 
-HERE = Path(__file__).parent
 UPLOADS_DIR     = HERE / "uploads"
 EXTRACTIONS_DIR = HERE / "extractions"
 COMPANY_DOCS_DIR = HERE / "company_docs"
@@ -114,6 +134,17 @@ def _require_watcher_or_admin(request: Request) -> dict:
     if expected and scheme.lower() == "bearer" and hmac.compare_digest(token.strip(), expected):
         return {"role": "watcher", "sub": "local-agent"}
     return _require_admin(request)
+
+
+def _require_local_gem_agent(request: Request) -> dict:
+    if os.environ.get("ENABLE_LOCAL_GEM_AGENT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+        raise HTTPException(403, "Local GeM agent ingestion is disabled")
+    expected = os.environ.get("LOCAL_AGENT_API_KEY", "").strip()
+    auth = request.headers.get("Authorization", "")
+    scheme, _, token = auth.partition(" ")
+    if not expected or scheme.lower() != "bearer" or not hmac.compare_digest(token.strip(), expected):
+        raise HTTPException(401, "Invalid local agent API key")
+    return {"role": "local-gem-agent", "sub": "local-gem-agent"}
 
 
 def _normalize_portal_url(url: Optional[str]) -> Optional[str]:
@@ -408,6 +439,40 @@ class CompanyCapabilityProfilePayload(BaseModel):
     past_orders_projects: Optional[str] = None
 
 
+class GemSearchKeywordCreate(BaseModel):
+    keyword: str
+
+
+class GemSearchKeywordUpdate(BaseModel):
+    keyword: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class GemSearchConfigUpdate(BaseModel):
+    scanTargetDate: Optional[str] = None
+    scanDateFrom: Optional[str] = None
+    scanDateTo: Optional[str] = None
+    searchDateMode: Optional[str] = "date"
+
+
+class GemSearchRunRequest(BaseModel):
+    keyword: Optional[str] = None
+
+
+class LocalGemDiscoveredTenderPayload(BaseModel):
+    gemBidNumber: str
+    title: Optional[str] = None
+    organisation: Optional[str] = None
+    department: Optional[str] = None
+    quantity: Optional[str] = None
+    bidStartDate: Optional[str] = None
+    bidEndDate: Optional[str] = None
+    keywordMatched: Optional[str] = None
+    gemPdfUrl: Optional[str] = None
+    source: Optional[str] = "LOCAL_GEM_AGENT"
+    rawGemData: dict[str, Any] = Field(default_factory=dict)
+
+
 # ── Tender Upload & Extraction ────────────────────────────────────────────────
 
 @app.post("/api/tenders/upload")
@@ -583,6 +648,182 @@ async def evaluate_extracted_tender(payload: TenderPayload):
     tender["required_documents"] = [d.model_dump() for d in payload.required_documents]
     capability = database.get_company_capability_profile()
     return evaluate_tender_against_capability(tender, capability)
+
+
+def _normalize_local_gem_bid(value: str) -> str:
+    text = str(value or "").strip().upper()
+    if not re.fullmatch(r"GEM/\d{4}/B/\d+", text):
+        raise HTTPException(422, "gemBidNumber must look like GEM/2026/B/1234567")
+    return text
+
+
+def _metadata_tender_from_local_payload(payload: LocalGemDiscoveredTenderPayload, file_id: str | None = None, extracted: dict | None = None):
+    raw = extracted or {}
+    ti = raw.get("tender_information") or {}
+    data = dict(ti)
+    data["gem_bidding_number"] = payload.gemBidNumber
+    data["tender_number"] = data.get("tender_number") or payload.gemBidNumber
+    data["date"] = data.get("date") or datetime.now().strftime("%d-%m-%Y")
+    data["department_name"] = data.get("department_name") or payload.department
+    data["organization_name"] = data.get("organization_name") or payload.organisation
+    data["total_quantity"] = data.get("total_quantity") or payload.quantity
+    data["bid_end_datetime"] = data.get("bid_end_datetime") or payload.bidEndDate
+    data["bid_opening_datetime"] = data.get("bid_opening_datetime")
+    data["make"] = data.get("make") or payload.title
+    data["pdf_path"] = f"/files/{file_id}" if file_id else None
+    data["extraction_json_path"] = None
+    items = raw.get("items") or []
+    if not items:
+        items = [{"part_number": "", "item_description": payload.title or payload.gemBidNumber, "quantity": payload.quantity or ""}]
+    docs = raw.get("required_documents") or []
+    documents = [{"label": d} if isinstance(d, str) else d for d in docs]
+    return data, items, documents
+
+
+def _download_local_gem_pdf(url: str, gem_bid_number: str):
+    if not url:
+        return None, None
+    with httpx.Client(timeout=45, follow_redirects=True) as client:
+        response = client.get(url)
+        response.raise_for_status()
+        content_type = response.headers.get("content-type", "application/pdf")
+        if "pdf" not in content_type.lower() and not response.content[:4] == b"%PDF":
+            raise RuntimeError(f"GeM PDF URL did not return a PDF content-type={content_type}")
+        file_id = str(uuid.uuid4())
+        safe_bid = re.sub(r"[^A-Za-z0-9_.-]+", "_", gem_bid_number)
+        database.save_uploaded_file(
+            file_id=file_id,
+            file_name=f"{file_id}_{safe_bid}.pdf",
+            original_name=f"{safe_bid}.pdf",
+            content_type="application/pdf",
+            file_size=len(response.content),
+            file_data=response.content,
+            file_category="tender_pdf",
+        )
+        return file_id, response.content
+
+
+def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry_run: bool):
+    gem_bid = _normalize_local_gem_bid(payload.gemBidNumber)
+    payload.gemBidNumber = gem_bid
+    duplicate = database.find_tender_duplicate(gem_bid, gem_bid)
+    if duplicate:
+        if not dry_run:
+            database.upsert_discovered_tender(payload.model_dump(), action_taken="DUPLICATE_ALREADY_EXISTS")
+            database.update_discovered_tender(
+                gem_bid,
+                action_taken="DUPLICATE_ALREADY_EXISTS",
+                all_tender_id=duplicate["id"],
+                evaluation_reason="Tender already exists in All Tenders.",
+            )
+        return {
+            "gemBidNumber": gem_bid,
+            "action": "DUPLICATE_ALREADY_EXISTS",
+            "reason": "Tender already exists",
+            "allTenderId": duplicate["id"],
+        }
+
+    existing = database.get_discovered_tender_by_bid(gem_bid)
+    if existing and existing.get("action_taken") in {"REJECTED_NOT_SUITABLE", "INSERTED_TO_ALL_TENDERS"}:
+        if not dry_run:
+            database.update_discovered_tender(gem_bid)
+        return {
+            "gemBidNumber": gem_bid,
+            "action": "DUPLICATE_ALREADY_EXISTS",
+            "evaluationScore": float(existing.get("evaluation_score") or 0),
+            "decision": existing.get("evaluation_decision"),
+            "reason": existing.get("evaluation_reason") or "Tender was already processed",
+        }
+
+    if not dry_run:
+        database.upsert_discovered_tender(payload.model_dump(), action_taken="DISCOVERED")
+        if payload.keywordMatched:
+            database.touch_gem_search_keyword(payload.keywordMatched)
+
+    file_id = None
+    extracted = {}
+    extraction_error = None
+    if payload.gemPdfUrl and not dry_run:
+        try:
+            file_id, pdf_bytes = _download_local_gem_pdf(payload.gemPdfUrl, gem_bid)
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                tmp.write(pdf_bytes)
+                tmp_path = tmp.name
+            try:
+                extracted = ai_extractor.process_pdf(tmp_path)
+                json_path = EXTRACTIONS_DIR / f"{file_id}.json"
+                json_path.write_text(json.dumps(extracted, indent=2, ensure_ascii=False), encoding="utf-8")
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+        except Exception as exc:
+            extraction_error = f"{type(exc).__name__}: {exc}"
+
+    data, items, documents = _metadata_tender_from_local_payload(payload, file_id=file_id, extracted=extracted)
+    data["extraction_json_path"] = str(EXTRACTIONS_DIR / f"{file_id}.json") if file_id and extracted else None
+    tender_for_eval = dict(data)
+    tender_for_eval["boq_items"] = items
+    tender_for_eval["required_documents"] = documents
+    capability = database.get_company_capability_profile()
+    try:
+        evaluation = evaluate_tender_against_capability(tender_for_eval, capability)
+        score = round(float(evaluation.get("score") or 0) / 10, 1)
+        decision = "RECOMMENDED" if score >= 8 or evaluation.get("decision") == "BID" else "NOT_RECOMMENDED"
+        reason = evaluation.get("summary") or "; ".join(evaluation.get("strengths") or evaluation.get("risks") or []) or "Evaluated."
+    except Exception as exc:
+        if not dry_run:
+            database.update_discovered_tender(
+                gem_bid,
+                action_taken="EVALUATION_FAILED",
+                stored_pdf_file_id=file_id,
+                extracted_data=extracted or tender_for_eval,
+                evaluation_reason=f"{type(exc).__name__}: {exc}",
+            )
+        return {
+            "gemBidNumber": gem_bid,
+            "action": "EVALUATION_FAILED",
+            "reason": f"{type(exc).__name__}: {exc}",
+        }
+
+    if extraction_error and payload.gemPdfUrl and not extracted:
+        action = "EXTRACTION_FAILED"
+    elif decision == "RECOMMENDED":
+        action = "INSERTED_TO_ALL_TENDERS"
+    else:
+        action = "REJECTED_NOT_SUITABLE"
+
+    tender_id = None
+    if not dry_run:
+        if action == "INSERTED_TO_ALL_TENDERS":
+            tender_id = database.save_tender(data, items, documents)
+            database.create_tender_notification(
+                tender_id,
+                "New suitable GeM tender found",
+                f"New suitable GeM tender found: {gem_bid} - Score {score}/10",
+                notification_type="LOCAL_GEM_AGENT_RECOMMENDED",
+            )
+        database.update_discovered_tender(
+            gem_bid,
+            stored_pdf_file_id=file_id,
+            extracted_data=extracted or tender_for_eval,
+            evaluation_score=score,
+            evaluation_decision=decision,
+            evaluation_reason=extraction_error or reason,
+            action_taken=action,
+            all_tender_id=tender_id,
+        )
+
+    return {
+        "gemBidNumber": gem_bid,
+        "action": action,
+        "evaluationScore": score,
+        "decision": decision,
+        "reason": extraction_error or reason,
+        "allTenderId": tender_id,
+        "dryRun": dry_run,
+    }
 
 
 @app.get("/api/tenders")
@@ -892,6 +1133,210 @@ async def mark_tender_notification_read(notification_id: int):
 @app.post("/api/gem-result-debug")
 async def gem_result_debug(payload: GemResultDebugPayload):
     return await asyncio.to_thread(debug_gem_exact_result_search, payload.bid_number)
+
+
+@app.get("/api/gem-search/stats")
+async def gem_search_stats(user=Depends(_require_admin)):
+    return database.get_gem_search_dashboard_stats()
+
+
+@app.get("/api/gem-search/admin/config")
+async def admin_get_gem_search_config(user=Depends(_require_admin)):
+    config = database.get_gem_search_settings()
+    config["localAgentRunnerEnabled"] = os.environ.get("ENABLE_LOCAL_GEM_AGENT_RUNNER", "false").strip().lower() in {"1", "true", "yes", "on"}
+    return config
+
+
+@app.put("/api/gem-search/admin/config")
+async def admin_update_gem_search_config(payload: GemSearchConfigUpdate, user=Depends(_require_admin)):
+    def _validate_date(value: str | None, label: str):
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(400, f"{label} must be YYYY-MM-DD")
+
+    mode = (payload.searchDateMode or "date").strip().lower()
+    if mode not in {"date", "range", "all"}:
+        raise HTTPException(400, "searchDateMode must be date, range, or all")
+    target_date = _validate_date(payload.scanTargetDate, "scanTargetDate") or datetime.now().strftime("%Y-%m-%d")
+    date_from = _validate_date(payload.scanDateFrom, "scanDateFrom") or target_date
+    date_to = _validate_date(payload.scanDateTo, "scanDateTo") or date_from
+    if mode == "range" and date_from > date_to:
+        raise HTTPException(400, "From date cannot be after To date")
+    return database.update_gem_search_settings(
+        scan_target_date=target_date,
+        scan_date_from=date_from,
+        scan_date_to=date_to,
+        search_date_mode=mode,
+    )
+
+
+def _run_local_gem_agent(keyword: str | None = None):
+    agent_dir = HERE.parent / "gem-local-agent"
+    agent_path = agent_dir / "agent.py"
+    if not agent_path.exists():
+        raise RuntimeError("gem-local-agent/agent.py was not found on this machine")
+    cmd = [sys.executable, str(agent_path)]
+    if keyword:
+        cmd += ["--test-keyword", keyword]
+    else:
+        cmd += ["--search-new-tenders"]
+    env = os.environ.copy()
+    env["DRY_RUN"] = "false"
+    proc = subprocess.run(
+        cmd,
+        cwd=str(agent_dir),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    output = "\n".join(part for part in [proc.stdout.strip(), proc.stderr.strip()] if part)
+    if proc.returncode != 0:
+        raise RuntimeError(output[-4000:] or f"Local agent exited with code {proc.returncode}")
+    return {"ok": True, "command": " ".join(cmd), "output": output[-8000:]}
+
+
+@app.post("/api/gem-search/admin/run-local-agent")
+async def admin_run_local_gem_agent(payload: GemSearchRunRequest, user=Depends(_require_admin)):
+    if os.environ.get("ENABLE_LOCAL_GEM_AGENT_RUNNER", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+        raise HTTPException(403, "Run the GeM local agent from the office PC. Server-side runner is disabled.")
+    keyword = (payload.keyword or "").strip()
+    if keyword:
+        database.upsert_gem_search_keyword(keyword)
+    try:
+        return await asyncio.to_thread(_run_local_gem_agent, keyword or None)
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
+@app.get("/api/gem-search/admin/keywords")
+async def admin_list_gem_search_keywords(user=Depends(_require_admin)):
+    return database.list_gem_search_keywords(include_inactive=True)
+
+
+@app.post("/api/gem-search/admin/keywords", status_code=201)
+async def admin_create_gem_search_keyword(payload: GemSearchKeywordCreate, user=Depends(_require_admin)):
+    try:
+        return database.upsert_gem_search_keyword(payload.keyword)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+
+@app.put("/api/gem-search/admin/keywords/{keyword_id}")
+async def admin_update_gem_search_keyword(keyword_id: int, payload: GemSearchKeywordUpdate, user=Depends(_require_admin)):
+    try:
+        row = database.update_gem_search_keyword(
+            keyword_id,
+            keyword=payload.keyword if payload.keyword is not None else database._UNSET,
+            active=payload.active if payload.active is not None else database._UNSET,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if not row:
+        raise HTTPException(404, "Keyword not found")
+    return row
+
+
+@app.delete("/api/gem-search/admin/keywords/{keyword_id}", status_code=204)
+async def admin_delete_gem_search_keyword(keyword_id: int, user=Depends(_require_admin)):
+    if not database.delete_gem_search_keyword(keyword_id):
+        raise HTTPException(404, "Keyword not found")
+
+
+@app.get("/api/gem-search/keywords")
+async def local_agent_list_gem_search_keywords(request: Request):
+    _require_local_gem_agent(request)
+    rows = database.list_gem_search_keywords(include_inactive=False)
+    return [{"id": row["id"], "keyword": row["keyword"], "active": bool(row["active"])} for row in rows]
+
+
+@app.get("/api/gem-search/config")
+async def local_agent_get_gem_search_config(request: Request):
+    _require_local_gem_agent(request)
+    return database.get_gem_search_settings()
+
+
+@app.get("/api/gem-search/discovered-tenders")
+async def list_gem_search_discovered_tenders(
+    keyword: Optional[str] = None,
+    action_taken: Optional[str] = None,
+    inserted: Optional[bool] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    user=Depends(_require_admin),
+):
+    return database.list_gem_discovered_tenders(
+        keyword=keyword,
+        action_taken=action_taken,
+        inserted=inserted,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+
+@app.post("/api/gem-search/discovered-tender")
+async def local_agent_ingest_discovered_tender(payload: LocalGemDiscoveredTenderPayload, request: Request, dryRun: bool = False):
+    _require_local_gem_agent(request)
+    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=dryRun)
+
+
+@app.post("/api/gem-search/discovered-tenders/{gem_bid_number:path}/re-evaluate")
+async def re_evaluate_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
+    row = database.get_discovered_tender_by_bid(gem_bid_number)
+    if not row:
+        raise HTTPException(404, "Discovered tender not found")
+    payload = LocalGemDiscoveredTenderPayload(
+        gemBidNumber=row["gem_bid_number"],
+        title=row.get("raw_title"),
+        organisation=row.get("raw_organisation"),
+        department=row.get("raw_department"),
+        quantity=row.get("raw_quantity"),
+        bidStartDate=row.get("bid_start_date"),
+        bidEndDate=row.get("bid_end_date"),
+        keywordMatched=row.get("keyword_matched"),
+        gemPdfUrl=row.get("gem_pdf_url"),
+        source=row.get("source") or "LOCAL_GEM_AGENT",
+        rawGemData=row.get("raw_gem_data") or {},
+    )
+    database.update_discovered_tender(row["gem_bid_number"], action_taken="DISCOVERED")
+    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=False)
+
+
+@app.post("/api/gem-search/discovered-tenders/{gem_bid_number:path}/manual-insert")
+async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
+    row = database.get_discovered_tender_by_bid(gem_bid_number)
+    if not row:
+        raise HTTPException(404, "Discovered tender not found")
+    duplicate = database.find_tender_duplicate(row["gem_bid_number"], row["gem_bid_number"])
+    if duplicate:
+        database.update_discovered_tender(row["gem_bid_number"], action_taken="DUPLICATE_ALREADY_EXISTS", all_tender_id=duplicate["id"])
+        return {"action": "DUPLICATE_ALREADY_EXISTS", "allTenderId": duplicate["id"]}
+    extracted = row.get("extracted_data") or {}
+    if extracted.get("gem_bidding_number"):
+        data = {k: v for k, v in extracted.items() if k not in {"boq_items", "required_documents"}}
+        items = extracted.get("boq_items") or []
+        docs = extracted.get("required_documents") or []
+    else:
+        payload = LocalGemDiscoveredTenderPayload(
+            gemBidNumber=row["gem_bid_number"],
+            title=row.get("raw_title"),
+            organisation=row.get("raw_organisation"),
+            department=row.get("raw_department"),
+            quantity=row.get("raw_quantity"),
+            bidStartDate=row.get("bid_start_date"),
+            bidEndDate=row.get("bid_end_date"),
+            keywordMatched=row.get("keyword_matched"),
+            gemPdfUrl=row.get("gem_pdf_url"),
+            source=row.get("source") or "LOCAL_GEM_AGENT",
+            rawGemData=row.get("raw_gem_data") or {},
+        )
+        data, items, docs = _metadata_tender_from_local_payload(payload, file_id=row.get("stored_pdf_file_id"), extracted={})
+    tender_id = database.save_tender(data, items, docs)
+    database.update_discovered_tender(row["gem_bid_number"], action_taken="INSERTED_TO_ALL_TENDERS", all_tender_id=tender_id)
+    return {"action": "INSERTED_TO_ALL_TENDERS", "allTenderId": tender_id}
 
 
 # ── Company Profile ───────────────────────────────────────────────────────────
@@ -1536,6 +1981,11 @@ async def tender_portals_page():
 
 @app.get("/gem-result-debug")
 async def gem_result_debug_page():
+    return FileResponse(str(HERE / "static" / "index.html"))
+
+
+@app.get("/gem-local-agent")
+async def gem_local_agent_page():
     return FileResponse(str(HERE / "static" / "index.html"))
 
 

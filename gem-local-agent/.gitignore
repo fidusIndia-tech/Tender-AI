@@ -1,0 +1,6 @@
+.env
+.browser-profile/
+logs/*
+!logs/.gitkeep
+__pycache__/
+*.pyc

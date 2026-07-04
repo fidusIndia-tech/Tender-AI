@@ -11,14 +11,24 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pathlib import Path
 
 import httpx
-import database
-from gem_watcher.scanner import (
-    PLAYWRIGHT_BROWSER_CHANNEL,
-    _detect_edge_executable,
-    _launch_browser,
-    _should_retry_with_edge,
-)
-from gem_bid_utils import getCanonicalGemBidNumber
+try:
+    from . import database
+    from .gem_watcher.scanner import (
+        PLAYWRIGHT_BROWSER_CHANNEL,
+        _detect_edge_executable,
+        _launch_browser,
+        _should_retry_with_edge,
+    )
+    from .gem_bid_utils import getCanonicalGemBidNumber
+except ImportError:
+    import database
+    from gem_watcher.scanner import (
+        PLAYWRIGHT_BROWSER_CHANNEL,
+        _detect_edge_executable,
+        _launch_browser,
+        _should_retry_with_edge,
+    )
+    from gem_bid_utils import getCanonicalGemBidNumber
 
 RESULT_STATUS_NOT_CHECKED = "NOT_CHECKED"
 RESULT_STATUS_PENDING = "PENDING"

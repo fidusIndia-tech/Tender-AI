@@ -3,14 +3,24 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-import database
-from gem_watcher.scanner import (
-    execute_scan,
-    request_cancel,
-    rerun_extraction_for_candidate,
-    run_full_evaluation_for_candidate,
-    start_scan,
-)
+try:
+    from .. import database
+    from .scanner import (
+        execute_scan,
+        request_cancel,
+        rerun_extraction_for_candidate,
+        run_full_evaluation_for_candidate,
+        start_scan,
+    )
+except ImportError:
+    import database
+    from gem_watcher.scanner import (
+        execute_scan,
+        request_cancel,
+        rerun_extraction_for_candidate,
+        run_full_evaluation_for_candidate,
+        start_scan,
+    )
 
 router = APIRouter()
 

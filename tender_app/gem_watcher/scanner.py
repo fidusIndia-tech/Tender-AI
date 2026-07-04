@@ -31,13 +31,21 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 from pathlib import Path
 
-import ai_extractor
-import database
-from gem_watcher.evaluator import (
-    evaluate_gem_candidate,
-    keyword_pre_evaluate_gem_candidate,
-    prequalify_gem_listing,
-)
+try:
+    from .. import ai_extractor, database
+    from .evaluator import (
+        evaluate_gem_candidate,
+        keyword_pre_evaluate_gem_candidate,
+        prequalify_gem_listing,
+    )
+except ImportError:
+    import ai_extractor
+    import database
+    from gem_watcher.evaluator import (
+        evaluate_gem_candidate,
+        keyword_pre_evaluate_gem_candidate,
+        prequalify_gem_listing,
+    )
 
 GEM_ALL_BIDS_URL = "https://bidplus.gem.gov.in/all-bids"
 GEM_DATA_URL = "https://bidplus.gem.gov.in/all-bids-data"
