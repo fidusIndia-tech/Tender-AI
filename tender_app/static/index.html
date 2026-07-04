@@ -2426,7 +2426,7 @@ body.col-resizing { cursor:col-resize !important; }
             <input type="text" id="localGemKeywordInput" list="localGemKeywordOptions" placeholder="Type new keyword or choose saved keyword" style="flex:1;min-width:240px">
             <datalist id="localGemKeywordOptions"></datalist>
             <button class="btn btn-primary btn-sm" onclick="saveLocalGemKeyword()">Save Keyword</button>
-            <button class="btn btn-success btn-sm" id="localGemRunKeywordBtn" onclick="runLocalGemAgentNow(true)">Search This Keyword</button>
+            <button class="btn btn-success btn-sm" id="localGemRunKeywordBtn" onclick="runLocalGemAgentNow(true)">Run Selected Search</button>
           </div>
         </div>
         <div class="form-group full" style="position:relative;max-width:360px">
@@ -4068,6 +4068,7 @@ let localGemDateTo = '';
 let localGemCalPickFrom = true;
 let localGemCalYear = new Date().getFullYear();
 let localGemCalMonth = new Date().getMonth();
+let localGemRunnerEnabled = false;
 
 function formatLocalGemDateLabel() {
   const fmt = ds => ds ? ds.split('-').reverse().join('-') : '';
@@ -4177,17 +4178,21 @@ function renderLocalGemCalendar() {
 }
 
 function setLocalGemRunnerAvailability(enabled) {
+  localGemRunnerEnabled = Boolean(enabled);
   const runAllBtn = document.getElementById('localGemRunAllBtn');
   const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
   const help = document.getElementById('localGemRunHelp');
-  [runAllBtn, runKeywordBtn].forEach(btn => {
-    if (!btn) return;
-    btn.style.display = enabled ? '' : 'none';
-  });
+  if (runKeywordBtn) {
+    runKeywordBtn.style.display = '';
+    runKeywordBtn.textContent = enabled ? 'Run Selected Search' : 'Prepare Local Run';
+  }
+  if (runAllBtn) {
+    runAllBtn.style.display = enabled ? '' : 'none';
+  }
   if (help) {
     help.textContent = enabled
-      ? 'Runs the local agent on this PC.'
-      : 'Live mode: run gem-local-agent on the office PC to search GeM using local IP.';
+      ? 'Runs the local agent on this PC with the selected date/keyword.'
+      : 'Live mode: this saves date/keyword, then shows the office PC command that uses your local IP.';
   }
 }
 
@@ -4213,7 +4218,7 @@ async function loadLocalGemConfig() {
   }
 }
 
-async function saveLocalGemConfig() {
+async function saveLocalGemConfig(options = {}) {
   const scanTargetDate = document.getElementById('localGemScanDate')?.value;
   const scanDateFrom = document.getElementById('localGemScanDateFrom')?.value;
   const scanDateTo = document.getElementById('localGemScanDateTo')?.value;
@@ -4229,8 +4234,9 @@ async function saveLocalGemConfig() {
     const data = await res.json().catch(() => ({}));
     return toast(data.detail || 'Could not save scan date', 'error');
   }
-  toast('Scan date saved', 'success');
+  if (!options.silent) toast('Scan date saved', 'success');
   await loadLocalGemConfig();
+  return {scanTargetDate, scanDateFrom, scanDateTo, searchDateMode};
 }
 
 async function loadLocalGemKeywords() {
@@ -4265,6 +4271,35 @@ async function saveLocalGemKeyword() {
   await loadLocalGemKeywords();
 }
 
+async function ensureLocalGemKeywordSaved(keyword) {
+  if (!keyword) return;
+  const res = await fetch('/api/gem-search/admin/keywords', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({keyword}),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Could not save keyword before running search');
+  }
+  await loadLocalGemKeywords();
+}
+
+function localGemShellQuote(value) {
+  return `"${String(value || '').replace(/"/g, '\\"')}"`;
+}
+
+function showLocalGemOfficeCommand(keyword) {
+  const status = document.getElementById('localGemRunStatus');
+  const command = keyword
+    ? `cd gem-local-agent; python agent.py --test-keyword ${localGemShellQuote(keyword)}`
+    : 'cd gem-local-agent; python agent.py --search-new-tenders';
+  if (status) {
+    status.innerHTML = `Saved. Now run this on the office PC:<br><code>${esc(command)}</code>`;
+  }
+  toast('Saved. Run the shown command on the office PC.', 'success');
+}
+
 async function runLocalGemAgentNow(useTypedKeyword = false) {
   const status = document.getElementById('localGemRunStatus');
   const runAllBtn = document.getElementById('localGemRunAllBtn');
@@ -4272,7 +4307,19 @@ async function runLocalGemAgentNow(useTypedKeyword = false) {
   const keyword = useTypedKeyword ? (document.getElementById('localGemKeywordInput')?.value?.trim() || '') : '';
   if (useTypedKeyword && !keyword) return toast('Enter a keyword to add and run', 'error');
 
-  await saveLocalGemConfig();
+  try {
+    if (useTypedKeyword) await ensureLocalGemKeywordSaved(keyword);
+    const savedConfig = await saveLocalGemConfig({silent: true});
+    if (!savedConfig) return;
+  } catch (err) {
+    return toast(err.message || 'Could not prepare search', 'error');
+  }
+
+  if (!localGemRunnerEnabled) {
+    showLocalGemOfficeCommand(keyword);
+    return;
+  }
+
   if (status) status.textContent = useTypedKeyword ? `Searching ${keyword}...` : 'Searching active keywords...';
   if (runAllBtn) runAllBtn.disabled = true;
   if (runKeywordBtn) runKeywordBtn.disabled = true;
