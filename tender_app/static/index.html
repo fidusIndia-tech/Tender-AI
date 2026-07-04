@@ -2448,7 +2448,7 @@ body.col-resizing { cursor:col-resize !important; }
       <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="saveLocalGemConfig()">Save Search Settings</button>
         <button class="btn btn-success btn-sm" id="localGemRunAllBtn" onclick="runLocalGemAgentNow()">Run Search Now</button>
-        <button class="btn btn-outline btn-sm" onclick="loadLocalGemAgentPage()">Refresh</button>
+        <button class="btn btn-outline btn-sm" onclick="loadLocalGemAgentPage({loadDiscovered:true})">Refresh</button>
         <span class="muted-small" id="localGemRunHelp">Run the local agent from the office PC to search GeM.</span>
       </div>
       <div id="localGemRunStatus" class="muted-small" style="margin-top:8px"></div>
@@ -4059,8 +4059,13 @@ function showView(name) {
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
-async function loadLocalGemAgentPage() {
-  await Promise.all([loadLocalGemConfig(), loadLocalGemKeywords(), loadLocalGemDiscovered()]);
+function loadLocalGemAgentPage(options = {}) {
+  const loadDiscovered = Boolean(options.loadDiscovered);
+  loadLocalGemConfig().catch(err => console.warn('Local GeM config load failed', err));
+  loadLocalGemKeywords().catch(err => console.warn('Local GeM keywords load failed', err));
+  if (loadDiscovered) {
+    loadLocalGemDiscovered().catch(err => console.warn('Local GeM discovered load failed', err));
+  }
 }
 
 let localGemDateFrom = '';
@@ -4410,7 +4415,7 @@ async function reEvaluateLocalGemTender(bid) {
   const res = await fetch(`/api/gem-search/discovered-tenders/${encodeURIComponent(bid)}/re-evaluate`, {method: 'POST'});
   if (!res.ok) return toast('Re-evaluation failed', 'error');
   toast('Re-evaluated', 'success');
-  await loadLocalGemAgentPage();
+  loadLocalGemAgentPage({loadDiscovered:true});
 }
 
 async function manualInsertLocalGemTender(bid) {
@@ -4418,7 +4423,7 @@ async function manualInsertLocalGemTender(bid) {
   const res = await fetch(`/api/gem-search/discovered-tenders/${encodeURIComponent(bid)}/manual-insert`, {method: 'POST'});
   if (!res.ok) return toast('Manual insert failed', 'error');
   toast('Inserted into All Tenders', 'success');
-  await loadLocalGemAgentPage();
+  loadLocalGemAgentPage({loadDiscovered:true});
 }
 
 function switchTab(name, btn) {
