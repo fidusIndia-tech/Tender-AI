@@ -542,6 +542,17 @@ def init_db():
             )
         """)
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS gem_run_requests (
+                id SERIAL PRIMARY KEY,
+                keyword TEXT,
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                summary TEXT,
+                requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                claimed_at TIMESTAMP,
+                completed_at TIMESTAMP
+            )
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS tender_evaluations (
                 id SERIAL PRIMARY KEY,
                 candidate_id INTEGER REFERENCES gem_candidate_tenders(id) ON DELETE CASCADE,
@@ -2200,6 +2211,65 @@ def update_gem_search_settings(*, scan_target_date=_UNSET, scan_date_from=_UNSET
     conn.commit()
     conn.close()
     return get_gem_search_settings()
+
+
+def enqueue_gem_run_request(keyword: str | None = None):
+    """Record a user request (from the web app) to run the GeM search on the
+    office/recipient PC. The local agent polls for and claims these."""
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        # Collapse older still-pending requests so the queue can't pile up.
+        cur.execute("UPDATE gem_run_requests SET status='SUPERSEDED', completed_at=CURRENT_TIMESTAMP WHERE status='PENDING'")
+        cur.execute(
+            """INSERT INTO gem_run_requests (keyword, status)
+               VALUES (%s, 'PENDING') RETURNING *""",
+            ((keyword or "").strip() or None,),
+        )
+        row = dict(cur.fetchone())
+    conn.commit()
+    conn.close()
+    return row
+
+
+def claim_gem_run_request():
+    """Atomically hand the oldest pending request to a polling agent."""
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """UPDATE gem_run_requests SET status='RUNNING', claimed_at=CURRENT_TIMESTAMP
+               WHERE id = (
+                   SELECT id FROM gem_run_requests WHERE status='PENDING'
+                   ORDER BY requested_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+               )
+               RETURNING *"""
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def complete_gem_run_request(request_id: int, *, status: str = "DONE", summary: str | None = None):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """UPDATE gem_run_requests SET status=%s, summary=%s, completed_at=CURRENT_TIMESTAMP
+               WHERE id=%s RETURNING *""",
+            (status, (summary or "")[:4000] or None, request_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_latest_gem_run_request():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM gem_run_requests ORDER BY requested_at DESC LIMIT 1")
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 def get_discovered_tender_by_bid(gem_bid_number: str):

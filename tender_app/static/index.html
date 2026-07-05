@@ -4183,30 +4183,78 @@ function renderLocalGemCalendar() {
 }
 
 function setLocalGemRunnerAvailability(enabled) {
+  // enabled = this server can run the scraper itself (rare). When disabled
+  // (production), clicking Run queues the search on the user's PC agent.
   localGemRunnerEnabled = Boolean(enabled);
   const runAllBtn = document.getElementById('localGemRunAllBtn');
   const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
   const help = document.getElementById('localGemRunHelp');
   if (runKeywordBtn) {
     runKeywordBtn.style.display = '';
-    runKeywordBtn.textContent = enabled ? 'Run Selected Search' : 'Save & Show Office PC Command';
-    runKeywordBtn.onclick = enabled ? () => runLocalGemAgentNow(true) : () => prepareLocalGemOfficeRun(true);
+    runKeywordBtn.textContent = 'Run Selected Search';
+    runKeywordBtn.onclick = enabled ? () => runLocalGemAgentNow(true) : () => requestLocalGemRun(true);
   }
   if (runAllBtn) {
     runAllBtn.style.display = '';
-    runAllBtn.textContent = enabled ? 'Run Search Now' : 'Save & Show Office PC Command';
-    runAllBtn.onclick = enabled ? () => runLocalGemAgentNow(false) : () => prepareLocalGemOfficeRun(false);
+    runAllBtn.textContent = 'Run Search Now';
+    runAllBtn.onclick = enabled ? () => runLocalGemAgentNow(false) : () => requestLocalGemRun(false);
   }
   if (help) {
     help.textContent = enabled
       ? 'Choose keyword/date and click Run. Tender AI will search GeM and save discovered tenders.'
-      : 'This server cannot reach GeM. Run the agent on the office PC (command shown after saving). Discovered tenders appear here automatically once the office PC agent runs.';
+      : 'Choose keyword/date and click Run. The GeM agent on your PC runs the search and results appear here. Keep the agent installed and your PC on.';
   }
 }
 
-async function prepareLocalGemOfficeRun(useTypedKeyword = false) {
+function localGemRunSummaryText(summary) {
+  if (!summary) return '';
+  try {
+    const s = JSON.parse(summary);
+    return `Discovered ${s.discovered || 0}, added ${s.sent || 0}.`;
+  } catch (_) {
+    return String(summary);
+  }
+}
+
+async function pollLocalGemRunRequest(statusEl) {
+  const startedAt = Date.now();
+  const TIMEOUT_MS = 5 * 60 * 1000;
+  while (Date.now() - startedAt < TIMEOUT_MS) {
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    let data;
+    try {
+      const res = await fetch('/api/gem-search/admin/run-request-status');
+      if (!res.ok) continue;
+      data = await res.json();
+    } catch (_) { continue; }
+    const st = (data && data.status) || '';
+    if (st === 'PENDING') {
+      if (statusEl) statusEl.textContent = 'Waiting for your PC agent to pick up the search — make sure the GeM agent is running on your PC…';
+    } else if (st === 'RUNNING') {
+      if (statusEl) statusEl.textContent = 'Your PC agent is searching GeM…';
+    } else if (st === 'DONE') {
+      if (statusEl) statusEl.textContent = `Search complete. ${localGemRunSummaryText(data.summary)}`;
+      toast('GeM search complete', 'success');
+      await Promise.all([loadLocalGemKeywords(), loadLocalGemDiscovered()]);
+      return;
+    } else if (st === 'FAILED') {
+      if (statusEl) statusEl.textContent = `Search failed on your PC: ${data.summary || 'unknown error'}`;
+      toast('GeM search failed on your PC', 'error');
+      return;
+    } else if (st === 'SUPERSEDED' || st === 'NONE') {
+      return;
+    }
+  }
+  if (statusEl) statusEl.textContent = 'Still waiting for your PC agent. Make sure the GeM agent is running on your PC, then try again.';
+}
+
+async function requestLocalGemRun(useTypedKeyword = false) {
+  const status = document.getElementById('localGemRunStatus');
+  const runAllBtn = document.getElementById('localGemRunAllBtn');
+  const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
   const keyword = useTypedKeyword ? (document.getElementById('localGemKeywordInput')?.value?.trim() || '') : '';
   if (useTypedKeyword && !keyword) return toast('Enter a keyword to add and run', 'error');
+
   try {
     if (useTypedKeyword) await ensureLocalGemKeywordSaved(keyword);
     const savedConfig = await saveLocalGemConfig({silent: true});
@@ -4214,10 +4262,27 @@ async function prepareLocalGemOfficeRun(useTypedKeyword = false) {
   } catch (err) {
     return toast(err.message || 'Could not prepare search', 'error');
   }
-  showLocalGemOfficeCommand(keyword);
-  if (useTypedKeyword) {
-    const el = document.getElementById('localGemKeywordInput');
-    if (el) el.value = '';
+
+  if (runAllBtn) runAllBtn.disabled = true;
+  if (runKeywordBtn) runKeywordBtn.disabled = true;
+  if (status) status.textContent = useTypedKeyword ? `Sending "${keyword}" to your PC agent…` : 'Sending search to your PC agent…';
+
+  try {
+    const res = await fetch('/api/gem-search/admin/request-run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keyword}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Could not queue search');
+    if (useTypedKeyword) document.getElementById('localGemKeywordInput').value = '';
+    await pollLocalGemRunRequest(status);
+  } catch (err) {
+    if (status) status.textContent = err.message || 'Could not queue search';
+    toast(err.message || 'Could not queue search', 'error');
+  } finally {
+    if (runAllBtn) runAllBtn.disabled = false;
+    if (runKeywordBtn) runKeywordBtn.disabled = false;
   }
 }
 

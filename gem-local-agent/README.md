@@ -1,64 +1,63 @@
-# Local GeM Tender Search Agent
+# GeM Tender Search Agent
 
-This agent runs on the office/local PC so GeM sees the office IP. Tender AI stays on Railway and receives only discovered tenders through secured APIs.
+GeM blocks the cloud server's IP, so the GeM search must run from a normal PC
+(with a normal internet connection). This small agent does that: it runs quietly
+in the background on a Windows PC, searches GeM, and sends results to the Tender
+AI website. Nobody has to open a terminal for day-to-day use.
 
-## Setup
+The website's **"Run Search Now"** button sends a request that this agent picks
+up within seconds and runs — so clicking Run in the browser "just works", as long
+as this agent is installed and the PC is on.
 
-```powershell
-cd C:\Users\dell\Downloads\gem_tender_tool\gem-local-agent
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-python -m playwright install chromium
-copy .env.example .env
-```
+## Install (one time, for whoever will run the searches)
 
-Set these in `.env`:
+1. Copy the `gem-local-agent` folder onto the Windows PC that will do the searches.
+2. Make sure Python 3.10+ is installed (https://www.python.org/downloads/ — tick
+   **"Add python.exe to PATH"** during install). Microsoft Edge is already on
+   Windows and is used automatically.
+3. Double-click **`install-agent.bat`**.
+   - The first run creates `.env` and opens it in Notepad. Set:
+     - `TENDER_AI_BASE_URL` = the Tender AI website address (e.g.
+       `https://tender-ai-production-5a7d.up.railway.app`)
+     - `LOCAL_AGENT_API_KEY` = the secret key you were given (must match the server)
+   - Save `.env`, then double-click **`install-agent.bat`** again.
 
-```env
-TENDER_AI_BASE_URL=http://127.0.0.1:8000
-LOCAL_AGENT_API_KEY=same-secret-as-backend
-DRY_RUN=true
-```
+That's it. The agent now:
+- starts automatically, hidden, every time that PC logs in, and
+- runs a background search every 30 minutes, and
+- runs immediately whenever someone clicks **Run Search Now** on the website.
 
-The backend must also have:
+Results appear on the Tender AI website automatically. No terminal, no commands.
+
+To stop it / remove auto-start: double-click **`uninstall-agent.bat`**.
+
+## Server (Railway) settings — set once
 
 ```env
 ENABLE_LOCAL_GEM_AGENT=true
-LOCAL_AGENT_API_KEY=same-secret-as-agent
+LOCAL_AGENT_API_KEY=<same secret as the agent's .env>
 ```
 
-## Commands
+(`ENABLE_SERVER_GEM_RUNNER` is intentionally left unset — the cloud server cannot
+reach GeM, so it never runs the scraper itself.)
+
+## Manual commands (optional, for testing only)
 
 ```powershell
-python agent.py --test-keyword Siemens
-python agent.py --search-new-tenders
-python agent.py --run-all
-python agent.py --dry-run
-python agent.py --test-keyword Siemens --date 2026-07-04 --dry-run
-python agent.py --loop --interval-minutes 30
+python agent.py --test-keyword Siemens        # search one keyword now
+python agent.py --search-new-tenders          # search all active keywords now
+python agent.py --loop --interval-minutes 30  # background mode (what the installer runs)
+python agent.py --test-keyword Siemens --dry-run   # search but don't send
 ```
 
-## Run Automatically
+## How it works
 
-For normal use, keep one office/local PC as the GeM search worker.
-
-1. Set `DRY_RUN=false` in `gem-local-agent/.env`.
-2. Double-click `start-agent-loop.bat`.
-3. Leave that window open.
-
-The loop fetches the latest active keywords and selected date/range from live Tender AI each time it runs. If another user changes the keyword/date on the website, the next loop run will use the new settings automatically.
-
-If you want Windows to start it after reboot, add `start-agent-loop.bat` to Windows Task Scheduler.
-
-## Flow
-
-1. Admin adds active keywords in Tender AI under `GeM Local Agent`.
-2. Admin chooses the scan date on the `GeM Local Agent` page.
-3. Agent fetches active keywords from `/api/gem-search/keywords`.
-4. Agent fetches scan config from `/api/gem-search/config`.
-5. Agent searches GeM locally via `all-bids-data`.
-6. Agent posts each discovered tender to `/api/gem-search/discovered-tender`.
-7. Tender AI downloads the PDF, extracts, evaluates, inserts recommended tenders into All Tenders, and stores rejected/discovered rows separately.
-
-Keep `DRY_RUN=true` until you confirm the discovered rows look correct.
+1. Users manage keywords and the scan date on the website (`GeM Local Agent` page).
+2. This agent (in `--loop` mode) polls the site for:
+   - **on-demand run requests** (someone clicked "Run Search Now"), and
+   - a **30-minute timer** for automatic background runs.
+3. For each run it searches GeM via `all-bids-data`, downloads each matching
+   tender PDF (the PC can reach GeM), and posts the tender + PDF bytes to
+   `/api/gem-search/discovered-tender`.
+4. The server extracts the PDF, evaluates it, and inserts recommended tenders
+   into All Tenders — without ever contacting GeM itself.

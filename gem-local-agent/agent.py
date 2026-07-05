@@ -141,6 +141,32 @@ def fetch_search_config(config):
     return data
 
 
+def fetch_run_request(config):
+    """Ask the backend whether a user clicked Run in the web app."""
+    url = f"{config.base_url}/api/gem-search/run-request"
+    req = urllib.request.Request(url, headers=auth_headers(config), method="GET")
+    with urllib.request.urlopen(req, timeout=30) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    return data if data.get("pending") else None
+
+
+def complete_run_request(config, request_id, status, summary):
+    url = f"{config.base_url}/api/gem-search/run-request/{request_id}/complete"
+    body = json.dumps({"status": status, "summary": summary}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={**auth_headers(config), "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception:
+        logging.exception("failed to report run request completion id=%s", request_id)
+        return None
+
+
 def post_discovered_tender(config, payload, dry_run):
     if dry_run:
         logging.info("DRY RUN discovery: %s", json.dumps(payload, ensure_ascii=False))
@@ -361,6 +387,62 @@ def run_once(config, args, dry_run):
     return summary
 
 
+def run_keywords_batch(config, keyword, dry_run):
+    """Run one keyword (on-demand) or every active keyword, refreshing the
+    scan-date settings from the backend first."""
+    try:
+        fetch_search_config(config)
+    except Exception:
+        logging.exception("could not refresh backend scan config; using current settings")
+    keywords = [{"keyword": keyword}] if keyword else fetch_keywords(config)
+    if not keywords:
+        logging.info("no keywords to search")
+        return {"keywords": 0, "discovered": 0, "sent": 0, "failed": 0}
+    summary = run_keywords(config, keywords, dry_run=dry_run)
+    logging.info("summary=%s", summary)
+    return summary
+
+
+def loop_forever(config, interval_seconds, dry_run):
+    """Background mode for the office/recipient PC: run on a schedule AND react
+    instantly when a user clicks Run in the web app (polled run requests)."""
+    poll_seconds = max(5, int(os.getenv("RUN_REQUEST_POLL_SECONDS", "10")))
+    logging.info("loop mode interval_seconds=%s poll_seconds=%s dry_run=%s", interval_seconds, poll_seconds, dry_run)
+    next_scheduled = time.monotonic()  # run once immediately on startup
+    while True:
+        try:
+            request = fetch_run_request(config)
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            request = None
+            logging.exception("run-request poll failed")
+
+        if request:
+            req_id = request.get("id")
+            keyword = request.get("keyword")
+            logging.info("on-demand run requested id=%s keyword=%s", req_id, keyword)
+            try:
+                summary = run_keywords_batch(config, keyword, dry_run)
+                complete_run_request(config, req_id, "DONE", json.dumps(summary))
+            except Exception as exc:
+                logging.exception("on-demand run failed")
+                complete_run_request(config, req_id, "FAILED", f"{type(exc).__name__}: {exc}")
+            next_scheduled = time.monotonic() + interval_seconds
+            continue
+
+        if time.monotonic() >= next_scheduled:
+            try:
+                run_keywords_batch(config, None, dry_run)
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                logging.exception("scheduled run failed")
+            next_scheduled = time.monotonic() + interval_seconds
+
+        time.sleep(poll_seconds)
+
+
 def main():
     load_env_file(ROOT / ".env")
     setup_logging()
@@ -386,17 +468,10 @@ def main():
 
     if args.loop:
         interval_seconds = max(60, int(args.interval_minutes * 60))
-        logging.info("starting loop mode interval_minutes=%s dry_run=%s", args.interval_minutes, dry_run)
-        while True:
-            try:
-                run_once(config, args, dry_run=dry_run)
-            except KeyboardInterrupt:
-                logging.info("loop stopped by user")
-                raise
-            except Exception:
-                logging.exception("loop run failed")
-            logging.info("sleeping %s seconds before next run", interval_seconds)
-            time.sleep(interval_seconds)
+        try:
+            loop_forever(config, interval_seconds, dry_run)
+        except KeyboardInterrupt:
+            logging.info("loop stopped by user")
     else:
         run_once(config, args, dry_run=dry_run)
 

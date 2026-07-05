@@ -1245,6 +1245,61 @@ async def admin_run_local_gem_agent(payload: GemSearchRunRequest, user=Depends(_
         raise HTTPException(500, str(exc))
 
 
+def _run_request_view(row: dict | None) -> dict:
+    if not row:
+        return {"status": "NONE"}
+    return {
+        "id": row.get("id"),
+        "keyword": row.get("keyword"),
+        "status": row.get("status"),
+        "summary": row.get("summary"),
+        "requestedAt": row.get("requested_at").isoformat() if row.get("requested_at") else None,
+        "completedAt": row.get("completed_at").isoformat() if row.get("completed_at") else None,
+    }
+
+
+@app.post("/api/gem-search/admin/request-run")
+async def admin_request_gem_run(payload: GemSearchRunRequest, user=Depends(_require_admin)):
+    """Queue an on-demand GeM search that the recipient-PC agent runs. Used when
+    the server itself cannot reach GeM (production)."""
+    keyword = (payload.keyword or "").strip()
+    if keyword:
+        database.upsert_gem_search_keyword(keyword)
+    row = database.enqueue_gem_run_request(keyword or None)
+    return _run_request_view(row)
+
+
+@app.get("/api/gem-search/admin/run-request-status")
+async def admin_gem_run_request_status(user=Depends(_require_admin)):
+    return _run_request_view(database.get_latest_gem_run_request())
+
+
+@app.get("/api/gem-search/run-request")
+async def local_agent_claim_run_request(request: Request):
+    """Polled by the local agent. Returns the next pending run to execute."""
+    _require_local_gem_agent(request)
+    row = database.claim_gem_run_request()
+    if not row:
+        return {"pending": False}
+    return {"pending": True, "id": row["id"], "keyword": row.get("keyword")}
+
+
+@app.post("/api/gem-search/run-request/{request_id}/complete")
+async def local_agent_complete_run_request(request_id: int, request: Request):
+    _require_local_gem_agent(request)
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    status = (body.get("status") or "DONE").strip().upper()
+    summary = body.get("summary")
+    row = database.complete_gem_run_request(request_id, status=status, summary=summary if isinstance(summary, str) else None)
+    if not row:
+        raise HTTPException(404, "Run request not found")
+    return _run_request_view(row)
+
+
 @app.get("/api/gem-search/admin/keywords")
 async def admin_list_gem_search_keywords(user=Depends(_require_admin)):
     return database.list_gem_search_keywords(include_inactive=True)
