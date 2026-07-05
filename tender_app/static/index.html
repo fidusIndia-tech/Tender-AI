@@ -4484,7 +4484,7 @@ async function loadLocalGemDiscovered() {
         <td>${r.evaluation_score != null ? `<span class="badge badge-info">${esc(r.evaluation_score)}/10</span>` : '<span class="muted-small">Pending</span>'}</td>
         <td><span class="badge ${decisionBadge}">${esc(decision)}</span></td>
         <td><span class="badge ${r.action_taken === 'INSERTED_TO_ALL_TENDERS' ? 'badge-success' : r.action_taken === 'REJECTED_NOT_SUITABLE' ? 'badge-danger' : 'badge-slate'}">${esc(r.all_tender_id ? 'Inserted' : (r.action_taken || 'Discovered'))}</span></td>
-        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button></td>
+        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">No discovered tenders yet.</td></tr>';
   } catch (err) {
@@ -4505,6 +4505,15 @@ async function manualInsertLocalGemTender(bid) {
   if (!res.ok) return toast('Manual insert failed', 'error');
   toast('Inserted into All Tenders', 'success');
   loadLocalGemAgentPage({loadDiscovered:true});
+}
+
+async function deleteLocalGemTender(bid) {
+  if (!bid) return;
+  if (!confirm(`Delete discovered tender ${bid}? This removes it from this list only.`)) return;
+  const res = await fetch(`/api/gem-search/discovered-tenders/${encodeURIComponent(bid)}`, {method: 'DELETE'});
+  if (!res.ok && res.status !== 204) return toast('Delete failed', 'error');
+  toast('Discovered tender deleted', 'success');
+  loadLocalGemDiscovered();
 }
 
 function switchTab(name, btn) {

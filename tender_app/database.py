@@ -2281,6 +2281,16 @@ def get_discovered_tender_by_bid(gem_bid_number: str):
     return dict(row) if row else None
 
 
+def delete_discovered_tender(gem_bid_number: str) -> bool:
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted > 0
+
+
 def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

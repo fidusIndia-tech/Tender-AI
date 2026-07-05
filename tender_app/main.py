@@ -1427,6 +1427,12 @@ async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(
     return {"action": "INSERTED_TO_ALL_TENDERS", "allTenderId": tender_id}
 
 
+@app.delete("/api/gem-search/discovered-tenders/{gem_bid_number:path}", status_code=204)
+async def delete_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
+    if not database.delete_discovered_tender(gem_bid_number):
+        raise HTTPException(404, "Discovered tender not found")
+
+
 # ── Company Profile ───────────────────────────────────────────────────────────
 
 @app.get("/api/company/profile")
