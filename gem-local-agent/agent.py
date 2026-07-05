@@ -1,4 +1,5 @@
 import argparse
+import base64
 import json
 import logging
 import os
@@ -196,6 +197,26 @@ def fetch_bids(page, keyword, csrf, page_no):
     return inner.get("docs") or [], int(inner.get("numFound") or 0)
 
 
+def fetch_pdf_base64(page, url):
+    """Download the tender PDF from GeM here (the office PC can reach GeM) so the
+    backend can extract it without contacting GeM itself."""
+    if not url:
+        return None
+    try:
+        response = page.request.get(url, fail_on_status_code=False)
+        if response.status != 200:
+            logging.warning("pdf fetch failed HTTP %s url=%s", response.status, url)
+            return None
+        body = response.body()
+        if not body or body[:4] != b"%PDF":
+            logging.warning("pdf fetch did not return a PDF url=%s", url)
+            return None
+        return base64.b64encode(body).decode("ascii")
+    except Exception:
+        logging.exception("pdf fetch error url=%s", url)
+        return None
+
+
 def doc_to_payload(doc, keyword):
     bid_no = first(doc.get("b_bid_number"))
     if not bid_no:
@@ -298,6 +319,10 @@ def run_keywords(config, keywords, dry_run):
                     discoveries = search_keyword(page, keyword, csrf, config)
                     summary["discovered"] += len(discoveries)
                     for payload in discoveries:
+                        if not dry_run and payload.get("gemPdfUrl"):
+                            pdf_b64 = fetch_pdf_base64(page, payload["gemPdfUrl"])
+                            if pdf_b64:
+                                payload["pdfBase64"] = pdf_b64
                         result = post_discovered_tender(config, payload, dry_run)
                         summary["sent"] += 0 if dry_run else 1
                         logging.info("bid=%s backend_action=%s", payload["gemBidNumber"], result.get("action"))

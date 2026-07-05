@@ -469,6 +469,7 @@ class LocalGemDiscoveredTenderPayload(BaseModel):
     bidEndDate: Optional[str] = None
     keywordMatched: Optional[str] = None
     gemPdfUrl: Optional[str] = None
+    pdfBase64: Optional[str] = None
     source: Optional[str] = "LOCAL_GEM_AGENT"
     rawGemData: dict[str, Any] = Field(default_factory=dict)
 
@@ -680,6 +681,23 @@ def _metadata_tender_from_local_payload(payload: LocalGemDiscoveredTenderPayload
     return data, items, documents
 
 
+def _store_local_gem_pdf(pdf_bytes: bytes, gem_bid_number: str):
+    if not pdf_bytes or pdf_bytes[:4] != b"%PDF":
+        raise RuntimeError("GeM PDF bytes are not a valid PDF")
+    file_id = str(uuid.uuid4())
+    safe_bid = re.sub(r"[^A-Za-z0-9_.-]+", "_", gem_bid_number)
+    database.save_uploaded_file(
+        file_id=file_id,
+        file_name=f"{file_id}_{safe_bid}.pdf",
+        original_name=f"{safe_bid}.pdf",
+        content_type="application/pdf",
+        file_size=len(pdf_bytes),
+        file_data=pdf_bytes,
+        file_category="tender_pdf",
+    )
+    return file_id, pdf_bytes
+
+
 def _download_local_gem_pdf(url: str, gem_bid_number: str):
     if not url:
         return None, None
@@ -689,18 +707,7 @@ def _download_local_gem_pdf(url: str, gem_bid_number: str):
         content_type = response.headers.get("content-type", "application/pdf")
         if "pdf" not in content_type.lower() and not response.content[:4] == b"%PDF":
             raise RuntimeError(f"GeM PDF URL did not return a PDF content-type={content_type}")
-        file_id = str(uuid.uuid4())
-        safe_bid = re.sub(r"[^A-Za-z0-9_.-]+", "_", gem_bid_number)
-        database.save_uploaded_file(
-            file_id=file_id,
-            file_name=f"{file_id}_{safe_bid}.pdf",
-            original_name=f"{safe_bid}.pdf",
-            content_type="application/pdf",
-            file_size=len(response.content),
-            file_data=response.content,
-            file_category="tender_pdf",
-        )
-        return file_id, response.content
+        return _store_local_gem_pdf(response.content, gem_bid_number)
 
 
 def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry_run: bool):
@@ -743,9 +750,14 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
     file_id = None
     extracted = {}
     extraction_error = None
-    if payload.gemPdfUrl and not dry_run:
+    if (payload.pdfBase64 or payload.gemPdfUrl) and not dry_run:
         try:
-            file_id, pdf_bytes = _download_local_gem_pdf(payload.gemPdfUrl, gem_bid)
+            if payload.pdfBase64:
+                # Office-PC agent already downloaded the PDF from GeM (this
+                # server cannot reach GeM), so extract from the provided bytes.
+                file_id, pdf_bytes = _store_local_gem_pdf(base64.b64decode(payload.pdfBase64), gem_bid)
+            else:
+                file_id, pdf_bytes = _download_local_gem_pdf(payload.gemPdfUrl, gem_bid)
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(pdf_bytes)
                 tmp_path = tmp.name
@@ -787,7 +799,7 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
             "reason": f"{type(exc).__name__}: {exc}",
         }
 
-    if extraction_error and payload.gemPdfUrl and not extracted:
+    if extraction_error and (payload.pdfBase64 or payload.gemPdfUrl) and not extracted:
         action = "EXTRACTION_FAILED"
     elif decision == "RECOMMENDED":
         action = "INSERTED_TO_ALL_TENDERS"
