@@ -1,7 +1,7 @@
 param(
   [string]$PythonExe = "",
   [string]$AgentDir = $PSScriptRoot,
-  [string[]]$RunAt = @("09:00AM", "03:00PM", "09:00PM"),
+  [string[]]$RunAt = @("09:15AM"),
   [string]$TaskName = "Tender AI GeM Result Watcher Agent"
 )
 
