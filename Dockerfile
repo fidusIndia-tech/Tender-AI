@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && python -m playwright install chromium
 
 COPY tender_app/ ./tender_app/
+COPY gem-local-agent/ ./gem-local-agent/
 
 EXPOSE 8000
 

@@ -284,6 +284,9 @@ def run_keywords(config, keywords, dry_run):
         launch_kwargs = {"headless": config.headless}
         if config.browser_channel:
             launch_kwargs["channel"] = config.browser_channel
+        extra_args = [arg for arg in os.getenv("PLAYWRIGHT_EXTRA_ARGS", "").split() if arg]
+        if extra_args:
+            launch_kwargs["args"] = extra_args
         context = pw.chromium.launch_persistent_context(config.profile_dir, **launch_kwargs)
         page = context.new_page()
         try:

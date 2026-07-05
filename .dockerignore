@@ -1,0 +1,10 @@
+# Keep local secrets and machine-specific artifacts out of the production image
+**/.env
+**/.browser-profile/
+**/__pycache__/
+**/*.pyc
+**/logs/*
+.venv/
+.git/
+.tmp-upload-date/
+*.log

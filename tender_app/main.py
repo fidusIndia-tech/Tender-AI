@@ -1187,6 +1187,13 @@ def _run_local_gem_agent(keyword: str | None = None):
     env["DRY_RUN"] = "false"
     if not env.get("TENDER_AI_BASE_URL"):
         env["TENDER_AI_BASE_URL"] = f"http://127.0.0.1:{env.get('PORT', '8000')}"
+    if sys.platform != "win32":
+        # Cloud/Linux container has no display and no Edge channel: run the
+        # bundled Chromium headless with sandbox flags that work inside Docker.
+        env.setdefault("PLAYWRIGHT_HEADLESS", "true")
+        env.setdefault("PLAYWRIGHT_BROWSER_CHANNEL", "")
+        env.setdefault("PLAYWRIGHT_EXTRA_ARGS", "--no-sandbox --disable-dev-shm-usage")
+        env.setdefault("BROWSER_PROFILE_DIR", "/tmp/gem-browser-profile")
     proc = subprocess.run(
         cmd,
         cwd=str(agent_dir),
