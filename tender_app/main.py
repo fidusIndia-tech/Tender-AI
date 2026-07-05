@@ -1140,10 +1140,17 @@ async def gem_search_stats(user=Depends(_require_admin)):
     return database.get_gem_search_dashboard_stats()
 
 
+def _server_gem_runner_enabled() -> bool:
+    # Only run the scraper on the server itself when explicitly enabled.
+    # Cloud hosts (e.g. Railway) cannot reach GeM, so this stays off in
+    # production and the office-PC agent does the scraping instead.
+    return os.environ.get("ENABLE_SERVER_GEM_RUNNER", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 @app.get("/api/gem-search/admin/config")
 async def admin_get_gem_search_config(user=Depends(_require_admin)):
     config = database.get_gem_search_settings()
-    config["localAgentRunnerEnabled"] = True
+    config["localAgentRunnerEnabled"] = _server_gem_runner_enabled()
     return config
 
 
@@ -1210,6 +1217,13 @@ def _run_local_gem_agent(keyword: str | None = None):
 
 @app.post("/api/gem-search/admin/run-local-agent")
 async def admin_run_local_gem_agent(payload: GemSearchRunRequest, user=Depends(_require_admin)):
+    if not _server_gem_runner_enabled():
+        raise HTTPException(
+            400,
+            "This server cannot reach GeM, so it does not run the search itself. "
+            "Run the agent on the office PC (see the command shown below); "
+            "discovered tenders appear here automatically.",
+        )
     keyword = (payload.keyword or "").strip()
     if keyword:
         database.upsert_gem_search_keyword(keyword)

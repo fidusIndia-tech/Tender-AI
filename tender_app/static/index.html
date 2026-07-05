@@ -4183,19 +4183,41 @@ function renderLocalGemCalendar() {
 }
 
 function setLocalGemRunnerAvailability(enabled) {
-  localGemRunnerEnabled = true;
+  localGemRunnerEnabled = Boolean(enabled);
   const runAllBtn = document.getElementById('localGemRunAllBtn');
   const runKeywordBtn = document.getElementById('localGemRunKeywordBtn');
   const help = document.getElementById('localGemRunHelp');
   if (runKeywordBtn) {
     runKeywordBtn.style.display = '';
-    runKeywordBtn.textContent = 'Run Selected Search';
+    runKeywordBtn.textContent = enabled ? 'Run Selected Search' : 'Save & Show Office PC Command';
+    runKeywordBtn.onclick = enabled ? () => runLocalGemAgentNow(true) : () => prepareLocalGemOfficeRun(true);
   }
   if (runAllBtn) {
     runAllBtn.style.display = '';
+    runAllBtn.textContent = enabled ? 'Run Search Now' : 'Save & Show Office PC Command';
+    runAllBtn.onclick = enabled ? () => runLocalGemAgentNow(false) : () => prepareLocalGemOfficeRun(false);
   }
   if (help) {
-    help.textContent = 'Choose keyword/date and click Run. Tender AI will search GeM and save discovered tenders.';
+    help.textContent = enabled
+      ? 'Choose keyword/date and click Run. Tender AI will search GeM and save discovered tenders.'
+      : 'This server cannot reach GeM. Run the agent on the office PC (command shown after saving). Discovered tenders appear here automatically once the office PC agent runs.';
+  }
+}
+
+async function prepareLocalGemOfficeRun(useTypedKeyword = false) {
+  const keyword = useTypedKeyword ? (document.getElementById('localGemKeywordInput')?.value?.trim() || '') : '';
+  if (useTypedKeyword && !keyword) return toast('Enter a keyword to add and run', 'error');
+  try {
+    if (useTypedKeyword) await ensureLocalGemKeywordSaved(keyword);
+    const savedConfig = await saveLocalGemConfig({silent: true});
+    if (!savedConfig) return;
+  } catch (err) {
+    return toast(err.message || 'Could not prepare search', 'error');
+  }
+  showLocalGemOfficeCommand(keyword);
+  if (useTypedKeyword) {
+    const el = document.getElementById('localGemKeywordInput');
+    if (el) el.value = '';
   }
 }
 
