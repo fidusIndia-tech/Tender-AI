@@ -2442,7 +2442,7 @@ body.col-resizing { cursor:col-resize !important; }
       <div class="table-wrap" style="margin-top:14px">
         <table>
           <thead>
-            <tr><th>Keyword</th><th>Status</th><th>Found Today</th><th style="width:170px">Search Date</th><th>Actions</th></tr>
+            <tr><th>Keyword</th><th>Status</th><th>Found Today</th><th style="width:300px">Search Date Range</th><th>Actions</th></tr>
           </thead>
           <tbody id="localGemKeywordsBody"></tbody>
         </table>
@@ -4327,7 +4327,11 @@ async function loadLocalGemKeywords() {
       <td><input class="record-input" value="${esc(k.keyword || '')}" data-local-gem-keyword="${k.id}"></td>
       <td><span class="badge ${k.active ? 'badge-success' : 'badge-slate'}">${k.active ? 'Active' : 'Inactive'}</span></td>
       <td>${esc(k.new_tenders_found_today || 0)}</td>
-      <td><input type="date" class="record-input" value="${defaultDate}" data-local-gem-run-date="${k.id}" style="min-width:150px"></td>
+      <td><div style="display:flex;gap:5px;align-items:center;flex-wrap:nowrap">
+        <input type="date" class="record-input" value="${defaultDate}" data-local-gem-run-from="${k.id}" title="From date" style="min-width:128px">
+        <span class="muted-small">to</span>
+        <input type="date" class="record-input" value="${defaultDate}" data-local-gem-run-to="${k.id}" title="To date" style="min-width:128px">
+      </div></td>
       <td style="white-space:nowrap"><button class="btn btn-success btn-xs" data-local-gem-run-btn="${k.id}" onclick="runLocalGemKeywordRow(${k.id})">Run Search</button> <button class="btn btn-outline btn-xs" onclick="updateLocalGemKeyword(${k.id}, ${k.active ? 'false' : 'true'})">${k.active ? 'Pause' : 'Activate'}</button> <button class="btn btn-outline btn-xs" onclick="renameLocalGemKeyword(${k.id})">Save</button> <button class="btn btn-danger btn-xs" onclick="deleteLocalGemKeyword(${k.id})">Delete</button></td>
     </tr>`).join('') : '<tr><td colspan="5" style="padding:18px;color:var(--slate-400)">No keywords yet.</td></tr>';
   } catch (err) {
@@ -4422,17 +4426,26 @@ async function runLocalGemKeywordRow(id) {
   // this server can scrape GeM (rare) and when the office-PC agent does it.
   const status = document.getElementById('localGemRunStatus');
   const keyword = document.querySelector(`[data-local-gem-keyword="${id}"]`)?.value?.trim();
-  const dateStr = document.querySelector(`[data-local-gem-run-date="${id}"]`)?.value;
+  const fromStr = document.querySelector(`[data-local-gem-run-from="${id}"]`)?.value;
+  let toStr = document.querySelector(`[data-local-gem-run-to="${id}"]`)?.value;
   const runBtn = document.querySelector(`[data-local-gem-run-btn="${id}"]`);
   if (!keyword) return toast('Keyword cannot be blank', 'error');
-  if (!dateStr) return toast('Pick a date for this keyword first', 'error');
+  if (!fromStr) return toast('Pick a From date for this keyword first', 'error');
+  if (!toStr) toStr = fromStr;
+  if (toStr < fromStr) return toast('The To date cannot be before the From date', 'error');
+  const isRange = toStr !== fromStr;
 
-  // Persist this date as the scan date so the agent uses it for this run.
+  // Persist this date range as the scan config so the agent uses it for this run.
   try {
     const cfgRes = await fetch('/api/gem-search/admin/config', {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({scanTargetDate: dateStr, scanDateFrom: dateStr, scanDateTo: dateStr, searchDateMode: 'date'}),
+      body: JSON.stringify({
+        scanTargetDate: fromStr,
+        scanDateFrom: fromStr,
+        scanDateTo: toStr,
+        searchDateMode: isRange ? 'range' : 'date',
+      }),
     });
     if (!cfgRes.ok) {
       const d = await cfgRes.json().catch(() => ({}));
@@ -4441,12 +4454,13 @@ async function runLocalGemKeywordRow(id) {
   } catch (err) {
     return toast(err.message || 'Could not set search date', 'error');
   }
-  // Keep the shared date picker in sync with what we just launched.
-  localGemDateFrom = dateStr; localGemDateTo = ''; syncLocalGemDateInputs();
+  // Keep the shared date state in sync with what we just launched.
+  localGemDateFrom = fromStr; localGemDateTo = isRange ? toStr : ''; syncLocalGemDateInputs();
 
   if (runBtn) runBtn.disabled = true;
-  const prettyDate = dateStr.split('-').reverse().join('-');
-  if (status) status.textContent = `Searching "${keyword}" for ${prettyDate}...`;
+  const pretty = ds => ds.split('-').reverse().join('-');
+  const rangeText = isRange ? `${pretty(fromStr)} to ${pretty(toStr)}` : pretty(fromStr);
+  if (status) status.textContent = `Searching "${keyword}" for ${rangeText}...`;
 
   try {
     if (localGemRunnerEnabled) {
