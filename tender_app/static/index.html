@@ -2452,7 +2452,10 @@ body.col-resizing { cursor:col-resize !important; }
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span>Discovered Tenders</span>
-        <button class="btn btn-outline btn-sm" onclick="loadLocalGemDiscovered()">Refresh</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="clearAllLocalGemDiscovered()">Clear All</button>
+          <button class="btn btn-outline btn-sm" onclick="loadLocalGemDiscovered()">Refresh</button>
+        </div>
       </div>
       <div class="table-wrap" style="margin-top:14px">
         <table>
@@ -4545,18 +4548,33 @@ async function loadLocalGemDiscovered() {
         decision = 'Bid After Checking';
         decisionBadge = 'badge-info';
       }
+      // Status = insertion state only. Tenders are NOT auto-inserted; use the
+      // Manual Insert button to push a tender into All Tenders.
+      let statusLabel = 'Not inserted', statusBadge = 'badge-slate';
+      if (r.all_tender_id) { statusLabel = 'Inserted'; statusBadge = 'badge-success'; }
+      else if (r.action_taken === 'DUPLICATE_ALREADY_EXISTS') { statusLabel = 'Already in All Tenders'; statusBadge = 'badge-info'; }
+      else if (r.action_taken === 'EXTRACTION_FAILED' || r.action_taken === 'EVALUATION_FAILED') { statusLabel = 'Needs attention'; statusBadge = 'badge-danger'; }
       return `<tr>
         <td>${esc(r.gem_bid_number || '')}</td><td>${esc(r.keyword_matched || '')}</td><td title="${esc(r.raw_title || '')}">${esc(r.raw_title || '')}</td>
         <td>${esc(r.raw_organisation || r.raw_department || '')}</td><td>${esc(r.bid_end_date || '')}</td>
         <td>${r.evaluation_score != null ? `<span class="badge badge-info">${esc(r.evaluation_score)}/10</span>` : '<span class="muted-small">Pending</span>'}</td>
         <td><span class="badge ${decisionBadge}">${esc(decision)}</span></td>
-        <td><span class="badge ${r.action_taken === 'INSERTED_TO_ALL_TENDERS' ? 'badge-success' : r.action_taken === 'REJECTED_NOT_SUITABLE' ? 'badge-danger' : 'badge-slate'}">${esc(r.all_tender_id ? 'Inserted' : (r.action_taken || 'Discovered'))}</span></td>
+        <td><span class="badge ${statusBadge}">${esc(statusLabel)}</span></td>
         <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">No discovered tenders yet.</td></tr>';
   } catch (err) {
     body.innerHTML = `<tr><td colspan="9" style="padding:18px;color:var(--red-600)">${esc(err.message)}</td></tr>`;
   }
+}
+
+async function clearAllLocalGemDiscovered() {
+  if (!confirm('Clear ALL discovered tenders from this list?\n\nThis only empties the discovered list. Tenders you already inserted into All Tenders stay there.')) return;
+  const res = await fetch('/api/gem-search/discovered-tenders/clear-all', {method: 'POST'});
+  if (!res.ok) return toast('Could not clear discovered tenders', 'error');
+  const data = await res.json().catch(() => ({}));
+  toast(`Cleared ${data.cleared ?? 0} discovered tender(s)`, 'success');
+  loadLocalGemDiscovered();
 }
 
 async function reEvaluateLocalGemTender(bid) {

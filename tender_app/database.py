@@ -2295,6 +2295,18 @@ def delete_discovered_tender(gem_bid_number: str) -> bool:
     return deleted > 0
 
 
+def clear_discovered_tenders() -> int:
+    """Delete every row from the discovered-tenders list. This does NOT touch the
+    tenders table, so anything already inserted into All Tenders stays there."""
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gem_discovered_tenders")
+        deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

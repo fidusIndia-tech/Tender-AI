@@ -731,7 +731,7 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
         }
 
     existing = database.get_discovered_tender_by_bid(gem_bid)
-    if existing and existing.get("action_taken") in {"REJECTED_NOT_SUITABLE", "INSERTED_TO_ALL_TENDERS"}:
+    if existing and existing.get("action_taken") in {"REJECTED_NOT_SUITABLE", "INSERTED_TO_ALL_TENDERS", "EVALUATED"}:
         if not dry_run:
             database.update_discovered_tender(gem_bid)
         return {
@@ -801,21 +801,13 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
 
     if extraction_error and (payload.pdfBase64 or payload.gemPdfUrl) and not extracted:
         action = "EXTRACTION_FAILED"
-    elif decision == "RECOMMENDED":
-        action = "INSERTED_TO_ALL_TENDERS"
     else:
-        action = "REJECTED_NOT_SUITABLE"
+        # Do NOT auto-insert based on the rating. We only evaluate and store the
+        # discovered tender together with its score and bid recommendation; an
+        # admin decides and pushes it into All Tenders via Manual Insert.
+        action = "EVALUATED"
 
-    tender_id = None
     if not dry_run:
-        if action == "INSERTED_TO_ALL_TENDERS":
-            tender_id = database.save_tender(data, items, documents)
-            database.create_tender_notification(
-                tender_id,
-                "New suitable GeM tender found",
-                f"New suitable GeM tender found: {gem_bid} - Score {score}/10",
-                notification_type="LOCAL_GEM_AGENT_RECOMMENDED",
-            )
         database.update_discovered_tender(
             gem_bid,
             stored_pdf_file_id=file_id,
@@ -824,7 +816,6 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
             evaluation_decision=decision,
             evaluation_reason=extraction_error or reason,
             action_taken=action,
-            all_tender_id=tender_id,
         )
 
     return {
@@ -833,7 +824,7 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
         "evaluationScore": score,
         "decision": decision,
         "reason": extraction_error or reason,
-        "allTenderId": tender_id,
+        "allTenderId": None,
         "dryRun": dry_run,
     }
 
@@ -1369,6 +1360,14 @@ async def list_gem_search_discovered_tenders(
 async def local_agent_ingest_discovered_tender(payload: LocalGemDiscoveredTenderPayload, request: Request, dryRun: bool = False):
     _require_local_gem_agent(request)
     return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=dryRun)
+
+
+@app.post("/api/gem-search/discovered-tenders/clear-all")
+async def clear_all_gem_discovered_tenders(user=Depends(_require_admin)):
+    """Clear the whole discovered-tenders list. Tenders already inserted into All
+    Tenders are kept there — only the discovered list is emptied."""
+    cleared = database.clear_discovered_tenders()
+    return {"cleared": cleared}
 
 
 @app.post("/api/gem-search/discovered-tenders/{gem_bid_number:path}/re-evaluate")
