@@ -2416,13 +2416,13 @@ body.col-resizing { cursor:col-resize !important; }
 </div>
 
 <div class="view active" id="view-gem-local-agent">
-  <div style="max-width:1180px;margin:0 auto;display:grid;gap:16px">
+  <div style="max-width:1560px;margin:0 auto;display:grid;gap:16px">
     <div class="card">
       <div class="card-header">Add Keyword</div>
       <div class="form-grid">
         <div class="form-group full">
           <label>Keyword</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;max-width:620px">
             <input type="text" id="localGemKeywordInput" list="localGemKeywordOptions" placeholder="Type a keyword to save (e.g. Siemens)" style="flex:1;min-width:240px">
             <datalist id="localGemKeywordOptions"></datalist>
             <button class="btn btn-primary btn-sm" onclick="saveLocalGemKeyword()">Save Keyword</button>
