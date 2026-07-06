@@ -2418,39 +2418,22 @@ body.col-resizing { cursor:col-resize !important; }
 <div class="view active" id="view-gem-local-agent">
   <div style="max-width:1180px;margin:0 auto;display:grid;gap:16px">
     <div class="card">
-      <div class="card-header">GeM Local Search</div>
+      <div class="card-header">Add Keyword</div>
       <div class="form-grid">
         <div class="form-group full">
-          <label>Keyword Search</label>
+          <label>Keyword</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input type="text" id="localGemKeywordInput" list="localGemKeywordOptions" placeholder="Type new keyword or choose saved keyword" style="flex:1;min-width:240px">
+            <input type="text" id="localGemKeywordInput" list="localGemKeywordOptions" placeholder="Type a keyword to save (e.g. Siemens)" style="flex:1;min-width:240px">
             <datalist id="localGemKeywordOptions"></datalist>
             <button class="btn btn-primary btn-sm" onclick="saveLocalGemKeyword()">Save Keyword</button>
-            <button class="btn btn-success btn-sm" id="localGemRunKeywordBtn" onclick="runLocalGemAgentNow(true)">Run Selected Search</button>
           </div>
-        </div>
-        <div class="form-group full" style="position:relative;max-width:360px">
-          <label>Search Date</label>
-          <input type="hidden" id="localGemScanDate">
-          <input type="hidden" id="localGemScanDateFrom">
-          <input type="hidden" id="localGemScanDateTo">
-          <button type="button" class="btn btn-outline btn-sm" id="localGemDatePickerBtn" onclick="toggleLocalGemCalendar(event)" style="width:100%;justify-content:space-between;padding:9px 12px">
-            <span id="localGemDateLabel">Choose date</span>
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--slate-400);flex-shrink:0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0120.25 6.75v12A1.5 1.5 0 0118.75 20.25H5.25A1.5 1.5 0 013.75 18.75v-12A1.5 1.5 0 015.25 5.25z"/>
-            </svg>
-          </button>
-          <div id="localGemCalendarMenu" style="display:none;position:absolute;z-index:5000;top:64px;left:0;background:#fff;border:1px solid var(--slate-200);border-radius:10px;box-shadow:0 14px 36px rgba(15,23,42,.16);padding:11px 12px 10px" onclick="event.stopPropagation()">
-            <div id="localGemCalendarWidget"></div>
-          </div>
+          <span class="muted-small" style="margin-top:6px;display:block">Saved keywords appear in the table below. Pick a date and click Run Search on any keyword row to search GeM.</span>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="saveLocalGemConfig()">Save Search Settings</button>
-        <button class="btn btn-success btn-sm" id="localGemRunAllBtn" onclick="runLocalGemAgentNow()">Run Search Now</button>
-        <button class="btn btn-outline btn-sm" onclick="loadLocalGemAgentPage({loadDiscovered:true})">Refresh</button>
-        <span class="muted-small" id="localGemRunHelp">Run the local agent from the office PC to search GeM.</span>
-      </div>
+      <!-- Hidden fields retained so config load + PC-agent/runner detection keep working. -->
+      <input type="hidden" id="localGemScanDate">
+      <input type="hidden" id="localGemScanDateFrom">
+      <input type="hidden" id="localGemScanDateTo">
       <div id="localGemRunStatus" class="muted-small" style="margin-top:8px"></div>
     </div>
 
