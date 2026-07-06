@@ -973,10 +973,14 @@ def list_tenders():
                       t.result_review_required, t.result_check_warning, t.l1_seller_name,
                       t.our_company_rank, t.our_company_status,
                       t.filed_date, t.ac_manager, t.remark,
+                      rs.bid_technical_available, rs.bid_financial_available,
+                      rs.ra_technical_available, rs.ra_financial_available,
+                      rs.last_successful_parse_at,
                       COALESCE(a.attachment_count, 0) AS attachment_count,
                       COALESCE(i.item_search_text, '') AS item_search_text,
                       COALESCE(d.required_document_search_text, '') AS required_document_search_text
                FROM tenders t
+               LEFT JOIN tender_result_summary rs ON rs.tender_id = t.id
                LEFT JOIN (
                    SELECT tender_id, COUNT(*) AS attachment_count
                    FROM tender_attachments

@@ -3918,6 +3918,15 @@ function _renderCurrentPage() {
       bidResultHref ? '<a href="' + esc(bidResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM bid result" style="padding:2px 6px;font-size:10px">View Bid Result</a>' : '',
       raResultHref ? '<a href="' + esc(raResultHref) + '" target="_blank" rel="noreferrer" class="btn btn-info btn-xs" title="Open GeM RA result" style="padding:2px 6px;font-size:10px">View RA Result</a>' : ''
     ].join('');
+    // Show a small badge when the watcher has pushed technical/financial
+    // evaluation rows for this tender (visible in the expand tabs of the same name).
+    const techUpdated = Boolean(t.bid_technical_available || t.ra_technical_available);
+    const finUpdated = Boolean(t.bid_financial_available || t.ra_financial_available);
+    const evalUpdatedBadges = (techUpdated || finUpdated) ? `
+      <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">
+        ${techUpdated ? '<span class="badge badge-info" title="Technical evaluation published — open the + expand and see the Technical Evaluation tab" style="font-size:9px;padding:1px 6px">⚙ Technical updated</span>' : ''}
+        ${finUpdated ? '<span class="badge badge-success" title="Financial evaluation published — open the + expand and see the Financial Evaluation tab" style="font-size:9px;padding:1px 6px">₹ Financial updated</span>' : ''}
+      </div>` : '';
     return `
       <tr class="row-hover" data-tender-id="${t.id}" data-status="${st}" onclick="openTender(${t.id})">
         <td class="expand-col" onclick="event.stopPropagation()">
@@ -3940,6 +3949,7 @@ function _renderCurrentPage() {
           <div style="margin-top:6px;font-size:10.5px;color:var(--slate-400)">
             ${t.last_result_checked_at ? `Last checked: ${formatNotificationDate(t.last_result_checked_at)}` : 'Not checked yet'}
           </div>
+          ${evalUpdatedBadges}
         </td>
         <td onclick="event.stopPropagation()" style="padding:6px 5px">
           <div class="result-actions">
