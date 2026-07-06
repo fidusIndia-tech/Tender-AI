@@ -2459,7 +2459,7 @@ body.col-resizing { cursor:col-resize !important; }
       <div class="table-wrap" style="margin-top:14px">
         <table>
           <thead>
-            <tr><th>Keyword</th><th>Status</th><th>Found Today</th><th>Actions</th></tr>
+            <tr><th>Keyword</th><th>Status</th><th>Found Today</th><th style="width:170px">Search Date</th><th>Actions</th></tr>
           </thead>
           <tbody id="localGemKeywordsBody"></tbody>
         </table>
@@ -4332,21 +4332,23 @@ async function saveLocalGemConfig(options = {}) {
 async function loadLocalGemKeywords() {
   const body = document.getElementById('localGemKeywordsBody');
   if (!body) return;
-  body.innerHTML = '<tr><td colspan="4" style="padding:18px;color:var(--slate-400)">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--slate-400)">Loading...</td></tr>';
   try {
     const res = await fetch('/api/gem-search/admin/keywords');
     if (!res.ok) throw new Error('Failed to load keywords');
     const rows = await res.json();
     const options = document.getElementById('localGemKeywordOptions');
     if (options) options.innerHTML = rows.map(k => `<option value="${esc(k.keyword || '')}"></option>`).join('');
+    const defaultDate = localGemDateFrom || new Date().toISOString().slice(0, 10);
     body.innerHTML = rows.length ? rows.map(k => `<tr>
       <td><input class="record-input" value="${esc(k.keyword || '')}" data-local-gem-keyword="${k.id}"></td>
       <td><span class="badge ${k.active ? 'badge-success' : 'badge-slate'}">${k.active ? 'Active' : 'Inactive'}</span></td>
       <td>${esc(k.new_tenders_found_today || 0)}</td>
-      <td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="updateLocalGemKeyword(${k.id}, ${k.active ? 'false' : 'true'})">${k.active ? 'Pause' : 'Activate'}</button> <button class="btn btn-outline btn-xs" onclick="renameLocalGemKeyword(${k.id})">Save</button> <button class="btn btn-danger btn-xs" onclick="deleteLocalGemKeyword(${k.id})">Delete</button></td>
-    </tr>`).join('') : '<tr><td colspan="4" style="padding:18px;color:var(--slate-400)">No keywords yet.</td></tr>';
+      <td><input type="date" class="record-input" value="${defaultDate}" data-local-gem-run-date="${k.id}" style="min-width:150px"></td>
+      <td style="white-space:nowrap"><button class="btn btn-success btn-xs" data-local-gem-run-btn="${k.id}" onclick="runLocalGemKeywordRow(${k.id})">Run Search</button> <button class="btn btn-outline btn-xs" onclick="updateLocalGemKeyword(${k.id}, ${k.active ? 'false' : 'true'})">${k.active ? 'Pause' : 'Activate'}</button> <button class="btn btn-outline btn-xs" onclick="renameLocalGemKeyword(${k.id})">Save</button> <button class="btn btn-danger btn-xs" onclick="deleteLocalGemKeyword(${k.id})">Delete</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" style="padding:18px;color:var(--slate-400)">No keywords yet.</td></tr>';
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="4" style="padding:18px;color:var(--red-600)">${esc(err.message)}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" style="padding:18px;color:var(--red-600)">${esc(err.message)}</td></tr>`;
   }
 }
 
@@ -4429,6 +4431,64 @@ async function runLocalGemAgentNow(useTypedKeyword = false) {
   } finally {
     if (runAllBtn) runAllBtn.disabled = false;
     if (runKeywordBtn) runKeywordBtn.disabled = false;
+  }
+}
+
+async function runLocalGemKeywordRow(id) {
+  // Run one saved keyword for the date chosen in its own row. Works both when
+  // this server can scrape GeM (rare) and when the office-PC agent does it.
+  const status = document.getElementById('localGemRunStatus');
+  const keyword = document.querySelector(`[data-local-gem-keyword="${id}"]`)?.value?.trim();
+  const dateStr = document.querySelector(`[data-local-gem-run-date="${id}"]`)?.value;
+  const runBtn = document.querySelector(`[data-local-gem-run-btn="${id}"]`);
+  if (!keyword) return toast('Keyword cannot be blank', 'error');
+  if (!dateStr) return toast('Pick a date for this keyword first', 'error');
+
+  // Persist this date as the scan date so the agent uses it for this run.
+  try {
+    const cfgRes = await fetch('/api/gem-search/admin/config', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({scanTargetDate: dateStr, scanDateFrom: dateStr, scanDateTo: dateStr, searchDateMode: 'date'}),
+    });
+    if (!cfgRes.ok) {
+      const d = await cfgRes.json().catch(() => ({}));
+      throw new Error(d.detail || 'Could not set search date');
+    }
+  } catch (err) {
+    return toast(err.message || 'Could not set search date', 'error');
+  }
+  // Keep the shared date picker in sync with what we just launched.
+  localGemDateFrom = dateStr; localGemDateTo = ''; syncLocalGemDateInputs();
+
+  if (runBtn) runBtn.disabled = true;
+  const prettyDate = dateStr.split('-').reverse().join('-');
+  if (status) status.textContent = `Searching "${keyword}" for ${prettyDate}...`;
+
+  try {
+    if (localGemRunnerEnabled) {
+      const res = await fetch('/api/gem-search/admin/run-local-agent', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({keyword}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Local agent run failed');
+      const summaryMatch = String(data.output || '').match(/\{\s*"keywords"[\s\S]*?\}\s*$/);
+      if (status) status.textContent = summaryMatch ? `Search complete: ${summaryMatch[0]}` : 'Search complete. Refreshing results...';
+      toast('GeM search complete', 'success');
+      await Promise.all([loadLocalGemKeywords(), loadLocalGemDiscovered()]);
+    } else {
+      const res = await fetch('/api/gem-search/admin/request-run', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({keyword}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not queue search');
+      await pollLocalGemRunRequest(status);
+    }
+  } catch (err) {
+    if (status) status.textContent = err.message || 'Search failed';
+    toast(err.message || 'Search failed', 'error');
+  } finally {
+    if (runBtn) runBtn.disabled = false;
   }
 }
 
