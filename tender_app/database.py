@@ -973,8 +973,10 @@ def list_tenders():
                       t.result_review_required, t.result_check_warning, t.l1_seller_name,
                       t.our_company_rank, t.our_company_status,
                       t.filed_date, t.ac_manager, t.remark,
-                      rs.bid_technical_available, rs.bid_financial_available,
-                      rs.ra_technical_available, rs.ra_financial_available,
+                      EXISTS (SELECT 1 FROM tender_technical_evaluation te WHERE te.tender_id = t.id AND te.source_type = 'BID') AS bid_technical_available,
+                      EXISTS (SELECT 1 FROM tender_financial_evaluation fe WHERE fe.tender_id = t.id AND fe.source_type = 'BID') AS bid_financial_available,
+                      EXISTS (SELECT 1 FROM tender_technical_evaluation te WHERE te.tender_id = t.id AND te.source_type = 'RA') AS ra_technical_available,
+                      EXISTS (SELECT 1 FROM tender_financial_evaluation fe WHERE fe.tender_id = t.id AND fe.source_type = 'RA') AS ra_financial_available,
                       rs.last_successful_parse_at,
                       COALESCE(a.attachment_count, 0) AS attachment_count,
                       COALESCE(i.item_search_text, '') AS item_search_text,
@@ -1590,6 +1592,21 @@ def save_tender_result_details(
             (tender_id,),
         )
         old_summary = dict(cur.fetchone() or {})
+        # Ground truth for "did evaluation just appear": whether real rows exist
+        # for this source BEFORE we replace them. Using the rows (not the summary
+        # boolean) means a stale bid_technical_available flag can neither raise a
+        # false badge nor suppress a genuine future "result is live" notification.
+        stype = source_type or "BID"
+        cur.execute(
+            "SELECT 1 FROM tender_technical_evaluation WHERE tender_id=%s AND source_type=%s LIMIT 1",
+            (tender_id, stype),
+        )
+        old_has_technical_rows = cur.fetchone() is not None
+        cur.execute(
+            "SELECT 1 FROM tender_financial_evaluation WHERE tender_id=%s AND source_type=%s LIMIT 1",
+            (tender_id, stype),
+        )
+        old_has_financial_rows = cur.fetchone() is not None
         checked_at_value = checked_at or datetime.now()
         cur.execute(
             """
@@ -1699,36 +1716,29 @@ def save_tender_result_details(
 
     # Fire the "result is live" notification only when GeM has actually published
     # real evaluation rows (technical or financial), and only on the transition
-    # from none to some. This replaces the noisy status-code notification so a
-    # user is told a result is live only when real evaluation data exists — the
-    # same data shown in the tender's + expand.
+    # from none to some for this source. Based on real rows (not the summary
+    # boolean) so it never fires without evaluation data visible in the + expand.
     if not parse_error:
-        bid_label = str(gem_bid_number or source_number or "").strip()
-        old_bid_eval = bool(old_summary.get("bid_technical_available") or old_summary.get("bid_financial_available"))
-        new_bid_eval = bool(
-            summary.get("bidTechnicalAvailable") or summary.get("bid_technical_available")
-            or summary.get("bidFinancialAvailable") or summary.get("bid_financial_available")
-        )
-        old_ra_eval = bool(old_summary.get("ra_technical_available") or old_summary.get("ra_financial_available"))
-        new_ra_eval = bool(
-            summary.get("raTechnicalAvailable") or summary.get("ra_technical_available")
-            or summary.get("raFinancialAvailable") or summary.get("ra_financial_available")
-        )
-        if new_bid_eval and not old_bid_eval and bid_label:
-            create_tender_notification(
-                tender_id,
-                f"New tender result is live for {bid_label}",
-                f"Evaluation has been published for {bid_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
-                notification_type="BID_RESULT_AVAILABLE",
-            )
-        if new_ra_eval and not old_ra_eval:
-            ra_label = str(source_number or gem_bid_number or "").strip()
-            create_tender_notification(
-                tender_id,
-                f"New RA result is live for {ra_label}",
-                f"RA evaluation has been published for {ra_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
-                notification_type="RA_RESULT_AVAILABLE",
-            )
+        old_eval = old_has_technical_rows or old_has_financial_rows
+        new_eval = bool(technical_evaluation) or bool(financial_evaluation)
+        if new_eval and not old_eval:
+            if stype == "RA":
+                ra_label = str(source_number or gem_bid_number or "").strip()
+                create_tender_notification(
+                    tender_id,
+                    f"New RA result is live for {ra_label}",
+                    f"RA evaluation has been published for {ra_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
+                    notification_type="RA_RESULT_AVAILABLE",
+                )
+            else:
+                bid_label = str(gem_bid_number or source_number or "").strip()
+                if bid_label:
+                    create_tender_notification(
+                        tender_id,
+                        f"New tender result is live for {bid_label}",
+                        f"Evaluation has been published for {bid_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
+                        notification_type="BID_RESULT_AVAILABLE",
+                    )
     return saved_summary
 
 
@@ -1758,6 +1768,14 @@ def get_tender_result_details(tender_id: int):
         )
         history = [dict(r) for r in cur.fetchall()]
     conn.close()
+    # Derive the availability flags from the actual rows so the panel never
+    # shows "Technical Available: Yes" when no evaluation rows exist (stale
+    # summary booleans written by older agent runs are ignored).
+    if summary:
+        summary["bid_technical_available"] = any(r.get("source_type") == "BID" for r in technical)
+        summary["bid_financial_available"] = any(r.get("source_type") == "BID" for r in financial)
+        summary["ra_technical_available"] = any(r.get("source_type") == "RA" for r in technical)
+        summary["ra_financial_available"] = any(r.get("source_type") == "RA" for r in financial)
     return {
         "summary": summary,
         "participants": participants,
