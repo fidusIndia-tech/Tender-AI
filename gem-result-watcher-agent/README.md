@@ -69,17 +69,23 @@ The agent waits between checks and continues if one tender fails.
 
 ## Windows Task Scheduler
 
-Create the twice-daily task at 10:00 AM and 5:00 PM:
+Register the scheduled tasks:
 
 ```powershell
 .\setup_scheduler.ps1 -PythonExe "C:\Users\dell\Downloads\gem_tender_tool\gem-result-watcher-agent\.venv\Scripts\python.exe"
 ```
 
-The scheduled task name is:
+This creates two daily tasks:
 
 ```text
-Tender AI GeM Result Watcher Agent
+Tender AI GeM Result Watcher Agent      -> watcher.py --run-now (default 09:15 AM)
+Tender AI GeM Result Recheck and Repair -> watcher.py --recheck-and-fix-statuses --apply (default 11:00 PM)
 ```
+
+- **Run-now** checks tenders that do not yet have a result and picks up newly published results.
+- **Recheck and repair** revisits every ended tender, corrects stale/false "result available" statuses, and ingests published evaluation rows for tenders that genuinely have a result.
+
+Override the times if needed, e.g. `-RunAt "10:00AM","05:00PM" -RecheckAt "11:30PM"`.
 
 ## Logs
 
@@ -99,4 +105,4 @@ Every tender log includes tender id, bid number, GeM response status, returned d
 - `NOT_AVAILABLE_YET`: exact tender matched, but no result ids were returned.
 - `FAILED_TO_CHECK`: GeM request failed or exact tender was not found in the GeM response.
 
-The agent does not create notifications directly. Tender AI creates one notification when a tender changes from no result to result available.
+The agent does not create notifications directly. Tender AI creates the "result is live" notification only when real technical/financial evaluation rows are ingested from the GeM result page (not from the status code alone), so notifications correspond to evaluation data that is actually visible in the tender's result expand.
