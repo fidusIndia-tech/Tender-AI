@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 try:
     from .. import database
+    from ..gem_bid_utils import extractGemBiddingId
     from .scanner import (
         execute_scan,
         request_cancel,
@@ -14,6 +15,7 @@ try:
     )
 except ImportError:
     import database
+    from gem_bid_utils import extractGemBiddingId
     from gem_watcher.scanner import (
         execute_scan,
         request_cancel,
@@ -176,8 +178,10 @@ async def approve_candidate(candidate_id: int):
 
     ti = raw.get("tender_information", {})
     tender_data = dict(ti)
-    tender_data["gem_bidding_number"] = candidate["gem_bid_no"]
-    tender_data.setdefault("tender_number", candidate["gem_bid_no"])
+    # tender_number is the searched GeM bid number (GEM/YYYY/B/NNNN); the GeM
+    # bidding number is the numeric doc id (e.g. 9526913). Keep them distinct.
+    tender_data["tender_number"] = candidate["gem_bid_no"]
+    tender_data["gem_bidding_number"] = extractGemBiddingId(candidate) or candidate["gem_bid_no"]
     tender_data["organization_name"] = tender_data.get("organization_name") or candidate.get("organisation")
     tender_data["department_name"] = tender_data.get("department_name") or candidate.get("department")
     tender_data["total_quantity"] = tender_data.get("total_quantity") or candidate.get("quantity")

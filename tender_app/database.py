@@ -1788,14 +1788,23 @@ def get_tender_result_details(tender_id: int):
 
 
 def find_tender_duplicate(gem_bidding_number, tender_number=None):
-    """Return existing tender if the GeM bidding number already exists."""
-    if not gem_bidding_number:
+    """Return an existing tender if either the GeM bidding number or the tender
+    number already exists. Matching on both keeps de-duplication robust across
+    the change that made gem_bidding_number the numeric bidding id (older rows
+    may still carry the GEM/YYYY/B/NNNN value there, which is now tender_number).
+    """
+    gbn = str(gem_bidding_number or "").strip() or None
+    tn = str(tender_number or "").strip() or None
+    if not gbn and not tn:
         return None
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT id FROM tenders WHERE gem_bidding_number=%s LIMIT 1",
-            (gem_bidding_number,),
+            """SELECT id FROM tenders
+               WHERE (%(gbn)s IS NOT NULL AND gem_bidding_number = %(gbn)s)
+                  OR (%(tn)s IS NOT NULL AND tender_number = %(tn)s)
+               LIMIT 1""",
+            {"gbn": gbn, "tn": tn},
         )
         row = cur.fetchone()
     conn.close()

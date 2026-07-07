@@ -33,6 +33,7 @@ from pathlib import Path
 
 try:
     from .. import ai_extractor, database
+    from ..gem_bid_utils import extractGemBiddingId
     from .evaluator import (
         evaluate_gem_candidate,
         keyword_pre_evaluate_gem_candidate,
@@ -41,6 +42,7 @@ try:
 except ImportError:
     import ai_extractor
     import database
+    from gem_bid_utils import extractGemBiddingId
     from gem_watcher.evaluator import (
         evaluate_gem_candidate,
         keyword_pre_evaluate_gem_candidate,
@@ -671,8 +673,11 @@ def _extract_and_evaluate_candidate(candidate_id, capability, force_full_evaluat
 
     ti = raw.get("tender_information", {})
     tender = dict(ti)
-    tender["gem_bidding_number"] = candidate["gem_bid_no"]
-    tender.setdefault("tender_number", candidate["gem_bid_no"])
+    # tender_number is the searched GeM bid number (GEM/YYYY/B/NNNN); the GeM
+    # bidding number is the numeric doc id (e.g. 9526913). They are different —
+    # do not put the tender number into gem_bidding_number.
+    tender["tender_number"] = candidate["gem_bid_no"]
+    tender["gem_bidding_number"] = extractGemBiddingId(candidate) or candidate["gem_bid_no"]
     tender["organization_name"] = tender.get("organization_name") or candidate.get("organisation")
     tender["department_name"] = tender.get("department_name") or candidate.get("department")
     tender["total_quantity"] = tender.get("total_quantity") or candidate.get("quantity")

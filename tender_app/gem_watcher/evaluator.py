@@ -961,7 +961,7 @@ def _weighted_local_eval(tender: dict, capability: dict, bid_end_date=None, tend
         "risks": _clean_list(risks, limit=5),
         "manual_checks_needed": _clean_list(manual_checks, limit=5),
         "extracted_fields": {
-            "gem_bid_number": tender.get("gem_bidding_number"),
+            "gem_bid_number": tender.get("tender_number") or tender.get("gem_bidding_number"),
             "tender_number": tender.get("tender_number"),
             "start_date": tender.get("date") or tender.get("bid_start_date"),
             "bid_end_date": tender.get("bid_end_datetime") or tender.get("bid_end_date"),
@@ -1076,7 +1076,7 @@ def _llm_evaluate(tender: dict, capability: dict, tender_text: str, local_eval: 
     local_json = local_eval.get("evaluation_json") or {}
 
     tender_block = (
-        f"GeM Bid Number: {tender.get('gem_bidding_number') or tender.get('tender_number') or 'N/A'}\n"
+        f"GeM Bid Number: {tender.get('tender_number') or tender.get('gem_bidding_number') or 'N/A'}\n"
         f"Title/Items category: {tender.get('title') or tender.get('make') or 'N/A'}\n"
         f"Organisation: {tender.get('organization_name') or 'N/A'}\n"
         f"Department: {tender.get('department_name') or 'N/A'}\n"
