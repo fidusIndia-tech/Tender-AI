@@ -125,6 +125,54 @@ def test_not_found_does_not_crash():
     assert parsed["result_available"] is False
 
 
+def test_not_evaluated_match_is_confident_negative():
+    # Exact bid matched but GeM explicitly says Not Evaluated (status 0): this is
+    # a high-confidence "no result" so a stale false-positive can self-correct.
+    result_data = {
+        "response": {
+            "response": {
+                "docs": [
+                    {
+                        "b_bid_number": ["GEM/2026/B/7442526"],
+                        "b_bid_number_parent": [""],
+                        "id": ["9221006"],
+                        "status": ["0"],
+                    }
+                ],
+                "numFound": 1,
+            }
+        }
+    }
+    parsed = parse_gem_result_response("GEM/2026/B/7442526", result_data, None)
+    assert parsed["result_available"] is False
+    assert parsed["gem_result_status"] == RESULT_STATUS_NOT_AVAILABLE
+    assert parsed["confidence"] == "high"
+
+
+def test_confident_negative_downgrades_stale_available():
+    existing = {
+        "gem_result_status": RESULT_STATUS_BID_AVAILABLE,
+        "result_available": True,
+        "bid_result_available": True,
+        "ra_created": False,
+        "ra_result_available": False,
+        "gem_result_url": "https://example.com/bid/123",
+    }
+    new_result = {
+        "gem_result_status": RESULT_STATUS_NOT_AVAILABLE,
+        "result_available": False,
+        "bid_result_available": False,
+        "ra_created": False,
+        "ra_result_available": False,
+        "confidence": "high",
+        "reason": "GeM explicitly reports Not Evaluated.",
+    }
+    resolved = _resolve_safe_result(existing, new_result, force_downgrade=False)
+    assert resolved["gem_result_status"] == RESULT_STATUS_NOT_AVAILABLE
+    assert resolved["downgrade_blocked"] is False
+    assert resolved["result_review_required"] is False
+
+
 def test_existing_available_status_is_not_downgraded_without_force():
     existing = {
         "gem_result_status": RESULT_STATUS_BID_AVAILABLE,
@@ -148,12 +196,28 @@ def test_existing_available_status_is_not_downgraded_without_force():
     assert resolved["downgrade_blocked"] is True
 
 
-def test_compute_current_stage_uses_detected_section_flags():
+def test_compute_current_stage_requires_real_rows_not_headings():
+    # A bare "TECHNICAL EVALUATION" section heading with no seller rows must NOT
+    # advance the stage to technical — the GeM result template always contains
+    # those headings even before any evaluation is published.
     stage = WATCHER_MODULE.compute_current_stage(
         "BID",
         RESULT_STATUS_BID_AVAILABLE,
         {
             "technicalEvaluation": [],
+            "financialEvaluation": [],
+            "detectedSections": {"technical": True, "financial": False},
+        },
+    )
+    assert stage == WATCHER_MODULE.STAGE_BID_RESULT
+
+
+def test_compute_current_stage_uses_technical_rows():
+    stage = WATCHER_MODULE.compute_current_stage(
+        "BID",
+        RESULT_STATUS_BID_AVAILABLE,
+        {
+            "technicalEvaluation": [{"seller_name": "FIDUS"}],
             "financialEvaluation": [],
             "detectedSections": {"technical": True, "financial": False},
         },

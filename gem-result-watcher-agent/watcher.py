@@ -679,6 +679,19 @@ def is_evaluated_status_text(text):
     )
 
 
+def is_not_evaluated_status_text(text):
+    """True when GeM explicitly reports the bid/RA as Not Evaluated.
+
+    A doc that matched the exact bid and is explicitly "Not Evaluated" is a
+    confident negative: any previously-saved "result available" status was a
+    false positive and should be allowed to self-correct downstream.
+    """
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return False
+    return "not evaluated" in normalized
+
+
 def find_matching_doc(data, bid):
     inner = ((data or {}).get("response") or {}).get("response") or {}
     docs = inner.get("docs") or []
@@ -787,6 +800,16 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
     else:
         status = STATUS_NOT_AVAILABLE
 
+    # A confident negative: we matched the exact bid/RA document and GeM
+    # explicitly reports it as Not Evaluated. Flag it as high confidence so a
+    # previously-saved false-positive "available" status can self-correct
+    # (the server anti-downgrade guard only releases on high-confidence checks).
+    confident_not_available = bool(
+        matched_doc
+        and status == STATUS_NOT_AVAILABLE
+        and is_not_evaluated_status_text(result_status_text or ongoing_status_text)
+    )
+
     result_is_single_packet = str(first_value((result_doc or {}).get("ba_is_single_packet")) or "").strip() == "1"
     result_is_schedule = str(first_value((result_doc or {}).get("b_eval_type")) or "").strip() not in {"", "0"}
     bid_result_url = None
@@ -818,7 +841,7 @@ def parse_gem_response(bid_number, gem_base_url, result_data, ongoing_data=None)
         "gemPageStatus": result_status_text or ongoing_status_text or None,
         "resultCheckError": None,
         "rawGemMatchedDoc": matched_doc,
-        "confidence": "high" if result_available else ("medium" if matched_doc else "low"),
+        "confidence": "high" if (result_available or confident_not_available) else ("medium" if matched_doc else "low"),
         "reason": (
             "Original bid result is available and the RA document is also evaluated."
             if status == STATUS_BID_AND_RA_AVAILABLE
@@ -1520,15 +1543,19 @@ def check_one_tender_result_details(context, page, config, tender, *, apply_chan
     )
     summary = {
         "bidResultAvailable": bool(parsed.get("bidResultAvailable")),
-        "bidTechnicalAvailable": bool(source_type == "BID" and ((details.get("detectedSections") or {}).get("technical") or details.get("technicalEvaluation"))),
-        "bidFinancialAvailable": bool(source_type == "BID" and ((details.get("detectedSections") or {}).get("financial") or details.get("financialEvaluation"))),
+        # Only flag technical/financial evaluation as available when GeM actually
+        # published seller rows. A detected section *heading* is not enough — the
+        # GeM result-page template always contains "TECHNICAL EVALUATION" /
+        # "FINANCIAL EVALUATION" labels even before any evaluation is published.
+        "bidTechnicalAvailable": bool(source_type == "BID" and details.get("technicalEvaluation")),
+        "bidFinancialAvailable": bool(source_type == "BID" and details.get("financialEvaluation")),
         "raCreated": bool(parsed.get("raCreated")),
         "raNumber": parsed.get("raNumber"),
         "raStartDate": parsed.get("raStartDate"),
         "raEndDate": parsed.get("raEndDate"),
         "raResultAvailable": bool(parsed.get("raResultAvailable")),
-        "raTechnicalAvailable": bool(source_type == "RA" and ((details.get("detectedSections") or {}).get("technical") or details.get("technicalEvaluation"))),
-        "raFinancialAvailable": bool(source_type == "RA" and ((details.get("detectedSections") or {}).get("financial") or details.get("financialEvaluation"))),
+        "raTechnicalAvailable": bool(source_type == "RA" and details.get("technicalEvaluation")),
+        "raFinancialAvailable": bool(source_type == "RA" and details.get("financialEvaluation")),
         **ours,
     }
     payload = {

@@ -623,6 +623,11 @@ def _is_evaluated_status_text(text: str) -> bool:
     normalized = _normalize_for_compare(text)
     if not normalized:
         return False
+    # "Not Evaluated" must never count as evaluated. Guard first, otherwise the
+    # bare "evaluated" substring below matches "not evaluated" and produces a
+    # false-positive "result available".
+    if "not evaluated" in normalized:
+        return False
     phrases = (
         "technical evaluation",
         "financial evaluation",
@@ -891,6 +896,15 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
         status = RESULT_STATUS_NOT_FOUND
         reason = "Searched bid number was not present in GeM result documents."
 
+    # A confident negative: exact doc matched and GeM explicitly says Not
+    # Evaluated. Flag high confidence so a stale false-positive "available"
+    # status can be corrected by the anti-downgrade guard downstream.
+    confident_not_available = bool(
+        matched_doc_found
+        and status == RESULT_STATUS_NOT_AVAILABLE
+        and _is_not_evaluated_status_text(status_text)
+    )
+
     gem_result_url = None
     if is_direct_bid and bid_result_available:
         gem_result_url = _build_gem_bid_result_url(direct_doc_id)
@@ -944,7 +958,7 @@ def parse_gem_result_response(canonical_bid_number: str, result_data: dict, ongo
         "gem_result_status": status,
         "reason": reason,
         "result_check_error": None,
-        "confidence": "high" if result_available else ("medium" if matched_doc_found else "low"),
+        "confidence": "high" if (result_available or confident_not_available) else ("medium" if matched_doc_found else "low"),
         "raw_gem_response": {"result": result_data, "ongoing": ongoing_data},
         "page_text_snippet": _normalize_space(joined_text)[:3000],
         "opened_url": GEM_ALL_BIDS_DATA_URL,
@@ -2180,7 +2194,7 @@ def check_tender_result(
             not result["bid_result_available"]
             and not result["ra_created"]
             and not result["ra_result_available"]
-            and result.get("confidence") == "HIGH"
+            and _normalize_space(result.get("confidence")).upper() == "HIGH"
             and result.get("gem_result_status") in {RESULT_STATUS_NOT_AVAILABLE, RESULT_STATUS_NOT_FOUND}
         ):
             invalidated_notifications = database.invalidate_tender_notifications(
