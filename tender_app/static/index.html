@@ -3956,7 +3956,7 @@ function _renderCurrentPage() {
         </td>
         <td onclick="event.stopPropagation()" style="padding:6px 5px">
           <div class="result-actions">
-            ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" draggable="true" ondragstart="onPdfDragStart(event, this.href, '${esc(t.tender_number || t.gem_bidding_number || 'tender')}')" class="btn btn-outline btn-xs" title="Click to view · drag to WhatsApp/desktop to share the PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
+            ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" draggable="true" onmouseenter="prefetchPdfForDrag(this.href, '${esc(t.tender_number || t.gem_bidding_number || 'tender')}')" onpointerdown="prefetchPdfForDrag(this.href, '${esc(t.tender_number || t.gem_bidding_number || 'tender')}')" ondragstart="onPdfDragStart(event, this.href, '${esc(t.tender_number || t.gem_bidding_number || 'tender')}')" class="btn btn-outline btn-xs" title="Click to view · drag to WhatsApp/desktop to share the PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
             <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
             ${resultActionLinks}
           </div>
@@ -4560,7 +4560,7 @@ async function loadLocalGemDiscovered() {
         <td>${r.evaluation_score != null ? `<span class="badge badge-info">${esc(r.evaluation_score)}/10</span>` : '<span class="muted-small">Pending</span>'}</td>
         <td><span class="badge ${decisionBadge}">${esc(decision)}</span></td>
         <td><span class="badge ${statusBadge}">${esc(statusLabel)}</span></td>
-        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank" draggable="true" ondragstart="onPdfDragStart(event, this.href, '${esc(r.gem_bid_number || 'tender')}')" title="Click to view · drag to WhatsApp/desktop to share the PDF">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
+        <td style="white-space:nowrap">${(r.stored_pdf_file_id || r.gem_pdf_url) ? `<a class="btn btn-outline btn-xs" href="${r.stored_pdf_file_id ? ('/files/' + esc(r.stored_pdf_file_id)) : esc(r.gem_pdf_url)}" target="_blank" draggable="true" onmouseenter="prefetchPdfForDrag(this.href, '${esc(r.gem_bid_number || 'tender')}')" onpointerdown="prefetchPdfForDrag(this.href, '${esc(r.gem_bid_number || 'tender')}')" ondragstart="onPdfDragStart(event, this.href, '${esc(r.gem_bid_number || 'tender')}')" title="Click to view · drag to WhatsApp/desktop to share the PDF">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">No discovered tenders yet.</td></tr>';
   } catch (err) {
@@ -7308,14 +7308,42 @@ function pdfDragFileName(name) {
   return (base || 'tender') + '.pdf';
 }
 
+// Cache of prefetched PDF File objects, keyed by absolute URL. Drag events are
+// synchronous, so we must have the file bytes ready before dragstart fires —
+// we prefetch on hover / pointer-down.
+const _pdfDragCache = new Map();
+
+function _absoluteUrl(href) {
+  try { return new URL(href, window.location.origin).href; } catch (_) { return href; }
+}
+
+// Fetch the PDF into a real File so it can be dropped into web apps (WhatsApp
+// Web etc.) as actual bytes. Only works for same-origin URLs (e.g. /files/...);
+// cross-origin GeM URLs are blocked by CORS and fall back to DownloadURL.
+async function prefetchPdfForDrag(href, fileName) {
+  const absolute = _absoluteUrl(href);
+  if (!absolute || _pdfDragCache.has(absolute)) return;
+  try {
+    if (new URL(absolute).origin !== window.location.origin) return;
+    const resp = await fetch(absolute, { credentials: 'include' });
+    if (!resp.ok) return;
+    const blob = await resp.blob();
+    _pdfDragCache.set(absolute, new File([blob], pdfDragFileName(fileName), { type: 'application/pdf' }));
+  } catch (_) { /* fall back to DownloadURL at drag time */ }
+}
+
 // Make a PDF link draggable into WhatsApp / desktop / other apps as a real file.
-// Uses the browser "DownloadURL" DataTransfer format: on drop the browser
-// downloads the file from the URL and hands it over as an actual file.
+// Prefers the prefetched file bytes (works in web apps); always also sets the
+// "DownloadURL" format so drops onto the desktop / native apps work too.
 function onPdfDragStart(ev, href, fileName) {
   try {
     if (!href) return;
-    const absolute = new URL(href, window.location.origin).href;
+    const absolute = _absoluteUrl(href);
     const name = pdfDragFileName(fileName);
+    const cached = _pdfDragCache.get(absolute);
+    if (cached && ev.dataTransfer.items) {
+      try { ev.dataTransfer.items.add(cached); } catch (_) {}
+    }
     ev.dataTransfer.setData('DownloadURL', `application/pdf:${name}:${absolute}`);
     ev.dataTransfer.setData('text/uri-list', absolute);
     ev.dataTransfer.setData('text/plain', absolute);
