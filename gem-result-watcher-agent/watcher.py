@@ -35,6 +35,14 @@ STATUS_RA_CREATED = "RA_CREATED"
 STATUS_RA_AVAILABLE = "RA_RESULT_AVAILABLE"
 STATUS_BID_AND_RA_AVAILABLE = "BID_AND_RA_RESULT_AVAILABLE"
 STATUS_FAILED = "FAILED_TO_CHECK"
+# Fast status check says "there might be a result here" -> worth opening the
+# actual GeM result page to confirm with real evaluation rows.
+RESULT_SIGNAL_STATUSES = {
+    STATUS_BID_AVAILABLE,
+    STATUS_RA_CREATED,
+    STATUS_RA_AVAILABLE,
+    STATUS_BID_AND_RA_AVAILABLE,
+}
 STAGE_BID_RESULT = "BID_RESULT_AVAILABLE"
 STAGE_BID_TECHNICAL = "BID_TECHNICAL_EVALUATION_AVAILABLE"
 STAGE_BID_FINANCIAL = "BID_FINANCIAL_EVALUATION_AVAILABLE"
@@ -1667,6 +1675,22 @@ def run_pending(config):
                         summary["results_found"] += 1
                     else:
                         summary["not_available"] += 1
+                    # When the fast status check flags a likely result, open the
+                    # actual GeM result page and ingest real technical/financial
+                    # rows. Those rows populate the tender's result expand and are
+                    # what drive the "result is live" notification server-side.
+                    signal_status = str(
+                        (result.get("gem_result_status") or result.get("gemResultStatus") or result.get("status") or "")
+                    ).upper()
+                    if signal_status in RESULT_SIGNAL_STATUSES:
+                        try:
+                            check_one_tender_result_details(context, page, config, tender, apply_changes=True)
+                        except Exception:
+                            logging.exception(
+                                "result details parse failed tender_id=%s bid=%s",
+                                tender.get("id"),
+                                canonical_tender_bid_number(tender),
+                            )
                 except Exception as exc:
                     summary["checked"] += 1
                     summary["failed"] += 1
@@ -1809,6 +1833,19 @@ def run_recheck_and_fix_statuses(config, *, dry_run=False, force_downgrade=False
                     elif result.get("db_verified") is False:
                         summary["db_verified_failed"] += 1
                     summary["false_positive_notifications_invalidated"] = summary.get("false_positive_notifications_invalidated", 0) + int(result.get("invalidated_notifications") or 0)
+                    # When applying, and the status check flags a likely result,
+                    # open the real result page so genuine technical/financial
+                    # rows populate the tender expand and drive the "result is
+                    # live" notification (real evaluation only).
+                    if not dry_run and effective_status in RESULT_SIGNAL_STATUSES:
+                        try:
+                            check_one_tender_result_details(context, page, config, tender, apply_changes=True)
+                        except Exception:
+                            logging.exception(
+                                "result details parse failed tender_id=%s bid=%s",
+                                tender.get("id"),
+                                canonical_tender_bid_number(tender),
+                            )
                 except Exception as exc:
                     summary["checked"] += 1
                     summary["failed"] += 1

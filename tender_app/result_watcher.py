@@ -2159,15 +2159,14 @@ def check_tender_result(
         )
 
         notifications: list[dict] = []
-        if result["bid_result_available"] and not existing_bid_available:
-            notifications.append(
-                database.create_tender_notification(
-                    tender_id,
-                    f"Bid result available for {bid_number}",
-                    f"Bid result available for {bid_number}.",
-                    notification_type="BID_RESULT_AVAILABLE",
-                )
-            )
+        # The "result is live" notification is intentionally NOT fired from this
+        # fast status-code check. GeM's status code (e.g. "Technical Evaluation")
+        # is noisy and often set before any real evaluation is published, which
+        # produced false "result available" notifications. The notification is
+        # now created only when the result-details parse ingests real technical/
+        # financial evaluation rows (see database.save_tender_result_details).
+        # RA_CREATED stays here: it is a distinct bid->RA transition, not a claim
+        # that a result/evaluation is available.
         if result.get("ra_created") and not existing_ra_created:
             notifications.append(
                 database.create_tender_notification(
@@ -2175,15 +2174,6 @@ def check_tender_result(
                     f"RA created for {bid_number}",
                     f"RA created for {bid_number}{' as ' + result.get('gem_ra_number') if result.get('gem_ra_number') else ''}.",
                     notification_type="RA_CREATED",
-                )
-            )
-        if result["ra_result_available"] and not existing_ra_available:
-            notifications.append(
-                database.create_tender_notification(
-                    tender_id,
-                    f"RA result available for {bid_number}",
-                    f"RA result available for {bid_number}.",
-                    notification_type="RA_RESULT_AVAILABLE",
                 )
             )
 

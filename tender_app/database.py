@@ -1696,6 +1696,39 @@ def save_tender_result_details(
     saved_summary["participants_saved"] = len(participants) if (not parse_error and replace_participants) else 0
     saved_summary["technical_saved"] = len(technical_evaluation) if (not parse_error and replace_technical) else 0
     saved_summary["financial_saved"] = len(financial_evaluation) if (not parse_error and replace_financial) else 0
+
+    # Fire the "result is live" notification only when GeM has actually published
+    # real evaluation rows (technical or financial), and only on the transition
+    # from none to some. This replaces the noisy status-code notification so a
+    # user is told a result is live only when real evaluation data exists — the
+    # same data shown in the tender's + expand.
+    if not parse_error:
+        bid_label = str(gem_bid_number or source_number or "").strip()
+        old_bid_eval = bool(old_summary.get("bid_technical_available") or old_summary.get("bid_financial_available"))
+        new_bid_eval = bool(
+            summary.get("bidTechnicalAvailable") or summary.get("bid_technical_available")
+            or summary.get("bidFinancialAvailable") or summary.get("bid_financial_available")
+        )
+        old_ra_eval = bool(old_summary.get("ra_technical_available") or old_summary.get("ra_financial_available"))
+        new_ra_eval = bool(
+            summary.get("raTechnicalAvailable") or summary.get("ra_technical_available")
+            or summary.get("raFinancialAvailable") or summary.get("ra_financial_available")
+        )
+        if new_bid_eval and not old_bid_eval and bid_label:
+            create_tender_notification(
+                tender_id,
+                f"New tender result is live for {bid_label}",
+                f"Evaluation has been published for {bid_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
+                notification_type="BID_RESULT_AVAILABLE",
+            )
+        if new_ra_eval and not old_ra_eval:
+            ra_label = str(source_number or gem_bid_number or "").strip()
+            create_tender_notification(
+                tender_id,
+                f"New RA result is live for {ra_label}",
+                f"RA evaluation has been published for {ra_label}. Open the tender's + expand to see the Technical / Financial Evaluation.",
+                notification_type="RA_RESULT_AVAILABLE",
+            )
     return saved_summary
 
 
