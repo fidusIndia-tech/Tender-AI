@@ -3956,7 +3956,7 @@ function _renderCurrentPage() {
         </td>
         <td onclick="event.stopPropagation()" style="padding:6px 5px">
           <div class="result-actions">
-            ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" class="btn btn-outline btn-xs" title="View PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
+            ${t.pdf_path ? `<a href="${t.pdf_path}" target="_blank" draggable="true" ondragstart="onPdfDragStart(event, this.href, '${esc(t.tender_number || t.gem_bidding_number || 'tender')}')" class="btn btn-outline btn-xs" title="Click to view · drag to WhatsApp/desktop to share the PDF" style="padding:2px 6px;font-size:10px">PDF</a>` : `<span class="btn btn-outline btn-xs" style="opacity:0.3;cursor:default;padding:2px 6px;font-size:10px">PDF</span>`}
             <button class="btn btn-outline btn-xs" onclick="evaluateTenderFromRow(${t.id}, event)" title="Evaluate tender" style="padding:2px 6px;font-size:10px">Eval</button>
             ${resultActionLinks}
           </div>
@@ -4560,7 +4560,7 @@ async function loadLocalGemDiscovered() {
         <td>${r.evaluation_score != null ? `<span class="badge badge-info">${esc(r.evaluation_score)}/10</span>` : '<span class="muted-small">Pending</span>'}</td>
         <td><span class="badge ${decisionBadge}">${esc(decision)}</span></td>
         <td><span class="badge ${statusBadge}">${esc(statusLabel)}</span></td>
-        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
+        <td style="white-space:nowrap">${r.gem_pdf_url ? `<a class="btn btn-outline btn-xs" href="${esc(r.gem_pdf_url)}" target="_blank" draggable="true" ondragstart="onPdfDragStart(event, this.href, '${esc(r.gem_bid_number || 'tender')}')" title="Click to view · drag to WhatsApp/desktop to share the PDF">PDF</a>` : ''} <button class="btn btn-outline btn-xs" onclick="reEvaluateLocalGemTender('${esc(r.gem_bid_number || '')}')">Re-evaluate</button> <button class="btn btn-primary btn-xs" onclick="manualInsertLocalGemTender('${esc(r.gem_bid_number || '')}')">Manual Insert</button> <button class="btn btn-outline btn-xs" title="Delete this discovered tender" onclick="deleteLocalGemTender('${esc(r.gem_bid_number || '')}')" style="color:var(--red-600);border-color:var(--red-600)">🗑</button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="9" style="padding:18px;color:var(--slate-400)">No discovered tenders yet.</td></tr>';
   } catch (err) {
@@ -7299,6 +7299,28 @@ function val(id) { const el=document.getElementById(id); return el?el.value.trim
 function esc(s) {
   if (s==null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Turn a value into a safe .pdf file name, e.g. "GEM/2026/B/7677584" -> "GEM_2026_B_7677584.pdf".
+function pdfDragFileName(name) {
+  let base = String(name || 'tender').trim().replace(/\.pdf$/i, '');
+  base = base.replace(/[^\w.-]+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+  return (base || 'tender') + '.pdf';
+}
+
+// Make a PDF link draggable into WhatsApp / desktop / other apps as a real file.
+// Uses the browser "DownloadURL" DataTransfer format: on drop the browser
+// downloads the file from the URL and hands it over as an actual file.
+function onPdfDragStart(ev, href, fileName) {
+  try {
+    if (!href) return;
+    const absolute = new URL(href, window.location.origin).href;
+    const name = pdfDragFileName(fileName);
+    ev.dataTransfer.setData('DownloadURL', `application/pdf:${name}:${absolute}`);
+    ev.dataTransfer.setData('text/uri-list', absolute);
+    ev.dataTransfer.setData('text/plain', absolute);
+    ev.dataTransfer.effectAllowed = 'copy';
+  } catch (_) { /* drag is best-effort; clicking the link still works */ }
 }
 function toast(msg, type='success') {
   const el=document.getElementById('toast');
