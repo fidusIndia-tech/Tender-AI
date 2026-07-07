@@ -26,7 +26,10 @@ def extractGemBiddingId(candidate) -> str | None:
     explicit = _normalize_text(candidate.get("gem_bidding_id"))
     if explicit:
         return explicit
-    for key in ("pdf_url", "gem_detail_url"):
+    # PDF-URL key spellings across the code paths: candidate rows use pdf_url /
+    # gem_detail_url, discovered-tender rows use gem_pdf_url, agent payloads use
+    # gemPdfUrl.
+    for key in ("pdf_url", "gem_detail_url", "gem_pdf_url", "gemPdfUrl"):
         match = GEM_PDF_DOC_ID_PATTERN.search(str(candidate.get(key) or ""))
         if match:
             return match.group(1)

@@ -34,6 +34,7 @@ from pydantic import BaseModel, Field
 try:
     from . import database, ai_extractor, doc_matcher, doc_generator
     from .evaluation import evaluate_tender_against_capability
+    from .gem_bid_utils import extractGemBiddingId
     from .gem_watcher.routes import router as gem_watcher_router
     from .result_watcher import (
         check_tender_result,
@@ -52,6 +53,7 @@ except ImportError:
     import doc_matcher
     import doc_generator
     from evaluation import evaluate_tender_against_capability
+    from gem_bid_utils import extractGemBiddingId
     from gem_watcher.routes import router as gem_watcher_router
     from result_watcher import (
         check_tender_result,
@@ -662,8 +664,13 @@ def _metadata_tender_from_local_payload(payload: LocalGemDiscoveredTenderPayload
     raw = extracted or {}
     ti = raw.get("tender_information") or {}
     data = dict(ti)
-    data["gem_bidding_number"] = payload.gemBidNumber
+    # gemBidNumber is the GEM/YYYY/B/NNNN tender number. The GeM bidding number
+    # is the numeric doc id (e.g. 9526913), available in the bid PDF URL. Keep
+    # them in the right fields instead of copying the tender number into both.
     data["tender_number"] = data.get("tender_number") or payload.gemBidNumber
+    data["gem_bidding_number"] = (
+        extractGemBiddingId({"gemPdfUrl": payload.gemPdfUrl}) or payload.gemBidNumber
+    )
     data["date"] = data.get("date") or datetime.now().strftime("%d-%m-%Y")
     data["department_name"] = data.get("department_name") or payload.department
     data["organization_name"] = data.get("organization_name") or payload.organisation
@@ -1421,6 +1428,13 @@ async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(
             rawGemData=row.get("raw_gem_data") or {},
         )
         data, items, docs = _metadata_tender_from_local_payload(payload, file_id=row.get("stored_pdf_file_id"), extracted={})
+    # Correct the identifiers regardless of branch — older discovered rows may
+    # have stale extracted_data that stored the tender number as the bidding
+    # number. tender_number = GEM/YYYY/B/NNNN; gem_bidding_number = numeric id.
+    data["tender_number"] = row["gem_bid_number"]
+    data["gem_bidding_number"] = (
+        extractGemBiddingId({"gem_pdf_url": row.get("gem_pdf_url")}) or row["gem_bid_number"]
+    )
     tender_id = database.save_tender(data, items, docs)
     database.update_discovered_tender(row["gem_bid_number"], action_taken="INSERTED_TO_ALL_TENDERS", all_tender_id=tender_id)
     return {"action": "INSERTED_TO_ALL_TENDERS", "allTenderId": tender_id}
