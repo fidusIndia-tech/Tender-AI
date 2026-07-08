@@ -2497,17 +2497,28 @@ def list_gem_discovered_tenders(keyword=None, action_taken=None, inserted=None, 
 def get_gem_search_dashboard_stats():
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        # "Inserted today" is derived from the saved tenders (All Tenders), not
+        # from the discovered list, because discovered tenders are no longer
+        # retained in the DB once inserted/resolved. uploaded_at is an ISO
+        # timestamp string, so its first 10 chars are the YYYY-MM-DD date.
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM tenders WHERE LEFT(uploaded_at, 10) = to_char(CURRENT_DATE, 'YYYY-MM-DD')"
+        )
+        inserted_today = int((cur.fetchone() or {}).get("n") or 0)
         cur.execute(
             """SELECT
                    COUNT(*) FILTER (WHERE created_at::date=CURRENT_DATE) AS discovered_today,
-                   COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date=CURRENT_DATE) AS inserted_today,
-                   COUNT(*) FILTER (WHERE action_taken='REJECTED_NOT_SUITABLE' AND last_checked_at::date=CURRENT_DATE) AS rejected_today,
-                   COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date=CURRENT_DATE) AS suitable_today
+                   COUNT(*) FILTER (WHERE action_taken='REJECTED_NOT_SUITABLE' AND last_checked_at::date=CURRENT_DATE) AS rejected_today
                FROM gem_discovered_tenders"""
         )
         row = dict(cur.fetchone() or {})
     conn.close()
-    return row
+    return {
+        "discovered_today": int(row.get("discovered_today") or 0),
+        "inserted_today": inserted_today,
+        "rejected_today": int(row.get("rejected_today") or 0),
+        "suitable_today": inserted_today,
+    }
 
 
 def save_prepared_document_file(doc_id, file_data, file_name):
