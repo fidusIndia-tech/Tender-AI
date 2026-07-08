@@ -2316,7 +2316,10 @@ def claim_gem_run_request():
         )
         row = cur.fetchone()
         if row:
+            cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders")
+            pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
             cur.execute("DELETE FROM gem_discovered_tenders")
+            _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
     conn.close()
     return dict(row) if row else None
@@ -2354,23 +2357,41 @@ def get_discovered_tender_by_bid(gem_bid_number: str):
     return dict(row) if row else None
 
 
+def _delete_orphaned_discovered_pdfs(cur, file_ids):
+    """Delete the stored PDF copies of discovered tenders that are being removed,
+    but only when no saved tender references them. Keeps discovered PDFs from
+    accumulating in the DB while preserving the PDF of anything already inserted
+    into All Tenders (its tenders row points at /files/<id>)."""
+    for fid in {f for f in (file_ids or []) if f}:
+        cur.execute("SELECT 1 FROM tenders WHERE pdf_path=%s LIMIT 1", (f"/files/{fid}",))
+        if cur.fetchone() is None:
+            cur.execute("DELETE FROM uploaded_files WHERE id=%s", (fid,))
+
+
 def delete_discovered_tender(gem_bid_number: str) -> bool:
     conn = get_db()
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
         cur.execute("DELETE FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
         deleted = cur.rowcount
+        _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
     conn.close()
     return deleted > 0
 
 
 def clear_discovered_tenders() -> int:
-    """Delete every row from the discovered-tenders list. This does NOT touch the
-    tenders table, so anything already inserted into All Tenders stays there."""
+    """Delete every row from the discovered-tenders list (and their orphaned PDF
+    copies). This does NOT touch the tenders table, so anything already inserted
+    into All Tenders — and its PDF — stays there."""
     conn = get_db()
-    with conn.cursor() as cur:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders")
+        pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
         cur.execute("DELETE FROM gem_discovered_tenders")
         deleted = cur.rowcount
+        _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
     conn.close()
     return deleted

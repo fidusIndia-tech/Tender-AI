@@ -1406,7 +1406,9 @@ async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(
         raise HTTPException(404, "Discovered tender not found")
     duplicate = database.find_tender_duplicate(row["gem_bid_number"], row["gem_bid_number"])
     if duplicate:
-        database.update_discovered_tender(row["gem_bid_number"], action_taken="DUPLICATE_ALREADY_EXISTS", all_tender_id=duplicate["id"])
+        # Already in All Tenders — remove it from the discovered list entirely
+        # (discovered tenders are not kept in the DB once resolved).
+        database.delete_discovered_tender(row["gem_bid_number"])
         return {"action": "DUPLICATE_ALREADY_EXISTS", "allTenderId": duplicate["id"]}
     extracted = row.get("extracted_data") or {}
     if extracted.get("gem_bidding_number"):
@@ -1436,7 +1438,11 @@ async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(
         extractGemBiddingId({"gem_pdf_url": row.get("gem_pdf_url")}) or row["gem_bid_number"]
     )
     tender_id = database.save_tender(data, items, docs)
-    database.update_discovered_tender(row["gem_bid_number"], action_taken="INSERTED_TO_ALL_TENDERS", all_tender_id=tender_id)
+    # The tender (and its PDF) are now persisted in All Tenders. Remove it from
+    # the discovered list — discovered tenders are not stored in the DB once
+    # inserted. The saved tender's pdf_path references the PDF, so the cleanup
+    # keeps that file and only drops truly orphaned discovered PDFs.
+    database.delete_discovered_tender(row["gem_bid_number"])
     return {"action": "INSERTED_TO_ALL_TENDERS", "allTenderId": tender_id}
 
 
