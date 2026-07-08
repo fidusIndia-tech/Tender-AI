@@ -2296,7 +2296,14 @@ def enqueue_gem_run_request(keyword: str | None = None):
 
 
 def claim_gem_run_request():
-    """Atomically hand the oldest pending request to a polling agent."""
+    """Atomically hand the oldest pending request to a polling agent.
+
+    A claimed request means a fresh on-demand search is starting, so the
+    discovered-tenders list is cleared here: the table then shows only the
+    tenders found by this new search (e.g. searching "siemens" removes the
+    earlier "omron" discoveries). Tenders already inserted into All Tenders are
+    untouched — only the discovered list is reset.
+    """
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
@@ -2308,6 +2315,8 @@ def claim_gem_run_request():
                RETURNING *"""
         )
         row = cur.fetchone()
+        if row:
+            cur.execute("DELETE FROM gem_discovered_tenders")
     conn.commit()
     conn.close()
     return dict(row) if row else None
