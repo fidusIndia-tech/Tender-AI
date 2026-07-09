@@ -278,6 +278,21 @@ def init_db():
             )
         """)
         # Persistent binary storage migrations
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_original_name TEXT")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_data BYTEA")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_content_type TEXT")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_original_name TEXT")
@@ -1209,10 +1224,14 @@ def update_tender(tender_id, data, items, documents):
     conn.close()
 
 
-def get_tender(tender_id):
+def get_tender(tender_id, company_id=None):
+    company_id = _resolve_company_id(company_id) if company_id is not None else None
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM tenders WHERE id=%s", (tender_id,))
+        if company_id is None:
+            cur.execute("SELECT * FROM tenders WHERE id=%s", (tender_id,))
+        else:
+            cur.execute("SELECT * FROM tenders WHERE id=%s AND company_id=%s", (tender_id, company_id))
         row = cur.fetchone()
         if not row:
             conn.close()
@@ -2105,16 +2124,106 @@ def find_tender_by_pdf_path(pdf_path):
     return dict(row) if row else None
 
 
-def delete_tender(tender_id):
+def _list_tender_fk_children(cur):
+    cur.execute(
+        """
+        SELECT
+            tc.table_name,
+            kcu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON ccu.constraint_name = tc.constraint_name
+         AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = 'public'
+          AND ccu.table_name = 'tenders'
+          AND ccu.column_name = 'id'
+        ORDER BY tc.table_name, kcu.column_name
+        """
+    )
+    return [(row[0], row[1]) for row in cur.fetchall()]
+
+
+def _table_has_column(cur, table_name: str, column_name: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+        LIMIT 1
+        """,
+        (table_name, column_name),
+    )
+    return cur.fetchone() is not None
+
+
+def delete_tender(tender_id, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
+    deletion_log = []
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM tender_attachments WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_prepared_documents WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tenders WHERE id=%s", (tender_id,))
+        cur.execute(
+            "SELECT id, company_id, gem_bid_number, tender_number FROM tenders WHERE id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        tender_row = cur.fetchone()
+        if not tender_row:
+            conn.close()
+            return None
+
+        tender_bid = tender_row[2]
+        tender_number = tender_row[3]
+
+        cur.execute(
+            "UPDATE gem_candidate_tenders SET tender_id=NULL WHERE tender_id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        deletion_log.append(("gem_candidate_tenders", "unlinked", cur.rowcount))
+
+        cur.execute(
+            "UPDATE gem_discovered_tenders SET all_tender_id=NULL WHERE all_tender_id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        deletion_log.append(("gem_discovered_tenders", "unlinked", cur.rowcount))
+
+        handled_tables = {"gem_candidate_tenders", "gem_discovered_tenders"}
+        for table_name, column_name in _list_tender_fk_children(cur):
+            if table_name in handled_tables:
+                continue
+            has_company_id = _table_has_column(cur, table_name, "company_id")
+            if has_company_id:
+                cur.execute(
+                    f"DELETE FROM {table_name} WHERE {column_name}=%s AND company_id=%s",
+                    (tender_id, company_id),
+                )
+            else:
+                cur.execute(f"DELETE FROM {table_name} WHERE {column_name}=%s", (tender_id,))
+            deletion_log.append((table_name, "deleted", cur.rowcount))
+
+        cur.execute("DELETE FROM tenders WHERE id=%s AND company_id=%s", (tender_id, company_id))
+        deleted_tenders = cur.rowcount
+        deletion_log.append(("tenders", "deleted", deleted_tenders))
     conn.commit()
     conn.close()
+    for table_name, action, count in deletion_log:
+        print(
+            f"[DELETE_TENDER] company_id={company_id} tender_id={tender_id} "
+            f"gem_bid_number={tender_bid!r} tender_number={tender_number!r} "
+            f"table={table_name} action={action} rows={count}"
+        )
+    return {
+        "tender_id": tender_id,
+        "company_id": company_id,
+        "gem_bid_number": tender_bid,
+        "tender_number": tender_number,
+        "log": [
+            {"table": table_name, "action": action, "rows": count}
+            for table_name, action, count in deletion_log
+        ],
+    }
 
 
 def clear_tenders():
@@ -2158,25 +2267,52 @@ def _insert_docs(cur, tender_id, documents):
 
 # ── Company Profile ───────────────────────────────────────────────────────────
 
+BRANDING_FIELD_MAP = {
+    "company_logo": {"data": "company_logo_data", "content_type": "company_logo_content_type", "original_name": "company_logo_original_name", "url": "companyLogoUrl", "has": "has_company_logo"},
+    "document_logo": {"data": "document_logo_data", "content_type": "document_logo_content_type", "original_name": "document_logo_original_name", "url": "documentLogoUrl", "has": "has_document_logo"},
+    "letterhead": {"data": "letterhead_data", "content_type": "letterhead_content_type", "original_name": "letterhead_original_name", "url": "letterheadUrl", "has": "has_letterhead"},
+    "header_image": {"data": "header_image_data", "content_type": "header_image_content_type", "original_name": "header_image_original_name", "url": "headerImageUrl", "has": "has_header_image"},
+    "footer_image": {"data": "footer_image_data", "content_type": "footer_image_content_type", "original_name": "footer_image_original_name", "url": "footerImageUrl", "has": "has_footer_image"},
+    "stamp": {"data": "stamp_data", "content_type": "stamp_content_type", "original_name": "stamp_original_name", "url": "stampUrl", "has": "has_stamp"},
+    "signature": {"data": "signature_data", "content_type": "signature_content_type", "original_name": "signature_original_name", "url": "signatureUrl", "has": "has_signature"},
+}
+
+
+def _branding_asset_public_path(asset_key: str) -> str:
+    return f"/api/company/profile/assets/{asset_key}/file"
+
+
 def get_company_profile(company_id=None):
     company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        # Exclude binary columns (stamp_data, signature_data) — served via separate endpoints
         cur.execute("""
             SELECT id, company_name, address, gst_number, pan_number, msme_number,
                    bank_name, account_number, ifsc_code,
                    authorized_signatory_name, authorized_signatory_designation,
                    email, phone, stamp_file_path, signature_file_path,
+                   company_logo_original_name, company_logo_content_type,
+                   document_logo_original_name, document_logo_content_type,
+                   letterhead_original_name, letterhead_content_type,
+                   header_image_original_name, header_image_content_type,
+                   footer_image_original_name, footer_image_content_type,
                    stamp_original_name, stamp_content_type,
                    signature_original_name, signature_content_type,
+                   (company_logo_data IS NOT NULL) AS has_company_logo,
+                   (document_logo_data IS NOT NULL) AS has_document_logo,
+                   (letterhead_data IS NOT NULL) AS has_letterhead,
+                   (header_image_data IS NOT NULL) AS has_header_image,
+                   (footer_image_data IS NOT NULL) AS has_footer_image,
                    (stamp_data IS NOT NULL) AS has_stamp,
                    (signature_data IS NOT NULL) AS has_signature
             FROM company_profile WHERE company_id=%s LIMIT 1
         """, (company_id,))
         row = cur.fetchone()
     conn.close()
-    return dict(row) if row else {}
+    profile = dict(row) if row else {}
+    for asset_key, cfg in BRANDING_FIELD_MAP.items():
+        profile[cfg["url"]] = _branding_asset_public_path(asset_key) if profile.get(cfg["has"]) else None
+    return profile
 
 
 def upsert_company_profile(data, company_id=None):
@@ -2191,8 +2327,7 @@ def upsert_company_profile(data, company_id=None):
                        "email", "phone"]
         image_fields = ["stamp_file_path", "signature_file_path"]
         if existing:
-            set_parts = [f"{f}=%s" for f in text_fields] + \
-                        [f"{f}=COALESCE(%s,{f})" for f in image_fields]
+            set_parts = [f"{f}=%s" for f in text_fields] +                         [f"{f}=COALESCE(%s,{f})" for f in image_fields]
             values = [data.get(f) for f in text_fields] + [data.get(f) for f in image_fields]
             cur.execute(
                 f"UPDATE company_profile SET {', '.join(set_parts)} WHERE id=%s",
@@ -2210,12 +2345,72 @@ def upsert_company_profile(data, company_id=None):
     conn.close()
 
 
-def clear_profile_image_path(field):
+def clear_profile_image_path(field, company_id=None):
+    company_id = _resolve_company_id(company_id)
     if field not in {"stamp_file_path", "signature_file_path"}:
         raise ValueError(f"Invalid field: {field}")
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute(f"UPDATE company_profile SET {field}=NULL")
+        cur.execute(f"UPDATE company_profile SET {field}=NULL WHERE company_id=%s", (company_id,))
+    conn.commit()
+    conn.close()
+
+
+def _ensure_profile_row(cur, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cur.execute("SELECT id FROM company_profile WHERE company_id=%s LIMIT 1", (company_id,))
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    cur.execute("INSERT INTO company_profile (company_id) VALUES (%s) RETURNING id", (company_id,))
+    return cur.fetchone()[0]
+
+
+def save_company_profile_asset(asset_key, data_bytes, content_type, original_name, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor() as cur:
+        profile_id = _ensure_profile_row(cur, company_id)
+        cur.execute(
+            f"UPDATE company_profile SET {cfg['data']}=%s, {cfg['content_type']}=%s, {cfg['original_name']}=%s WHERE id=%s",
+            (psycopg2.Binary(data_bytes), content_type, original_name, profile_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_company_profile_asset(asset_key, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"SELECT {cfg['data']} AS file_data, {cfg['content_type']} AS content_type, {cfg['original_name']} AS original_name FROM company_profile WHERE company_id=%s LIMIT 1",
+            (company_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row['file_data']:
+        return None
+    return dict(row)
+
+
+def clear_company_profile_asset(asset_key, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE company_profile SET {cfg['data']}=NULL, {cfg['content_type']}=NULL, {cfg['original_name']}=NULL WHERE company_id=%s",
+            (company_id,),
+        )
     conn.commit()
     conn.close()
 
@@ -2865,83 +3060,28 @@ def get_prepared_document_file(doc_id):
 
 # ── Stamp / Signature binary storage ─────────────────────────────────────────
 
-def _ensure_profile_row(cur):
-    cur.execute("SELECT id FROM company_profile LIMIT 1")
-    return cur.fetchone()
+def save_stamp(data_bytes, content_type, original_name, company_id=None):
+    save_company_profile_asset("stamp", data_bytes, content_type, original_name, company_id=company_id)
 
 
-def save_stamp(data_bytes, content_type, original_name):
-    conn = get_db()
-    with conn.cursor() as cur:
-        row = _ensure_profile_row(cur)
-        if row:
-            cur.execute(
-                "UPDATE company_profile SET stamp_data=%s, stamp_content_type=%s, stamp_original_name=%s",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-        else:
-            cur.execute(
-                "INSERT INTO company_profile (stamp_data, stamp_content_type, stamp_original_name) VALUES (%s,%s,%s)",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-    conn.commit()
-    conn.close()
+def get_stamp(company_id=None):
+    return get_company_profile_asset("stamp", company_id=company_id)
 
 
-def get_stamp():
-    conn = get_db()
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT stamp_data, stamp_content_type, stamp_original_name FROM company_profile LIMIT 1")
-        row = cur.fetchone()
-    conn.close()
-    if not row or not row["stamp_data"]:
-        return None
-    return dict(row)
+def clear_stamp(company_id=None):
+    clear_company_profile_asset("stamp", company_id=company_id)
 
 
-def clear_stamp():
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("UPDATE company_profile SET stamp_data=NULL, stamp_content_type=NULL, stamp_original_name=NULL")
-    conn.commit()
-    conn.close()
+def save_signature(data_bytes, content_type, original_name, company_id=None):
+    save_company_profile_asset("signature", data_bytes, content_type, original_name, company_id=company_id)
 
 
-def save_signature(data_bytes, content_type, original_name):
-    conn = get_db()
-    with conn.cursor() as cur:
-        row = _ensure_profile_row(cur)
-        if row:
-            cur.execute(
-                "UPDATE company_profile SET signature_data=%s, signature_content_type=%s, signature_original_name=%s",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-        else:
-            cur.execute(
-                "INSERT INTO company_profile (signature_data, signature_content_type, signature_original_name) VALUES (%s,%s,%s)",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-    conn.commit()
-    conn.close()
+def get_signature(company_id=None):
+    return get_company_profile_asset("signature", company_id=company_id)
 
 
-def get_signature():
-    conn = get_db()
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT signature_data, signature_content_type, signature_original_name FROM company_profile LIMIT 1")
-        row = cur.fetchone()
-    conn.close()
-    if not row or not row["signature_data"]:
-        return None
-    return dict(row)
-
-
-def clear_signature():
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("UPDATE company_profile SET signature_data=NULL, signature_content_type=NULL, signature_original_name=NULL")
-    conn.commit()
-    conn.close()
+def clear_signature(company_id=None):
+    clear_company_profile_asset("signature", company_id=company_id)
 
 
 # ── Company Document binary storage ──────────────────────────────────────────

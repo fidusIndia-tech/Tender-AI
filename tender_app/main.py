@@ -412,6 +412,17 @@ class CompanyProfilePayload(BaseModel):
     phone: Optional[str] = None
 
 
+COMPANY_PROFILE_ASSET_LABELS = {
+    "company_logo": "company logo",
+    "document_logo": "document logo",
+    "letterhead": "letterhead",
+    "header_image": "header image",
+    "footer_image": "footer image",
+    "stamp": "stamp",
+    "signature": "signature",
+}
+
+
 class GemResultDebugPayload(BaseModel):
     bid_number: str
 
@@ -1087,8 +1098,9 @@ async def clear_tender_data():
 
 
 @app.delete("/api/tenders/{tender_id}", status_code=204)
-async def delete_tender(tender_id: int):
-    tender = database.get_tender(tender_id)
+async def delete_tender(tender_id: int, request: Request):
+    company_id = get_current_company_id(request)
+    tender = database.get_tender(tender_id, company_id=company_id)
     if not tender:
         raise HTTPException(404, "Tender not found")
     # Remove uploaded PDF
@@ -1106,7 +1118,9 @@ async def delete_tender(tender_id: int):
     if gen_dir.exists():
         import shutil
         shutil.rmtree(gen_dir, ignore_errors=True)
-    database.delete_tender(tender_id)
+    deleted = database.delete_tender(tender_id, company_id=company_id)
+    if not deleted:
+        raise HTTPException(404, "Tender not found")
 
 
 @app.patch("/api/tenders/{tender_id}/record-fields")
@@ -1626,53 +1640,90 @@ async def get_company_evaluation_profile(request: Request):
         return JSONResponse(content={"error": "Failed to load evaluation profile"}, status_code=500)
 
 
-@app.post("/api/company/profile/stamp")
-async def upload_stamp(file: UploadFile = File(...)):
+@app.post("/api/company/profile/assets/{asset_key}")
+async def upload_company_profile_asset(asset_key: str, request: Request, file: UploadFile = File(...)):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
     data = await file.read()
-    database.save_stamp(data, file.content_type or "application/octet-stream", file.filename)
+    database.save_company_profile_asset(
+        asset_key,
+        data,
+        file.content_type or "application/octet-stream",
+        file.filename,
+        company_id=get_current_company_id(request),
+    )
+    return {"message": f"{COMPANY_PROFILE_ASSET_LABELS[asset_key]} saved"}
+
+
+@app.get("/api/company/profile/assets/{asset_key}/file")
+async def get_company_profile_asset_file(asset_key: str, request: Request):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
+    row = database.get_company_profile_asset(asset_key, company_id=get_current_company_id(request))
+    if not row:
+        raise HTTPException(404, f"No {COMPANY_PROFILE_ASSET_LABELS[asset_key]} uploaded")
+    return Response(
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
+    )
+
+
+@app.delete("/api/company/profile/assets/{asset_key}")
+async def delete_company_profile_asset(asset_key: str, request: Request):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
+    database.clear_company_profile_asset(asset_key, company_id=get_current_company_id(request))
+    return {"message": "removed"}
+
+
+@app.post("/api/company/profile/stamp")
+async def upload_stamp(file: UploadFile = File(...), request: Request = None):
+    data = await file.read()
+    database.save_stamp(data, file.content_type or "application/octet-stream", file.filename, company_id=get_current_company_id(request))
     return {"message": "stamp saved"}
 
 
 @app.post("/api/company/profile/signature")
-async def upload_signature(file: UploadFile = File(...)):
+async def upload_signature(file: UploadFile = File(...), request: Request = None):
     data = await file.read()
-    database.save_signature(data, file.content_type or "application/octet-stream", file.filename)
+    database.save_signature(data, file.content_type or "application/octet-stream", file.filename, company_id=get_current_company_id(request))
     return {"message": "signature saved"}
 
 
 @app.get("/api/company/profile/stamp/file")
-async def get_stamp_file():
-    row = database.get_stamp()
+async def get_stamp_file(request: Request):
+    row = database.get_stamp(company_id=get_current_company_id(request))
     if not row:
         raise HTTPException(404, "No stamp uploaded")
     return Response(
-        content=bytes(row["stamp_data"]),
-        media_type=row["stamp_content_type"] or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{row["stamp_original_name"]}"'},
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
     )
 
 
 @app.get("/api/company/profile/signature/file")
-async def get_signature_file():
-    row = database.get_signature()
+async def get_signature_file(request: Request):
+    row = database.get_signature(company_id=get_current_company_id(request))
     if not row:
         raise HTTPException(404, "No signature uploaded")
     return Response(
-        content=bytes(row["signature_data"]),
-        media_type=row["signature_content_type"] or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{row["signature_original_name"]}"'},
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
     )
 
 
 @app.delete("/api/company/profile/stamp")
-async def delete_stamp():
-    database.clear_stamp()
+async def delete_stamp(request: Request):
+    database.clear_stamp(company_id=get_current_company_id(request))
     return {"message": "removed"}
 
 
 @app.delete("/api/company/profile/signature")
-async def delete_signature():
-    database.clear_signature()
+async def delete_signature(request: Request):
+    database.clear_signature(company_id=get_current_company_id(request))
     return {"message": "removed"}
 
 
@@ -1768,18 +1819,21 @@ async def list_prepared_docs(tender_id: int):
 
 
 @app.post("/api/tenders/{tender_id}/prepared-documents/{doc_id}/generate")
-async def generate_prepared_doc(tender_id: int, doc_id: int):
+async def generate_prepared_doc(tender_id: int, doc_id: int, request: Request):
     prepared = database.get_prepared_document(doc_id)
     if not prepared:
         raise HTTPException(404, "Prepared document not found")
 
-    tender = database.get_tender(tender_id)
-    profile = database.get_company_profile()
+    company_id = get_current_company_id(request)
+    tender = database.get_tender(tender_id, company_id=company_id)
+    if not tender:
+        raise HTTPException(404, "Tender not found")
+    profile = database.get_company_profile(company_id=company_id)
 
     # Write stamp/signature bytes to temp files so doc_generator can embed them
     tmp_files = []
     try:
-        stamp_row = database.get_stamp()
+        stamp_row = database.get_stamp(company_id=company_id)
         if stamp_row:
             sf = tempfile.NamedTemporaryFile(
                 suffix=Path(stamp_row["stamp_original_name"] or "stamp.png").suffix or ".png",
@@ -1792,7 +1846,7 @@ async def generate_prepared_doc(tender_id: int, doc_id: int):
         else:
             profile["stamp_file_path"] = None
 
-        sig_row = database.get_signature()
+        sig_row = database.get_signature(company_id=company_id)
         if sig_row:
             sf2 = tempfile.NamedTemporaryFile(
                 suffix=Path(sig_row["signature_original_name"] or "sig.png").suffix or ".png",
