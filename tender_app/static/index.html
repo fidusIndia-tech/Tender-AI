@@ -1859,6 +1859,15 @@ body.col-resizing { cursor:col-resize !important; }
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
         Export Excel
       </button>
+      <button class="btn btn-outline btn-sm" onclick="exportTendersJson()" title="Export all tenders to a JSON file (re-importable into another Tender AI)" style="display:flex;align-items:center;gap:5px;color:var(--blue-700,#1d4ed8);border-color:var(--blue-300,#93c5fd)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+        Export JSON
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="openTenderImportPicker()" title="Import tenders from a JSON file" style="display:flex;align-items:center;gap:5px;color:var(--slate-700);border-color:var(--slate-300,#cbd5e1)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+        Import
+      </button>
+      <input type="file" id="tenderImportInput" accept=".json,application/json" style="display:none" onchange="importTendersFromFile(this)">
     </div>
     <div class="table-wrap">
       <table class="list-table" id="listTable" style="table-layout:fixed;width:100%">
@@ -7400,6 +7409,72 @@ function toast(msg, type='success') {
   el.innerHTML = icon + msg;
   el.className = type; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── All Tenders: JSON export / import (round-trippable) ─────────────────────
+async function exportTendersJson() {
+  try {
+    const resp = await fetch('/api/tenders/export?format=json', { credentials: 'include' });
+    if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+    const blob = await resp.blob();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `tenders-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Tenders exported to JSON', 'success');
+  } catch (err) {
+    toast('Export failed: ' + (err.message || err), 'error');
+  }
+}
+
+function openTenderImportPicker() {
+  const input = document.getElementById('tenderImportInput');
+  if (input) { input.value = ''; input.click(); }
+}
+
+async function importTendersFromFile(input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 25 * 1024 * 1024) {
+    toast('Import file too large (max 25 MB)', 'error');
+    return;
+  }
+  toast('Importing tenders…', 'notice');
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await fetch('/api/tenders/import', {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.detail || `Import failed (${resp.status})`);
+    }
+    const created = data.created || 0;
+    const updated = data.updated || 0;
+    const skipped = data.skipped || 0;
+    const errCount = (data.errors || []).length;
+    let msg = `${created} added, ${updated} updated`;
+    if (skipped) msg += `, ${skipped} skipped`;
+    toast(msg, errCount ? 'notice' : 'success');
+    if (errCount) console.warn('Tender import errors:', data.errors);
+    // Refresh the list so imported tenders show in their sections.
+    if (typeof loadTenderList === 'function') {
+      await loadTenderList();
+    } else {
+      location.reload();
+    }
+  } catch (err) {
+    toast('Import failed: ' + (err.message || err), 'error');
+  } finally {
+    input.value = '';
+  }
 }
 
 const RESULT_STATUS_META = {
