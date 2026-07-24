@@ -293,6 +293,13 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ac_manager TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notes TEXT")
+        # Semantic import/export status (NEW/SAVED/UNDER_REVIEW/…). The All Tenders
+        # page still groups by participation_status; status_enum only preserves the
+        # finer, round-trippable status carried by the JSON export bundle.
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS status_enum TEXT")
+        cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS make_model TEXT")
+        cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS unit TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS expand_sections_json JSONB")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_available BOOLEAN DEFAULT FALSE")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS bid_result_available BOOLEAN DEFAULT FALSE")
@@ -795,6 +802,24 @@ def init_db():
                     "INSERT INTO gem_keywords (keyword) VALUES (%s) ON CONFLICT (keyword) DO NOTHING",
                     (kw,),
                 )
+
+        # Latest capability-profile evaluation of a saved All Tenders row. One row
+        # per tender (replaced on re-evaluate) so the tender export can carry the
+        # evaluation and an import can restore it.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_evaluation_snapshots (
+                id SERIAL PRIMARY KEY,
+                tender_id INTEGER NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+                eligibility_score NUMERIC,
+                risk_score NUMERIC,
+                recommendation TEXT,
+                notes TEXT,
+                evaluation_json JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (tender_id)
+            )
+        """)
 
         # ── Phase 1: Fidus360 company scoping ─────────────────────────────────
         # Make every tender/file/keyword/job/notification/agent belong to a
@@ -2132,9 +2157,17 @@ def clear_tenders():
 def _insert_items(cur, tender_id, items, source_type="extracted"):
     for item in items:
         cur.execute(
-            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity, source_type)
-               VALUES (%s,%s,%s,%s,%s)""",
-            (tender_id, item.get("part_number"), item.get("item_description"), item.get("quantity"), source_type),
+            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity, make_model, unit, source_type)
+               VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+            (
+                tender_id,
+                item.get("part_number"),
+                item.get("item_description"),
+                item.get("quantity"),
+                item.get("make_model"),
+                item.get("unit"),
+                source_type,
+            ),
         )
 
 
@@ -3523,3 +3556,515 @@ def save_gem_tender_evaluation(candidate_id: int, score, rating_label, matched_b
     conn.commit()
     conn.close()
     return eval_id
+
+
+# ── Tender JSON export / import (round-trippable) ─────────────────────────────
+#
+# The All Tenders page groups tenders into sections by participation_status.
+# The export/import bundle carries a finer "status enum" that maps onto those
+# sections, so an imported tender lands in the right section purely from its
+# status. participation_status stays the single source of truth the page filters
+# on; status_enum only preserves the exact exported value for a lossless
+# round-trip.
+
+# JSON export status enum -> All Tenders participation_status (the section).
+EXPORT_STATUS_TO_PARTICIPATION = {
+    "NEW": "IN PROGRESS",
+    "SAVED": "IN PROGRESS",
+    "UNDER_REVIEW": "IN PROGRESS",
+    "FILED": "FILED",
+    "PARTICIPATED": "FILED",
+    "REVIEWED": "QUALIFIED",
+    "REJECTED": "DISQUALIFIED",
+    "WON": "WON",
+    "LOST": "LOST",
+    "FAILED": "FAILED",
+}
+
+# participation_status -> the canonical status enum used when a tender has no
+# stored status_enum (e.g. rows created before import/export existed).
+PARTICIPATION_TO_EXPORT_STATUS = {
+    "IN PROGRESS": "UNDER_REVIEW",
+    "FILED": "FILED",
+    "QUALIFIED": "REVIEWED",
+    "DISQUALIFIED": "REJECTED",
+    "WON": "WON",
+    "LOST": "LOST",
+    "FAILED": "FAILED",
+}
+
+VALID_EXPORT_STATUSES = set(EXPORT_STATUS_TO_PARTICIPATION.keys())
+DEFAULT_EXPORT_STATUS = "UNDER_REVIEW"
+
+
+def normalize_export_status(value):
+    """Coerce an arbitrary status string to a valid export-enum value, defaulting
+    to UNDER_REVIEW (→ In Progress) when unknown."""
+    text = str(value or "").strip().upper().replace(" ", "_")
+    return text if text in VALID_EXPORT_STATUSES else DEFAULT_EXPORT_STATUS
+
+
+def _effective_export_status(row: dict) -> str:
+    """Best status enum for a tender row: the stored status_enum if valid, else
+    one derived from participation_status."""
+    stored = str(row.get("status_enum") or "").strip().upper()
+    if stored in VALID_EXPORT_STATUSES:
+        return stored
+    part = str(row.get("participation_status") or "").strip().upper()
+    return PARTICIPATION_TO_EXPORT_STATUS.get(part, DEFAULT_EXPORT_STATUS)
+
+
+def _row_bool(value) -> bool:
+    return bool(value)
+
+
+def _export_result_object(cur, tender_row: dict) -> dict:
+    """Assemble the round-trippable result object for one tender."""
+    tender_id = tender_row["id"]
+    cur.execute("SELECT * FROM tender_result_summary WHERE tender_id=%s", (tender_id,))
+    summary = dict(cur.fetchone() or {})
+    cur.execute(
+        "SELECT * FROM tender_result_participants WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    participants = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        "SELECT * FROM tender_technical_evaluation WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    technical = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        "SELECT * FROM tender_financial_evaluation WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    financial = [dict(r) for r in cur.fetchall()]
+
+    def _clean_rows(rows):
+        out = []
+        for r in rows:
+            r = dict(r)
+            r.pop("id", None)
+            r.pop("tender_id", None)
+            r.pop("created_at", None)
+            r.pop("updated_at", None)
+            r.pop("raw_data", None)
+            out.append(r)
+        return out
+
+    return {
+        "watcherStatus": tender_row.get("gem_result_status") or "PENDING",
+        "resultStatus": summary.get("current_stage") or "NOT_CHECKED",
+        "raStatus": ("CREATED" if _row_bool(tender_row.get("ra_created")) else "PLACEHOLDER"),
+        "resultDeclared": _row_bool(tender_row.get("result_declared")),
+        "gemBidNumber": tender_row.get("gem_bid_number"),
+        "gemResultUrl": tender_row.get("gem_result_url"),
+        "gemRaNumber": tender_row.get("gem_ra_number"),
+        "gemRaUrl": tender_row.get("gem_ra_url"),
+        "resultAvailable": _row_bool(tender_row.get("result_available")),
+        "bidResultAvailable": _row_bool(tender_row.get("bid_result_available")),
+        "raCreated": _row_bool(tender_row.get("ra_created")),
+        "raResultAvailable": _row_bool(tender_row.get("ra_result_available")),
+        "summary": {k: v for k, v in summary.items() if k not in ("id", "tender_id", "created_at", "updated_at")},
+        "participants": _clean_rows(participants),
+        "technicalResult": _clean_rows(technical),
+        "financialResult": _clean_rows(financial),
+    }
+
+
+def export_company_tenders(company_id=None):
+    """Return the full list of tender export objects for a company (non-deleted).
+
+    The shape matches exactly what import_company_tenders() consumes, so a file
+    exported today re-imports perfectly."""
+    company_id = _resolve_company_id(company_id)
+    conn = get_db()
+    tenders = []
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT * FROM tenders WHERE company_id=%s ORDER BY id",
+            (company_id,),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        for row in rows:
+            tid = row["id"]
+            cur.execute("SELECT * FROM tender_items WHERE tender_id=%s ORDER BY id", (tid,))
+            items = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_required_documents WHERE tender_id=%s ORDER BY id", (tid,))
+            req_docs = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_prepared_documents WHERE tender_id=%s ORDER BY id", (tid,))
+            prepared = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_evaluation_snapshots WHERE tender_id=%s", (tid,))
+            snap = cur.fetchone()
+            cur.execute(
+                "SELECT id, original_file_name, content_type, file_size FROM tender_attachments WHERE tender_id=%s ORDER BY id",
+                (tid,),
+            )
+            attachments = [dict(r) for r in cur.fetchall()]
+
+            boq_items = [
+                {
+                    "itemNumber": it.get("part_number"),
+                    "itemTitle": it.get("item_description"),
+                    "makeModel": it.get("make_model"),
+                    "quantity": it.get("quantity"),
+                    "unit": it.get("unit"),
+                }
+                for it in items
+            ]
+
+            # Prepared-document metadata keyed by label, to enrich the documents list.
+            prepared_by_label = {}
+            for pd in prepared:
+                label = (pd.get("required_document_label") or pd.get("document_name") or "").strip()
+                if label:
+                    prepared_by_label[label] = pd
+            documents = []
+            for d in req_docs:
+                label = (d.get("label") or "").strip()
+                pd = prepared_by_label.get(label)
+                documents.append({
+                    "name": label,
+                    "generated": bool(pd and (pd.get("generated_file_name") or (pd.get("source_type") == "ai_generated"))),
+                    "fileUrl": (pd.get("generated_file_path") if pd else None),
+                })
+
+            # File links only (never the bytes).
+            files = []
+            if row.get("pdf_path"):
+                files.append({
+                    "fileName": (row.get("tender_number") or row.get("gem_bidding_number") or "tender"),
+                    "fileUrl": row["pdf_path"],
+                    "kind": "ORIGINAL",
+                })
+            for att in attachments:
+                files.append({
+                    "fileName": att.get("original_file_name"),
+                    "fileUrl": f"/api/attachments/{att['id']}/download",
+                    "kind": "ATTACHMENT",
+                })
+
+            evaluations = []
+            if snap:
+                snap = dict(snap)
+                evaluations.append({
+                    "eligibilityScore": snap.get("eligibility_score"),
+                    "riskScore": snap.get("risk_score"),
+                    "recommendation": snap.get("recommendation"),
+                    "notes": snap.get("notes"),
+                    "data": snap.get("evaluation_json"),
+                })
+
+            tenders.append({
+                "gemBidNo": row.get("gem_bidding_number"),
+                "tenderNumber": row.get("tender_number"),
+                "organisation": row.get("organization_name"),
+                "department": row.get("department_name"),
+                "office": row.get("office_name_location"),
+                "item": row.get("make"),
+                "date": row.get("date"),
+                "bidEndDate": row.get("bid_end_datetime"),
+                "bidOpenDate": row.get("bid_opening_datetime"),
+                "quantity": row.get("total_quantity"),
+                "estimatedValue": row.get("tender_approx_value"),
+                "sourceUrl": row.get("pdf_path"),
+                "notes": row.get("notes"),
+                "accountManager": row.get("ac_manager"),
+                "remark": row.get("remark"),
+                "filedDate": row.get("filed_date"),
+                "status": _effective_export_status(row),
+                "uploadDate": row.get("uploaded_at"),
+                "files": files,
+                "boqItems": boq_items,
+                "extractions": [{"data": {"boqItems": boq_items}}],
+                "documents": documents,
+                "evaluations": evaluations,
+                "result": _export_result_object(cur, row),
+            })
+    conn.close()
+    return tenders
+
+
+def _restore_result_detail_rows(cur, table_name: str, tender_id: int, rows: list, columns: list):
+    cur.execute(f"DELETE FROM {table_name} WHERE tender_id=%s", (tender_id,))
+    if not rows:
+        return
+    for r in rows:
+        r = dict(r)
+        source_type = (r.get("source_type") or "BID")
+        source_number = r.get("source_number")
+        col_names = ["tender_id", "source_type", "source_number"] + columns + ["raw_data"]
+        placeholders = ", ".join(["%s"] * len(col_names))
+        values = [tender_id, source_type, source_number] + [r.get(c) for c in columns] + [psycopg2.extras.Json(r)]
+        cur.execute(
+            f"INSERT INTO {table_name} ({', '.join(col_names)}) VALUES ({placeholders})",
+            values,
+        )
+
+
+def _restore_tender_result(cur, tender_id: int, result: dict):
+    if not isinstance(result, dict) or not result:
+        return
+    # Restore the result flags onto the tenders row.
+    cur.execute(
+        """UPDATE tenders SET
+               gem_result_status = COALESCE(%s, gem_result_status),
+               result_available = %s,
+               bid_result_available = %s,
+               ra_created = %s,
+               ra_result_available = %s,
+               result_declared = %s,
+               gem_result_url = COALESCE(%s, gem_result_url),
+               gem_bid_number = COALESCE(%s, gem_bid_number),
+               gem_ra_number = COALESCE(%s, gem_ra_number),
+               gem_ra_url = COALESCE(%s, gem_ra_url)
+           WHERE id=%s""",
+        (
+            result.get("watcherStatus"),
+            _row_bool(result.get("resultAvailable")),
+            _row_bool(result.get("bidResultAvailable")),
+            _row_bool(result.get("raCreated")),
+            _row_bool(result.get("raResultAvailable")),
+            _row_bool(result.get("resultDeclared")),
+            result.get("gemResultUrl"),
+            result.get("gemBidNumber"),
+            result.get("gemRaNumber"),
+            result.get("gemRaUrl"),
+            tender_id,
+        ),
+    )
+    # Restore the result summary + detail rows.
+    summary = result.get("summary") or {}
+    if summary:
+        cols = [
+            "gem_bid_number", "current_source_type", "current_bid_or_ra_number",
+            "bid_result_available", "bid_technical_available", "bid_financial_available",
+            "ra_created", "ra_number", "ra_start_date", "ra_end_date",
+            "ra_result_available", "ra_technical_available", "ra_financial_available",
+            "current_stage", "our_company_participated", "our_company_technical_status",
+            "our_company_financial_rank", "our_company_final_price", "result_url",
+        ]
+        present = [c for c in cols if c in summary]
+        cur.execute("DELETE FROM tender_result_summary WHERE tender_id=%s", (tender_id,))
+        col_names = ["tender_id"] + present
+        placeholders = ", ".join(["%s"] * len(col_names))
+        values = [tender_id] + [summary.get(c) for c in present]
+        cur.execute(
+            f"INSERT INTO tender_result_summary ({', '.join(col_names)}) VALUES ({placeholders})",
+            values,
+        )
+    _restore_result_detail_rows(
+        cur, "tender_result_participants", tender_id, result.get("participants") or [],
+        ["seller_name", "offered_item", "make", "model", "title", "participated_on", "mse_mii_status", "status"],
+    )
+    _restore_result_detail_rows(
+        cur, "tender_technical_evaluation", tender_id, result.get("technicalResult") or [],
+        ["seller_name", "offered_item", "make", "model", "title", "participated_on", "mse_mii_status", "technical_status"],
+    )
+    _restore_result_detail_rows(
+        cur, "tender_financial_evaluation", tender_id, result.get("financialResult") or [],
+        ["seller_name", "offered_item", "total_price", "rank", "financial_status"],
+    )
+
+
+def _boq_items_from_export(tender: dict) -> list:
+    """Pull BOQ items from either the top-level boqItems or the nested
+    extractions[].data.boqItems, mapping to tender_items columns."""
+    raw = tender.get("boqItems")
+    if not raw:
+        for ex in (tender.get("extractions") or []):
+            data = (ex or {}).get("data") or {}
+            if data.get("boqItems"):
+                raw = data["boqItems"]
+                break
+    items = []
+    for b in (raw or []):
+        if not isinstance(b, dict):
+            continue
+        items.append({
+            "part_number": b.get("itemNumber") or b.get("part_number"),
+            "item_description": b.get("itemTitle") or b.get("item_description"),
+            "quantity": b.get("quantity"),
+            "make_model": b.get("makeModel") or b.get("make_model"),
+            "unit": b.get("unit"),
+        })
+    return items
+
+
+def _import_evaluation_snapshot(cur, tender_id: int, tender: dict):
+    evaluations = tender.get("evaluations") or []
+    if not evaluations:
+        return
+    ev = evaluations[0] if isinstance(evaluations[0], dict) else {}
+    cur.execute(
+        """INSERT INTO tender_evaluation_snapshots
+               (tender_id, eligibility_score, risk_score, recommendation, notes, evaluation_json)
+           VALUES (%s, %s, %s, %s, %s, %s)
+           ON CONFLICT (tender_id) DO UPDATE SET
+               eligibility_score = EXCLUDED.eligibility_score,
+               risk_score = EXCLUDED.risk_score,
+               recommendation = EXCLUDED.recommendation,
+               notes = EXCLUDED.notes,
+               evaluation_json = EXCLUDED.evaluation_json,
+               updated_at = CURRENT_TIMESTAMP""",
+        (
+            tender_id,
+            ev.get("eligibilityScore"),
+            ev.get("riskScore"),
+            ev.get("recommendation"),
+            ev.get("notes"),
+            psycopg2.extras.Json(ev.get("data")) if ev.get("data") is not None else None,
+        ),
+    )
+
+
+def import_company_tenders(tenders: list, company_id=None):
+    """Upsert tenders from an export bundle. Match by gemBidNo, then tenderNumber.
+    Returns {created, updated, skipped, errors[]}."""
+    company_id = _resolve_company_id(company_id)
+    created = updated = skipped = 0
+    errors = []
+    for idx, tender in enumerate(tenders or []):
+        if not isinstance(tender, dict):
+            skipped += 1
+            errors.append({"index": idx, "error": "Entry is not an object"})
+            continue
+        gem_bid_no = (str(tender.get("gemBidNo") or "").strip() or None)
+        tender_number = (str(tender.get("tenderNumber") or "").strip() or None)
+        if not gem_bid_no and not tender_number:
+            skipped += 1
+            errors.append({"index": idx, "error": "Missing both gemBidNo and tenderNumber"})
+            continue
+        status_enum = normalize_export_status(tender.get("status"))
+        participation_status = EXPORT_STATUS_TO_PARTICIPATION.get(status_enum, "IN PROGRESS")
+        items = _boq_items_from_export(tender)
+        documents = [
+            {"label": (d.get("name") if isinstance(d, dict) else d)}
+            for d in (tender.get("documents") or [])
+            if (d.get("name") if isinstance(d, dict) else d)
+        ]
+        filed_date = tender.get("filedDate")
+        conn = get_db()
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT id FROM tenders
+                       WHERE company_id=%(cid)s
+                         AND ((%(gbn)s IS NOT NULL AND gem_bidding_number=%(gbn)s)
+                           OR (%(tn)s IS NOT NULL AND tender_number=%(tn)s))
+                       ORDER BY id LIMIT 1""",
+                    {"cid": company_id, "gbn": gem_bid_no, "tn": tender_number},
+                )
+                existing = cur.fetchone()
+                if existing:
+                    tender_id = existing["id"]
+                    cur.execute(
+                        """UPDATE tenders SET
+                               gem_bidding_number = COALESCE(%s, gem_bidding_number),
+                               tender_number = COALESCE(%s, tender_number),
+                               date = COALESCE(%s, date),
+                               bid_end_datetime = COALESCE(%s, bid_end_datetime),
+                               bid_opening_datetime = COALESCE(%s, bid_opening_datetime),
+                               department_name = COALESCE(%s, department_name),
+                               organization_name = COALESCE(%s, organization_name),
+                               office_name_location = COALESCE(%s, office_name_location),
+                               total_quantity = COALESCE(%s, total_quantity),
+                               make = COALESCE(%s, make),
+                               tender_approx_value = COALESCE(%s, tender_approx_value),
+                               pdf_path = COALESCE(%s, pdf_path),
+                               notes = %s,
+                               ac_manager = %s,
+                               remark = %s,
+                               filed_date = COALESCE(%s, filed_date),
+                               status_enum = %s,
+                               participation_status = %s
+                           WHERE id=%s AND company_id=%s""",
+                        (
+                            gem_bid_no, tender_number, tender.get("date"),
+                            tender.get("bidEndDate"), tender.get("bidOpenDate"),
+                            tender.get("department"), tender.get("organisation"),
+                            tender.get("office"), tender.get("quantity"),
+                            tender.get("item"), tender.get("estimatedValue"),
+                            tender.get("sourceUrl"), tender.get("notes"),
+                            tender.get("accountManager"), tender.get("remark"),
+                            filed_date, status_enum, participation_status,
+                            tender_id, company_id,
+                        ),
+                    )
+                    cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
+                    cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
+                    _insert_items(cur, tender_id, items, source_type="imported")
+                    _insert_docs(cur, tender_id, documents)
+                    _import_evaluation_snapshot(cur, tender_id, tender)
+                    _restore_tender_result(cur, tender_id, tender.get("result") or {})
+                    updated += 1
+                else:
+                    now = datetime.now().isoformat()
+                    cur.execute(
+                        """INSERT INTO tenders (
+                               gem_bidding_number, tender_number, date, bid_end_datetime, bid_opening_datetime,
+                               department_name, organization_name, office_name_location,
+                               total_quantity, make, tender_approx_value,
+                               uploaded_at, pdf_path, notes, ac_manager, remark, filed_date,
+                               status, status_enum, participation_status, company_id
+                           ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                           RETURNING id""",
+                        (
+                            gem_bid_no, tender_number, tender.get("date"),
+                            tender.get("bidEndDate"), tender.get("bidOpenDate"),
+                            tender.get("department"), tender.get("organisation"),
+                            tender.get("office"), tender.get("quantity"),
+                            tender.get("item"), tender.get("estimatedValue"),
+                            tender.get("uploadDate") or now, tender.get("sourceUrl"),
+                            tender.get("notes"), tender.get("accountManager"),
+                            tender.get("remark"), filed_date,
+                            "imported", status_enum, participation_status, company_id,
+                        ),
+                    )
+                    tender_id = cur.fetchone()["id"]
+                    _insert_items(cur, tender_id, items, source_type="imported")
+                    _insert_docs(cur, tender_id, documents)
+                    _import_evaluation_snapshot(cur, tender_id, tender)
+                    _restore_tender_result(cur, tender_id, tender.get("result") or {})
+                    created += 1
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            skipped += 1
+            errors.append({
+                "index": idx,
+                "gemBidNo": gem_bid_no,
+                "tenderNumber": tender_number,
+                "error": f"{type(e).__name__}: {e}",
+            })
+        finally:
+            conn.close()
+    return {"created": created, "updated": updated, "skipped": skipped, "errors": errors}
+
+
+def save_tender_evaluation_snapshot(tender_id: int, evaluation: dict, company_id=None):
+    """Persist the latest capability evaluation for a saved tender so it can be
+    exported. One row per tender."""
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO tender_evaluation_snapshots
+                   (tender_id, eligibility_score, risk_score, recommendation, notes, evaluation_json)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               ON CONFLICT (tender_id) DO UPDATE SET
+                   eligibility_score = EXCLUDED.eligibility_score,
+                   risk_score = EXCLUDED.risk_score,
+                   recommendation = EXCLUDED.recommendation,
+                   notes = EXCLUDED.notes,
+                   evaluation_json = EXCLUDED.evaluation_json,
+                   updated_at = CURRENT_TIMESTAMP""",
+            (
+                tender_id,
+                evaluation.get("score") or evaluation.get("eligibilityScore"),
+                evaluation.get("riskScore") or evaluation.get("risk_score"),
+                evaluation.get("decision") or evaluation.get("recommendation"),
+                evaluation.get("summary") or evaluation.get("notes"),
+                psycopg2.extras.Json(evaluation),
+            ),
+        )
+    conn.commit()
+    conn.close()
