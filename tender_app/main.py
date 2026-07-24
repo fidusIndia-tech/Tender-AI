@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import uuid
 import zipfile
 from datetime import datetime
@@ -87,6 +88,30 @@ try:
 except Exception as e:
     print(f"[WARN] result watcher scheduler startup failed: {type(e).__name__}: {e}")
 
+
+def _provision_default_local_agent():
+    """Register the standalone office-PC agent (identified by the global
+    LOCAL_AGENT_API_KEY) against the default company, so its bearer token
+    resolves to a companyId and its heartbeats are recorded. No-op if the
+    local agent is disabled or no key is configured."""
+    if os.environ.get("ENABLE_LOCAL_GEM_AGENT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+    key = os.environ.get("LOCAL_AGENT_API_KEY", "").strip()
+    if not key:
+        return
+    try:
+        token_hash = hashlib.sha256(key.encode()).hexdigest()
+        database.upsert_local_agent(
+            company_id=database.get_default_company_id(),
+            token_hash=token_hash,
+            agent_name="default-local-agent",
+        )
+    except Exception as e:
+        print(f"[WARN] default local agent provisioning failed: {type(e).__name__}: {e}")
+
+
+_provision_default_local_agent()
+
 # ── Portal Encryption (Fernet symmetric) ──────────────────────────────────────
 
 def _init_fernet() -> Fernet:
@@ -138,15 +163,69 @@ def _require_watcher_or_admin(request: Request) -> dict:
     return _require_admin(request)
 
 
+def _hash_agent_token(token: str) -> str:
+    return hashlib.sha256((token or "").strip().encode()).hexdigest()
+
+
 def _require_local_gem_agent(request: Request) -> dict:
+    """Authenticate a local GeM agent by its bearer token and derive its
+    companyId from the token — the agent never sends a companyId itself.
+
+    Resolution order:
+      1. Per-company agent registry (local_agents): hash the token, find the
+         matching row, use its companyId, and record a heartbeat.
+      2. Standalone fallback: the global LOCAL_AGENT_API_KEY maps to the
+         default company so the existing single-company office PC keeps working.
+    """
     if os.environ.get("ENABLE_LOCAL_GEM_AGENT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
         raise HTTPException(403, "Local GeM agent ingestion is disabled")
-    expected = os.environ.get("LOCAL_AGENT_API_KEY", "").strip()
     auth = request.headers.get("Authorization", "")
     scheme, _, token = auth.partition(" ")
-    if not expected or scheme.lower() != "bearer" or not hmac.compare_digest(token.strip(), expected):
+    token = token.strip()
+    if scheme.lower() != "bearer" or not token:
         raise HTTPException(401, "Invalid local agent API key")
-    return {"role": "local-gem-agent", "sub": "local-gem-agent"}
+
+    agent = database.get_local_agent_by_token_hash(_hash_agent_token(token))
+    if agent and str(agent.get("status") or "ACTIVE").upper() == "ACTIVE":
+        try:
+            database.touch_local_agent_heartbeat(agent["id"])
+        except Exception:
+            pass
+        return {
+            "role": "local-gem-agent",
+            "sub": agent.get("agent_name") or "local-gem-agent",
+            "company_id": agent["company_id"],
+            "agent_id": agent["id"],
+        }
+
+    expected = os.environ.get("LOCAL_AGENT_API_KEY", "").strip()
+    if expected and hmac.compare_digest(token, expected):
+        return {
+            "role": "local-gem-agent",
+            "sub": "local-gem-agent",
+            "company_id": database.get_default_company_id(),
+        }
+    raise HTTPException(401, "Invalid local agent API key")
+
+
+def get_current_company_id(request: Request) -> int:
+    """Resolve the caller's companyId from the signed session cookie only —
+    never from the request body, query string, or any frontend-supplied value.
+    Falls back to the default company so standalone mode keeps working.
+
+    Later this helper can read the companyId that Fidus360 embeds in the SSO
+    session/JWT; until then every request maps to the single default company.
+    """
+    token = request.cookies.get("tender_session")
+    if token:
+        try:
+            payload = _decode_session(token)
+            cid = payload.get("company_id", payload.get("companyId"))
+            if cid:
+                return int(cid)
+        except Exception:
+            pass
+    return database.get_default_company_id()
 
 
 def _normalize_portal_url(url: Optional[str]) -> Optional[str]:
@@ -331,6 +410,17 @@ class CompanyProfilePayload(BaseModel):
     authorized_signatory_designation: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+
+
+COMPANY_PROFILE_ASSET_LABELS = {
+    "company_logo": "company logo",
+    "document_logo": "document logo",
+    "letterhead": "letterhead",
+    "header_image": "header image",
+    "footer_image": "footer image",
+    "stamp": "stamp",
+    "signature": "signature",
+}
 
 
 class GemResultDebugPayload(BaseModel):
@@ -688,7 +778,7 @@ def _metadata_tender_from_local_payload(payload: LocalGemDiscoveredTenderPayload
     return data, items, documents
 
 
-def _store_local_gem_pdf(pdf_bytes: bytes, gem_bid_number: str):
+def _store_local_gem_pdf(pdf_bytes: bytes, gem_bid_number: str, company_id=None):
     if not pdf_bytes or pdf_bytes[:4] != b"%PDF":
         raise RuntimeError("GeM PDF bytes are not a valid PDF")
     file_id = str(uuid.uuid4())
@@ -701,11 +791,12 @@ def _store_local_gem_pdf(pdf_bytes: bytes, gem_bid_number: str):
         file_size=len(pdf_bytes),
         file_data=pdf_bytes,
         file_category="tender_pdf",
+        company_id=company_id,
     )
     return file_id, pdf_bytes
 
 
-def _download_local_gem_pdf(url: str, gem_bid_number: str):
+def _download_local_gem_pdf(url: str, gem_bid_number: str, company_id=None):
     if not url:
         return None, None
     with httpx.Client(timeout=45, follow_redirects=True) as client:
@@ -714,18 +805,33 @@ def _download_local_gem_pdf(url: str, gem_bid_number: str):
         content_type = response.headers.get("content-type", "application/pdf")
         if "pdf" not in content_type.lower() and not response.content[:4] == b"%PDF":
             raise RuntimeError(f"GeM PDF URL did not return a PDF content-type={content_type}")
-        return _store_local_gem_pdf(response.content, gem_bid_number)
+        return _store_local_gem_pdf(response.content, gem_bid_number, company_id=company_id)
 
 
-def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry_run: bool):
+def _agent_log(gem_bid, msg):
+    """Structured, greppable log line for the local-agent discovered-tender flow."""
+    print(f"[gem-local-agent][bid={gem_bid}] {msg}", flush=True)
+
+
+def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry_run: bool, company_id=None):
     gem_bid = _normalize_local_gem_bid(payload.gemBidNumber)
     payload.gemBidNumber = gem_bid
-    duplicate = database.find_tender_duplicate(gem_bid, gem_bid)
+    # Resolve the company up front so every log line and DB write is explicit.
+    # company_id comes from the agent's token (never the payload) or defaults.
+    company_id = company_id or database.get_default_company_id()
+    _agent_log(gem_bid, f"received; resolved company_id={company_id} dry_run={dry_run} "
+                        f"has_pdf_bytes={bool(payload.pdfBase64)} has_pdf_url={bool(payload.gemPdfUrl)} "
+                        f"keyword={payload.keywordMatched!r}")
+
+    duplicate = database.find_tender_duplicate(gem_bid, gem_bid, company_id=company_id)
+    _agent_log(gem_bid, f"duplicate-check (company_id={company_id}): "
+                        + (f"MATCH tender_id={duplicate['id']}" if duplicate else "no existing tender"))
     if duplicate:
         if not dry_run:
-            database.upsert_discovered_tender(payload.model_dump(), action_taken="DUPLICATE_ALREADY_EXISTS")
+            database.upsert_discovered_tender(payload.model_dump(), action_taken="DUPLICATE_ALREADY_EXISTS", company_id=company_id)
             database.update_discovered_tender(
                 gem_bid,
+                company_id=company_id,
                 action_taken="DUPLICATE_ALREADY_EXISTS",
                 all_tender_id=duplicate["id"],
                 evaluation_reason="Tender already exists in All Tenders.",
@@ -737,10 +843,10 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
             "allTenderId": duplicate["id"],
         }
 
-    existing = database.get_discovered_tender_by_bid(gem_bid)
+    existing = database.get_discovered_tender_by_bid(gem_bid, company_id=company_id)
     if existing and existing.get("action_taken") in {"REJECTED_NOT_SUITABLE", "INSERTED_TO_ALL_TENDERS", "EVALUATED"}:
         if not dry_run:
-            database.update_discovered_tender(gem_bid)
+            database.update_discovered_tender(gem_bid, company_id=company_id)
         return {
             "gemBidNumber": gem_bid,
             "action": "DUPLICATE_ALREADY_EXISTS",
@@ -750,9 +856,10 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
         }
 
     if not dry_run:
-        database.upsert_discovered_tender(payload.model_dump(), action_taken="DISCOVERED")
+        database.upsert_discovered_tender(payload.model_dump(), action_taken="DISCOVERED", company_id=company_id)
+        _agent_log(gem_bid, f"discovered-tender upserted (company_id={company_id}, action=DISCOVERED)")
         if payload.keywordMatched:
-            database.touch_gem_search_keyword(payload.keywordMatched)
+            database.touch_gem_search_keyword(payload.keywordMatched, company_id=company_id)
 
     file_id = None
     extracted = {}
@@ -762,9 +869,9 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
             if payload.pdfBase64:
                 # Office-PC agent already downloaded the PDF from GeM (this
                 # server cannot reach GeM), so extract from the provided bytes.
-                file_id, pdf_bytes = _store_local_gem_pdf(base64.b64decode(payload.pdfBase64), gem_bid)
+                file_id, pdf_bytes = _store_local_gem_pdf(base64.b64decode(payload.pdfBase64), gem_bid, company_id=company_id)
             else:
-                file_id, pdf_bytes = _download_local_gem_pdf(payload.gemPdfUrl, gem_bid)
+                file_id, pdf_bytes = _download_local_gem_pdf(payload.gemPdfUrl, gem_bid, company_id=company_id)
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(pdf_bytes)
                 tmp_path = tmp.name
@@ -772,6 +879,7 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
                 extracted = ai_extractor.process_pdf(tmp_path)
                 json_path = EXTRACTIONS_DIR / f"{file_id}.json"
                 json_path.write_text(json.dumps(extracted, indent=2, ensure_ascii=False), encoding="utf-8")
+                _agent_log(gem_bid, f"extraction OK (file_id={file_id}, fields={len(extracted or {})})")
             finally:
                 try:
                     os.unlink(tmp_path)
@@ -779,22 +887,26 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
                     pass
         except Exception as exc:
             extraction_error = f"{type(exc).__name__}: {exc}"
+            _agent_log(gem_bid, f"extraction FAILED: {extraction_error}\n{traceback.format_exc()}")
 
     data, items, documents = _metadata_tender_from_local_payload(payload, file_id=file_id, extracted=extracted)
     data["extraction_json_path"] = str(EXTRACTIONS_DIR / f"{file_id}.json") if file_id and extracted else None
     tender_for_eval = dict(data)
     tender_for_eval["boq_items"] = items
     tender_for_eval["required_documents"] = documents
-    capability = database.get_company_capability_profile()
+    capability = database.get_company_capability_profile(company_id=company_id)
     try:
         evaluation = evaluate_tender_against_capability(tender_for_eval, capability)
         score = round(float(evaluation.get("score") or 0) / 10, 1)
         decision = "RECOMMENDED" if score >= 8 or evaluation.get("decision") == "BID" else "NOT_RECOMMENDED"
         reason = evaluation.get("summary") or "; ".join(evaluation.get("strengths") or evaluation.get("risks") or []) or "Evaluated."
+        _agent_log(gem_bid, f"evaluation OK: score={score} decision={decision}")
     except Exception as exc:
+        _agent_log(gem_bid, f"evaluation FAILED: {type(exc).__name__}: {exc}\n{traceback.format_exc()}")
         if not dry_run:
             database.update_discovered_tender(
                 gem_bid,
+                company_id=company_id,
                 action_taken="EVALUATION_FAILED",
                 stored_pdf_file_id=file_id,
                 extracted_data=extracted or tender_for_eval,
@@ -811,20 +923,36 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
     else:
         # Do NOT auto-insert based on the rating. We only evaluate and store the
         # discovered tender together with its score and bid recommendation; an
-        # admin decides and pushes it into All Tenders via Manual Insert.
+        # admin decides and pushes it into All Tenders via Manual Insert
+        # (see commit "Discovered tenders: manual-insert only"). This flow does
+        # NOT write gem_candidate_tenders — that table belongs to the separate
+        # server-side GeM scanner (gem_watcher/scanner.py).
         action = "EVALUATED"
 
     if not dry_run:
-        database.update_discovered_tender(
-            gem_bid,
-            stored_pdf_file_id=file_id,
-            extracted_data=extracted or tender_for_eval,
-            evaluation_score=score,
-            evaluation_decision=decision,
-            evaluation_reason=extraction_error or reason,
-            action_taken=action,
-        )
+        try:
+            database.update_discovered_tender(
+                gem_bid,
+                company_id=company_id,
+                stored_pdf_file_id=file_id,
+                extracted_data=extracted or tender_for_eval,
+                evaluation_score=score,
+                evaluation_decision=decision,
+                evaluation_reason=extraction_error or reason,
+                action_taken=action,
+            )
+        except Exception as exc:
+            # Persisting the evaluation is the last step. If it fails, report
+            # ERROR to the agent so the outcome isn't silently treated as done.
+            _agent_log(gem_bid, f"discovered-tender persist FAILED: {type(exc).__name__}: {exc}\n{traceback.format_exc()}")
+            return {"gemBidNumber": gem_bid, "action": "ERROR", "reason": f"{type(exc).__name__}: {exc}"}
 
+    _agent_log(
+        gem_bid,
+        f"done: action={action} score={score} decision={decision} company_id={company_id} | "
+        f"gem_candidate_tenders insert=N/A (scanner-only flow) | "
+        f"All Tenders insert=N/A (manual-insert only — use the Manual Insert button)",
+    )
     return {
         "gemBidNumber": gem_bid,
         "action": action,
@@ -837,8 +965,123 @@ def _evaluate_local_gem_payload(payload: LocalGemDiscoveredTenderPayload, *, dry
 
 
 @app.get("/api/tenders")
-async def list_tenders():
-    return database.list_tenders()
+async def list_tenders(request: Request):
+    return database.list_tenders(company_id=get_current_company_id(request))
+
+
+# ── All Tenders JSON export / import (round-trippable) ────────────────────────
+
+EXPORT_BUNDLE_VERSION = 1
+MAX_IMPORT_BYTES = 25 * 1024 * 1024  # ~25 MB cap on the import payload
+
+
+def _build_export_bundle(company_id: int) -> dict:
+    tenders = database.export_company_tenders(company_id=company_id)
+    now = datetime.utcnow()
+    return {
+        "version": EXPORT_BUNDLE_VERSION,
+        "exportedAt": now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z",
+        "count": len(tenders),
+        "tenders": tenders,
+    }
+
+
+def _export_bundle_to_xlsx(bundle: dict) -> bytes:
+    """Human-readable workbook of the export bundle. JSON stays the round-trip
+    format; this is a convenience view only."""
+    try:
+        from openpyxl import Workbook
+    except ImportError:
+        raise HTTPException(
+            501,
+            "Excel export requires the 'openpyxl' package. Install it or use format=json.",
+        )
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Tenders"
+    headers = [
+        "GeM Bid No", "Tender Number", "Status", "Organisation", "Department",
+        "Office", "Item", "Bid End Date", "Bid Open Date", "Quantity",
+        "Estimated Value", "A/C Manager", "Remark", "Notes", "Source URL",
+    ]
+    ws.append(headers)
+    for t in bundle.get("tenders", []):
+        ws.append([
+            t.get("gemBidNo"), t.get("tenderNumber"), t.get("status"),
+            t.get("organisation"), t.get("department"), t.get("office"),
+            t.get("item"), t.get("bidEndDate"), t.get("bidOpenDate"),
+            t.get("quantity"), t.get("estimatedValue"), t.get("accountManager"),
+            t.get("remark"), t.get("notes"), t.get("sourceUrl"),
+        ])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+@app.get("/api/tenders/export")
+async def export_tenders(request: Request, format: str = "json"):
+    company_id = get_current_company_id(request)
+    bundle = _build_export_bundle(company_id)
+    fmt = (format or "json").strip().lower()
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if fmt in ("xlsx", "excel"):
+        content = _export_bundle_to_xlsx(bundle)
+        return Response(
+            content=content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="tenders-{stamp}.xlsx"'},
+        )
+    if fmt != "json":
+        raise HTTPException(400, "format must be 'json' or 'xlsx'")
+    body = json.dumps(bundle, ensure_ascii=False, default=str).encode("utf-8")
+    return Response(
+        content=body,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="tenders-{stamp}.json"'},
+    )
+
+
+def _extract_import_tenders(bundle: Any) -> list:
+    """Accept either the full export bundle ({version, tenders:[…]}) or a bare
+    list of tender objects."""
+    if isinstance(bundle, list):
+        return bundle
+    if isinstance(bundle, dict):
+        tenders = bundle.get("tenders")
+        if isinstance(tenders, list):
+            return tenders
+        raise HTTPException(422, "Import JSON must contain a 'tenders' array")
+    raise HTTPException(422, "Import JSON must be an object with 'tenders' or a list")
+
+
+@app.post("/api/tenders/import")
+async def import_tenders(
+    request: Request,
+    file: Optional[UploadFile] = File(None),
+):
+    """Import tenders from an export bundle. Accepts either a multipart file
+    upload (field name 'file') or a raw JSON request body. Capped at ~25 MB."""
+    company_id = get_current_company_id(request)
+
+    raw: bytes
+    if file is not None:
+        raw = await file.read()
+    else:
+        raw = await request.body()
+
+    if not raw:
+        raise HTTPException(400, "No import data provided")
+    if len(raw) > MAX_IMPORT_BYTES:
+        raise HTTPException(413, f"Import file too large (max {MAX_IMPORT_BYTES // (1024 * 1024)} MB)")
+
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise HTTPException(422, f"Invalid JSON: {e}")
+
+    tenders = _extract_import_tenders(parsed)
+    summary = database.import_company_tenders(tenders, company_id=company_id)
+    return summary
 
 
 @app.get("/api/tenders/{tender_id}")
@@ -863,7 +1106,13 @@ async def evaluate_tender(tender_id: int):
     if not tender:
         raise HTTPException(404, "Tender not found")
     capability = database.get_company_capability_profile()
-    return evaluate_tender_against_capability(tender, capability)
+    result = evaluate_tender_against_capability(tender, capability)
+    # Persist the latest evaluation so it round-trips through JSON export/import.
+    try:
+        database.save_tender_evaluation_snapshot(tender_id, result)
+    except Exception as e:
+        print(f"[WARN] could not save evaluation snapshot for tender {tender_id}: {type(e).__name__}: {e}")
+    return result
 
 
 @app.put("/api/tenders/{tender_id}")
@@ -970,8 +1219,9 @@ async def clear_tender_data():
 
 
 @app.delete("/api/tenders/{tender_id}", status_code=204)
-async def delete_tender(tender_id: int):
-    tender = database.get_tender(tender_id)
+async def delete_tender(tender_id: int, request: Request):
+    company_id = get_current_company_id(request)
+    tender = database.get_tender(tender_id, company_id=company_id)
     if not tender:
         raise HTTPException(404, "Tender not found")
     # Remove uploaded PDF
@@ -989,7 +1239,9 @@ async def delete_tender(tender_id: int):
     if gen_dir.exists():
         import shutil
         shutil.rmtree(gen_dir, ignore_errors=True)
-    database.delete_tender(tender_id)
+    deleted = database.delete_tender(tender_id, company_id=company_id)
+    if not deleted:
+        raise HTTPException(404, "Tender not found")
 
 
 @app.patch("/api/tenders/{tender_id}/record-fields")
@@ -1128,8 +1380,8 @@ async def get_result_watcher_summary():
 
 
 @app.get("/api/tender-notifications")
-async def list_tender_notifications():
-    return database.list_tender_notifications()
+async def list_tender_notifications(request: Request):
+    return database.list_tender_notifications(company_id=get_current_company_id(request))
 
 
 @app.patch("/api/tender-notifications/{notification_id}/read")
@@ -1275,8 +1527,8 @@ async def admin_gem_run_request_status(user=Depends(_require_admin)):
 @app.get("/api/gem-search/run-request")
 async def local_agent_claim_run_request(request: Request):
     """Polled by the local agent. Returns the next pending run to execute."""
-    _require_local_gem_agent(request)
-    row = database.claim_gem_run_request()
+    agent = _require_local_gem_agent(request)
+    row = database.claim_gem_run_request(company_id=agent["company_id"])
     if not row:
         return {"pending": False}
     return {"pending": True, "id": row["id"], "keyword": row.get("keyword")}
@@ -1284,7 +1536,7 @@ async def local_agent_claim_run_request(request: Request):
 
 @app.post("/api/gem-search/run-request/{request_id}/complete")
 async def local_agent_complete_run_request(request_id: int, request: Request):
-    _require_local_gem_agent(request)
+    agent = _require_local_gem_agent(request)
     body = {}
     try:
         body = await request.json()
@@ -1292,21 +1544,21 @@ async def local_agent_complete_run_request(request_id: int, request: Request):
         body = {}
     status = (body.get("status") or "DONE").strip().upper()
     summary = body.get("summary")
-    row = database.complete_gem_run_request(request_id, status=status, summary=summary if isinstance(summary, str) else None)
+    row = database.complete_gem_run_request(request_id, status=status, summary=summary if isinstance(summary, str) else None, company_id=agent["company_id"])
     if not row:
         raise HTTPException(404, "Run request not found")
     return _run_request_view(row)
 
 
 @app.get("/api/gem-search/admin/keywords")
-async def admin_list_gem_search_keywords(user=Depends(_require_admin)):
-    return database.list_gem_search_keywords(include_inactive=True)
+async def admin_list_gem_search_keywords(request: Request, user=Depends(_require_admin)):
+    return database.list_gem_search_keywords(include_inactive=True, company_id=get_current_company_id(request))
 
 
 @app.post("/api/gem-search/admin/keywords", status_code=201)
-async def admin_create_gem_search_keyword(payload: GemSearchKeywordCreate, user=Depends(_require_admin)):
+async def admin_create_gem_search_keyword(payload: GemSearchKeywordCreate, request: Request, user=Depends(_require_admin)):
     try:
-        return database.upsert_gem_search_keyword(payload.keyword)
+        return database.upsert_gem_search_keyword(payload.keyword, company_id=get_current_company_id(request))
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -1334,8 +1586,8 @@ async def admin_delete_gem_search_keyword(keyword_id: int, user=Depends(_require
 
 @app.get("/api/gem-search/keywords")
 async def local_agent_list_gem_search_keywords(request: Request):
-    _require_local_gem_agent(request)
-    rows = database.list_gem_search_keywords(include_inactive=False)
+    agent = _require_local_gem_agent(request)
+    rows = database.list_gem_search_keywords(include_inactive=False, company_id=agent["company_id"])
     return [{"id": row["id"], "keyword": row["keyword"], "active": bool(row["active"])} for row in rows]
 
 
@@ -1347,6 +1599,7 @@ async def local_agent_get_gem_search_config(request: Request):
 
 @app.get("/api/gem-search/discovered-tenders")
 async def list_gem_search_discovered_tenders(
+    request: Request,
     keyword: Optional[str] = None,
     action_taken: Optional[str] = None,
     inserted: Optional[bool] = None,
@@ -1360,26 +1613,30 @@ async def list_gem_search_discovered_tenders(
         inserted=inserted,
         date_from=date_from,
         date_to=date_to,
+        company_id=get_current_company_id(request),
     )
 
 
 @app.post("/api/gem-search/discovered-tender")
 async def local_agent_ingest_discovered_tender(payload: LocalGemDiscoveredTenderPayload, request: Request, dryRun: bool = False):
-    _require_local_gem_agent(request)
-    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=dryRun)
+    agent = _require_local_gem_agent(request)
+    print(f"[gem-local-agent] ingest request: gemBidNumber={payload.gemBidNumber!r} "
+          f"agent_company_id={agent.get('company_id')} agent={agent.get('sub')!r} dryRun={dryRun}", flush=True)
+    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=dryRun, company_id=agent["company_id"])
 
 
 @app.post("/api/gem-search/discovered-tenders/clear-all")
-async def clear_all_gem_discovered_tenders(user=Depends(_require_admin)):
+async def clear_all_gem_discovered_tenders(request: Request, user=Depends(_require_admin)):
     """Clear the whole discovered-tenders list. Tenders already inserted into All
     Tenders are kept there — only the discovered list is emptied."""
-    cleared = database.clear_discovered_tenders()
+    cleared = database.clear_discovered_tenders(company_id=get_current_company_id(request))
     return {"cleared": cleared}
 
 
 @app.post("/api/gem-search/discovered-tenders/{gem_bid_number:path}/re-evaluate")
-async def re_evaluate_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
-    row = database.get_discovered_tender_by_bid(gem_bid_number)
+async def re_evaluate_gem_discovered_tender(gem_bid_number: str, request: Request, user=Depends(_require_admin)):
+    company_id = get_current_company_id(request)
+    row = database.get_discovered_tender_by_bid(gem_bid_number, company_id=company_id)
     if not row:
         raise HTTPException(404, "Discovered tender not found")
     payload = LocalGemDiscoveredTenderPayload(
@@ -1395,20 +1652,21 @@ async def re_evaluate_gem_discovered_tender(gem_bid_number: str, user=Depends(_r
         source=row.get("source") or "LOCAL_GEM_AGENT",
         rawGemData=row.get("raw_gem_data") or {},
     )
-    database.update_discovered_tender(row["gem_bid_number"], action_taken="DISCOVERED")
-    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=False)
+    database.update_discovered_tender(row["gem_bid_number"], company_id=company_id, action_taken="DISCOVERED")
+    return await asyncio.to_thread(_evaluate_local_gem_payload, payload, dry_run=False, company_id=company_id)
 
 
 @app.post("/api/gem-search/discovered-tenders/{gem_bid_number:path}/manual-insert")
-async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
-    row = database.get_discovered_tender_by_bid(gem_bid_number)
+async def manual_insert_gem_discovered_tender(gem_bid_number: str, request: Request, user=Depends(_require_admin)):
+    company_id = get_current_company_id(request)
+    row = database.get_discovered_tender_by_bid(gem_bid_number, company_id=company_id)
     if not row:
         raise HTTPException(404, "Discovered tender not found")
-    duplicate = database.find_tender_duplicate(row["gem_bid_number"], row["gem_bid_number"])
+    duplicate = database.find_tender_duplicate(row["gem_bid_number"], row["gem_bid_number"], company_id=company_id)
     if duplicate:
         # Already in All Tenders — remove it from the discovered list entirely
         # (discovered tenders are not kept in the DB once resolved).
-        database.delete_discovered_tender(row["gem_bid_number"])
+        database.delete_discovered_tender(row["gem_bid_number"], company_id=company_id)
         return {"action": "DUPLICATE_ALREADY_EXISTS", "allTenderId": duplicate["id"]}
     extracted = row.get("extracted_data") or {}
     if extracted.get("gem_bidding_number"):
@@ -1437,27 +1695,27 @@ async def manual_insert_gem_discovered_tender(gem_bid_number: str, user=Depends(
     data["gem_bidding_number"] = (
         extractGemBiddingId({"gem_pdf_url": row.get("gem_pdf_url")}) or row["gem_bid_number"]
     )
-    tender_id = database.save_tender(data, items, docs)
+    tender_id = database.save_tender(data, items, docs, company_id=company_id)
     # The tender (and its PDF) are now persisted in All Tenders. Remove it from
     # the discovered list — discovered tenders are not stored in the DB once
     # inserted. The saved tender's pdf_path references the PDF, so the cleanup
     # keeps that file and only drops truly orphaned discovered PDFs.
-    database.delete_discovered_tender(row["gem_bid_number"])
+    database.delete_discovered_tender(row["gem_bid_number"], company_id=company_id)
     return {"action": "INSERTED_TO_ALL_TENDERS", "allTenderId": tender_id}
 
 
 @app.delete("/api/gem-search/discovered-tenders/{gem_bid_number:path}", status_code=204)
-async def delete_gem_discovered_tender(gem_bid_number: str, user=Depends(_require_admin)):
-    if not database.delete_discovered_tender(gem_bid_number):
+async def delete_gem_discovered_tender(gem_bid_number: str, request: Request, user=Depends(_require_admin)):
+    if not database.delete_discovered_tender(gem_bid_number, company_id=get_current_company_id(request)):
         raise HTTPException(404, "Discovered tender not found")
 
 
 # ── Company Profile ───────────────────────────────────────────────────────────
 
 @app.get("/api/company/profile")
-async def get_profile():
+async def get_profile(request: Request):
     try:
-        data = database.get_company_profile()
+        data = database.get_company_profile(company_id=get_current_company_id(request))
         # Use JSONResponse so encoding errors are caught here, not by Starlette
         return JSONResponse(content=data)
     except Exception as e:
@@ -1466,9 +1724,9 @@ async def get_profile():
 
 
 @app.put("/api/company/profile")
-async def save_profile(payload: CompanyProfilePayload):
+async def save_profile(payload: CompanyProfilePayload, request: Request):
     try:
-        database.upsert_company_profile(payload.model_dump())
+        database.upsert_company_profile(payload.model_dump(), company_id=get_current_company_id(request))
         return JSONResponse(content={"message": "saved"})
     except Exception as e:
         print(f"[ERROR] save_profile: {type(e).__name__}: {e}")
@@ -1476,18 +1734,18 @@ async def save_profile(payload: CompanyProfilePayload):
 
 
 @app.get("/api/company/capability-profile")
-async def get_capability_profile():
+async def get_capability_profile(request: Request):
     try:
-        return JSONResponse(content=database.get_company_capability_profile())
+        return JSONResponse(content=database.get_company_capability_profile(company_id=get_current_company_id(request)))
     except Exception as e:
         print(f"[ERROR] get_capability_profile: {type(e).__name__}: {e}")
         return JSONResponse(content={"error": "Failed to load capability profile"}, status_code=500)
 
 
 @app.put("/api/company/capability-profile")
-async def save_capability_profile(payload: CompanyCapabilityProfilePayload):
+async def save_capability_profile(payload: CompanyCapabilityProfilePayload, request: Request):
     try:
-        database.upsert_company_capability_profile(payload.model_dump())
+        database.upsert_company_capability_profile(payload.model_dump(), company_id=get_current_company_id(request))
         return JSONResponse(content={"message": "saved"})
     except Exception as e:
         print(f"[ERROR] save_capability_profile: {type(e).__name__}: {e}")
@@ -1495,61 +1753,98 @@ async def save_capability_profile(payload: CompanyCapabilityProfilePayload):
 
 
 @app.get("/api/company/evaluation-profile")
-async def get_company_evaluation_profile():
+async def get_company_evaluation_profile(request: Request):
     try:
-        return JSONResponse(content=database.get_company_profile_for_tender_evaluation())
+        return JSONResponse(content=database.get_company_profile_for_tender_evaluation(company_id=get_current_company_id(request)))
     except Exception as e:
         print(f"[ERROR] get_company_evaluation_profile: {type(e).__name__}: {e}")
         return JSONResponse(content={"error": "Failed to load evaluation profile"}, status_code=500)
 
 
-@app.post("/api/company/profile/stamp")
-async def upload_stamp(file: UploadFile = File(...)):
+@app.post("/api/company/profile/assets/{asset_key}")
+async def upload_company_profile_asset(asset_key: str, request: Request, file: UploadFile = File(...)):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
     data = await file.read()
-    database.save_stamp(data, file.content_type or "application/octet-stream", file.filename)
+    database.save_company_profile_asset(
+        asset_key,
+        data,
+        file.content_type or "application/octet-stream",
+        file.filename,
+        company_id=get_current_company_id(request),
+    )
+    return {"message": f"{COMPANY_PROFILE_ASSET_LABELS[asset_key]} saved"}
+
+
+@app.get("/api/company/profile/assets/{asset_key}/file")
+async def get_company_profile_asset_file(asset_key: str, request: Request):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
+    row = database.get_company_profile_asset(asset_key, company_id=get_current_company_id(request))
+    if not row:
+        raise HTTPException(404, f"No {COMPANY_PROFILE_ASSET_LABELS[asset_key]} uploaded")
+    return Response(
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
+    )
+
+
+@app.delete("/api/company/profile/assets/{asset_key}")
+async def delete_company_profile_asset(asset_key: str, request: Request):
+    if asset_key not in COMPANY_PROFILE_ASSET_LABELS:
+        raise HTTPException(404, "Unknown company profile asset")
+    database.clear_company_profile_asset(asset_key, company_id=get_current_company_id(request))
+    return {"message": "removed"}
+
+
+@app.post("/api/company/profile/stamp")
+async def upload_stamp(file: UploadFile = File(...), request: Request = None):
+    data = await file.read()
+    database.save_stamp(data, file.content_type or "application/octet-stream", file.filename, company_id=get_current_company_id(request))
     return {"message": "stamp saved"}
 
 
 @app.post("/api/company/profile/signature")
-async def upload_signature(file: UploadFile = File(...)):
+async def upload_signature(file: UploadFile = File(...), request: Request = None):
     data = await file.read()
-    database.save_signature(data, file.content_type or "application/octet-stream", file.filename)
+    database.save_signature(data, file.content_type or "application/octet-stream", file.filename, company_id=get_current_company_id(request))
     return {"message": "signature saved"}
 
 
 @app.get("/api/company/profile/stamp/file")
-async def get_stamp_file():
-    row = database.get_stamp()
+async def get_stamp_file(request: Request):
+    row = database.get_stamp(company_id=get_current_company_id(request))
     if not row:
         raise HTTPException(404, "No stamp uploaded")
     return Response(
-        content=bytes(row["stamp_data"]),
-        media_type=row["stamp_content_type"] or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{row["stamp_original_name"]}"'},
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
     )
 
 
 @app.get("/api/company/profile/signature/file")
-async def get_signature_file():
-    row = database.get_signature()
+async def get_signature_file(request: Request):
+    row = database.get_signature(company_id=get_current_company_id(request))
     if not row:
         raise HTTPException(404, "No signature uploaded")
     return Response(
-        content=bytes(row["signature_data"]),
-        media_type=row["signature_content_type"] or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{row["signature_original_name"]}"'},
+        content=bytes(row["file_data"]),
+        media_type=row["content_type"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{row["original_name"]}"'},
     )
 
 
 @app.delete("/api/company/profile/stamp")
-async def delete_stamp():
-    database.clear_stamp()
+async def delete_stamp(request: Request):
+    database.clear_stamp(company_id=get_current_company_id(request))
     return {"message": "removed"}
 
 
 @app.delete("/api/company/profile/signature")
-async def delete_signature():
-    database.clear_signature()
+async def delete_signature(request: Request):
+    database.clear_signature(company_id=get_current_company_id(request))
     return {"message": "removed"}
 
 
@@ -1645,18 +1940,21 @@ async def list_prepared_docs(tender_id: int):
 
 
 @app.post("/api/tenders/{tender_id}/prepared-documents/{doc_id}/generate")
-async def generate_prepared_doc(tender_id: int, doc_id: int):
+async def generate_prepared_doc(tender_id: int, doc_id: int, request: Request):
     prepared = database.get_prepared_document(doc_id)
     if not prepared:
         raise HTTPException(404, "Prepared document not found")
 
-    tender = database.get_tender(tender_id)
-    profile = database.get_company_profile()
+    company_id = get_current_company_id(request)
+    tender = database.get_tender(tender_id, company_id=company_id)
+    if not tender:
+        raise HTTPException(404, "Tender not found")
+    profile = database.get_company_profile(company_id=company_id)
 
     # Write stamp/signature bytes to temp files so doc_generator can embed them
     tmp_files = []
     try:
-        stamp_row = database.get_stamp()
+        stamp_row = database.get_stamp(company_id=company_id)
         if stamp_row:
             sf = tempfile.NamedTemporaryFile(
                 suffix=Path(stamp_row["stamp_original_name"] or "stamp.png").suffix or ".png",
@@ -1669,7 +1967,7 @@ async def generate_prepared_doc(tender_id: int, doc_id: int):
         else:
             profile["stamp_file_path"] = None
 
-        sig_row = database.get_signature()
+        sig_row = database.get_signature(company_id=company_id)
         if sig_row:
             sf2 = tempfile.NamedTemporaryFile(
                 suffix=Path(sig_row["signature_original_name"] or "sig.png").suffix or ".png",

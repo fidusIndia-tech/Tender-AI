@@ -96,8 +96,16 @@ class Config:
         self.base_url = os.getenv("TENDER_AI_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
         self.api_key = os.getenv("LOCAL_AGENT_API_KEY", "").strip()
         self.profile_dir = str(ROOT / os.getenv("BROWSER_PROFILE_DIR", ".browser-profile"))
-        self.headless = env_bool("PLAYWRIGHT_HEADLESS", False)
+        # HEADLESS takes precedence; fall back to the legacy PLAYWRIGHT_HEADLESS.
+        # HEADLESS=false opens the browser visibly for debugging.
+        if os.getenv("HEADLESS") is not None:
+            self.headless = env_bool("HEADLESS", False)
+        else:
+            self.headless = env_bool("PLAYWRIGHT_HEADLESS", False)
+        # Edge first when channel=msedge; blank/unset falls back to Chromium.
         self.browser_channel = os.getenv("PLAYWRIGHT_BROWSER_CHANNEL", "msedge").strip() or None
+        # Only reset (rename) a locked/corrupted profile when explicitly enabled.
+        self.reset_profile_on_lock = env_bool("RESET_BROWSER_PROFILE_ON_LOCK", False)
         self.max_results = max(1, int(os.getenv("MAX_RESULTS_PER_KEYWORD", "50")))
         self.keyword_delay = float(os.getenv("KEYWORD_DELAY_SECONDS", "2"))
         self.page_delay = float(os.getenv("PAGE_DELAY_SECONDS", "0.5"))
@@ -323,18 +331,111 @@ def search_keyword(page, keyword, csrf, config):
     return results
 
 
+def _looks_like_profile_lock(message: str) -> bool:
+    """Heuristic: does a launch error look like a locked/corrupted profile?"""
+    text = (message or "").lower()
+    markers = (
+        "processsingleton",
+        "singletonlock",
+        "profile appears to be in use",
+        "cannot create default profile directory",
+        "failed to create a processsingleton",
+        "the profile appears to be in use",
+        "has been closed",           # "Target page, context or browser has been closed"
+        "target page, context or browser",
+        "exitcode=21",
+        "exited with code 21",
+    )
+    return any(m in text for m in markers)
+
+
+def _maybe_reset_profile(config):
+    """Rename (never delete) a locked/corrupted profile so a fresh one is created
+    on the next attempt — but ONLY when RESET_BROWSER_PROFILE_ON_LOCK is enabled.
+    Otherwise just leave it in place for the user to handle manually."""
+    if not config.reset_profile_on_lock:
+        return
+    profile_path = Path(config.profile_dir)
+    if not profile_path.exists():
+        return
+    backup = profile_path.with_name(
+        f"{profile_path.name}.corrupt-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    )
+    try:
+        os.rename(str(profile_path), str(backup))
+        logging.warning("RESET_BROWSER_PROFILE_ON_LOCK enabled: renamed profile to %s (a fresh profile will be created)", backup)
+    except Exception as e:
+        logging.error("Could not rename browser profile %s: %s: %s", profile_path, type(e).__name__, e)
+
+
+def _open_persistent_context(pw, config, channel):
+    launch_kwargs = {"headless": config.headless}
+    if channel:
+        launch_kwargs["channel"] = channel
+    extra_args = [arg for arg in os.getenv("PLAYWRIGHT_EXTRA_ARGS", "").split() if arg]
+    if extra_args:
+        launch_kwargs["args"] = extra_args
+    return pw.chromium.launch_persistent_context(config.profile_dir, **launch_kwargs)
+
+
+def launch_browser_context(pw, config):
+    """Launch a persistent browser context robustly.
+
+    Order of preference:
+      1. The configured channel (e.g. Microsoft Edge when PLAYWRIGHT_BROWSER_CHANNEL=msedge).
+      2. Playwright's bundled Chromium as a fallback if the channel launch fails.
+
+    On a profile lock/corruption we log clear guidance and, only if
+    RESET_BROWSER_PROFILE_ON_LOCK is enabled, rename the profile before retrying.
+    """
+    logging.info(
+        "browser launch settings: backend_url=%s profile_dir=%s headless=%s requested_channel=%s",
+        config.base_url, config.profile_dir, config.headless, config.browser_channel or "chromium (Playwright bundled)",
+    )
+
+    # Build attempt list: configured channel first (if any), then bundled Chromium.
+    attempts = []
+    if config.browser_channel:
+        attempts.append(config.browser_channel)
+    attempts.append(None)  # None => Playwright bundled Chromium
+
+    last_error = None
+    tried = set()
+    for channel in attempts:
+        if channel in tried:
+            continue
+        tried.add(channel)
+        label = channel if channel else "chromium (Playwright bundled)"
+        logging.info(
+            "launching browser: channel=%s executable=%s headless=%s profile_dir=%s",
+            channel or "chromium", label, config.headless, config.profile_dir,
+        )
+        try:
+            context = _open_persistent_context(pw, config, channel)
+            logging.info("browser launched successfully using %s", label)
+            return context
+        except Exception as e:
+            last_error = e
+            logging.error("browser launch failed using %s: %s: %s", label, type(e).__name__, e)
+            if _looks_like_profile_lock(str(e)):
+                logging.error(
+                    "Browser profile may be locked or corrupted. Rename %s and retry.",
+                    config.profile_dir,
+                )
+                _maybe_reset_profile(config)
+            # Announce the Chromium fallback when a named channel (e.g. Edge) failed.
+            if channel:
+                logging.warning("%s failed, trying Chromium fallback", "Edge" if channel == "msedge" else channel)
+
+    raise RuntimeError(f"All browser launch attempts failed. Last error: {type(last_error).__name__}: {last_error}")
+
+
 def run_keywords(config, keywords, dry_run):
     from playwright.sync_api import sync_playwright
 
     summary = {"keywords": len(keywords), "discovered": 0, "sent": 0, "failed": 0}
     with sync_playwright() as pw:
-        launch_kwargs = {"headless": config.headless}
-        if config.browser_channel:
-            launch_kwargs["channel"] = config.browser_channel
-        extra_args = [arg for arg in os.getenv("PLAYWRIGHT_EXTRA_ARGS", "").split() if arg]
-        if extra_args:
-            launch_kwargs["args"] = extra_args
-        context = pw.chromium.launch_persistent_context(config.profile_dir, **launch_kwargs)
+        context = launch_browser_context(pw, config)
         page = context.new_page()
         try:
             csrf = capture_csrf(context, page)

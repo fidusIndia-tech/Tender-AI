@@ -15,6 +15,154 @@ def get_db():
     return psycopg2.connect(url)
 
 
+def _table_exists(cur, table_name: str) -> bool:
+    """True if the (public schema) table exists. Used so the company-scoping
+    migration can skip optional tables instead of aborting init_db()."""
+    cur.execute("SELECT to_regclass(%s)", (f"public.{table_name}",))
+    row = cur.fetchone()
+    return bool(row and row[0])
+
+
+def _apply_company_scoping_migration(cur):
+    """Phase 1 (Fidus360): add companyId scoping — additively and idempotently.
+
+    Safety guarantees:
+      * Every change to a pre-existing ("optional") table is guarded by an
+        existence check AND a SAVEPOINT. A missing table or an unexpected error
+        is skipped with a printed log line and can never abort init_db() nor
+        poison the surrounding transaction (in Postgres, one failed statement
+        otherwise aborts the whole transaction).
+      * Purely additive: add column -> backfill existing rows to the default
+        company -> SET DEFAULT -> SET NOT NULL. The column DEFAULT means any
+        code path that does not pass a company_id still writes valid rows, so
+        standalone mode keeps working exactly as before.
+      * Idempotent: safe to re-run on every startup.
+
+    This only touches a database when init_db() runs at app startup against the
+    configured DATABASE_URL. It is NOT executed by the migrations/*.sql file and
+    performs no production migration on its own — deploying the code is the
+    explicit action that applies it.
+    """
+    # Required registry tables — created fresh, so these never fail on an
+    # existing install (CREATE TABLE IF NOT EXISTS / ON CONFLICT).
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS companies (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute(
+        """INSERT INTO companies (name, slug, status)
+           VALUES ('Default Company', 'default-company', 'ACTIVE')
+           ON CONFLICT (slug) DO NOTHING"""
+    )
+    cur.execute("SELECT id FROM companies WHERE slug='default-company'")
+    default_company_id = cur.fetchone()[0]
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS local_agents (
+            id SERIAL PRIMARY KEY,
+            company_id INTEGER NOT NULL REFERENCES companies(id),
+            agent_name TEXT,
+            token_hash TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            last_heartbeat_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS local_agents_company_idx ON local_agents (company_id)")
+
+    def _guard(tbl, fn):
+        """Run fn() for one optional table under an existence check + savepoint."""
+        if not _table_exists(cur, tbl):
+            print(f"[DB][company-scoping] optional table '{tbl}' not found — skipped")
+            return
+        cur.execute("SAVEPOINT company_scope")
+        try:
+            fn()
+            cur.execute("RELEASE SAVEPOINT company_scope")
+        except Exception as e:
+            cur.execute("ROLLBACK TO SAVEPOINT company_scope")
+            print(f"[DB][company-scoping] skipped '{tbl}': {type(e).__name__}: {e}")
+
+    def _add_scoped_column(tbl, backfill_sql=None, backfill_params=None):
+        cur.execute(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)")
+        if backfill_sql:
+            cur.execute(backfill_sql, backfill_params or ())
+        else:
+            cur.execute(f"UPDATE {tbl} SET company_id=%s WHERE company_id IS NULL", (default_company_id,))
+        cur.execute(f"ALTER TABLE {tbl} ALTER COLUMN company_id SET DEFAULT {default_company_id}")
+        # SET NOT NULL in its own savepoint: if backfill somehow left NULLs, keep
+        # the (defaulted) column rather than rolling back the whole table.
+        cur.execute("SAVEPOINT set_notnull")
+        try:
+            cur.execute(f"ALTER TABLE {tbl} ALTER COLUMN company_id SET NOT NULL")
+            cur.execute("RELEASE SAVEPOINT set_notnull")
+        except Exception:
+            cur.execute("ROLLBACK TO SAVEPOINT set_notnull")
+            print(f"[DB][company-scoping] '{tbl}'.company_id kept nullable (backfill incomplete)")
+        cur.execute(f"CREATE INDEX IF NOT EXISTS {tbl}_company_idx ON {tbl} (company_id)")
+
+    # Root tables: assign the default company directly.
+    # NOTE: gem_keywords is intentionally NOT scoped. It is a global master/seed
+    # list of suggested keywords (globally unique on `keyword`, seeded with
+    # defaults). The per-company saved keyword table is gem_search_keywords,
+    # which IS scoped below.
+    _scoped_root = [
+        "tenders", "uploaded_files", "gem_search_keywords",
+        "gem_discovered_tenders", "gem_candidate_tenders", "gem_scan_runs",
+        "gem_run_requests", "company_profile", "company_capability_profile",
+    ]
+    for tbl in _scoped_root:
+        _guard(tbl, lambda tbl=tbl: _add_scoped_column(tbl))
+
+    # Child tables: inherit company from their parent (fallback = default).
+    _scoped_child = [
+        ("tender_evaluations", "candidate_id", "gem_candidate_tenders"),
+        ("gem_result_check_history", "tender_id", "tenders"),
+        ("tender_notifications", "tender_id", "tenders"),
+    ]
+    for tbl, fk, parent in _scoped_child:
+        def _do(tbl=tbl, fk=fk, parent=parent):
+            if not _table_exists(cur, parent):
+                # Parent missing: fall back to the default company for all rows.
+                _add_scoped_column(tbl)
+                return
+            _add_scoped_column(
+                tbl,
+                backfill_sql=(
+                    f"""UPDATE {tbl} c
+                        SET company_id = COALESCE(
+                            (SELECT p.company_id FROM {parent} p WHERE p.id = c.{fk}),
+                            %s)
+                        WHERE c.company_id IS NULL"""
+                ),
+                backfill_params=(default_company_id,),
+            )
+        _guard(tbl, _do)
+
+    # Duplicate checks become company-wise: the same GeM bid / keyword may exist
+    # for different companies. Swap the old global UNIQUE key for a
+    # (company_id, ...) composite unique index (backs the ON CONFLICT upserts).
+    # Both steps run in one savepoint so the old constraint is only dropped once
+    # the new unique index exists.
+    _unique_swaps = [
+        ("gem_search_keywords", "gem_search_keywords_keyword_key", "company_id, keyword", "gem_search_keywords_company_keyword_key"),
+        ("gem_discovered_tenders", "gem_discovered_tenders_gem_bid_number_key", "company_id, gem_bid_number", "gem_discovered_tenders_company_bid_key"),
+        ("gem_candidate_tenders", "gem_candidate_tenders_gem_bid_no_key", "company_id, gem_bid_no", "gem_candidate_tenders_company_bid_key"),
+    ]
+    for tbl, old_constraint, cols, idx_name in _unique_swaps:
+        def _do(tbl=tbl, old_constraint=old_constraint, cols=cols, idx_name=idx_name):
+            cur.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS {idx_name} ON {tbl} ({cols})")
+            cur.execute(f"ALTER TABLE {tbl} DROP CONSTRAINT IF EXISTS {old_constraint}")
+        _guard(tbl, _do)
+
+
 def init_db():
     conn = get_db()
     with conn.cursor() as cur:
@@ -130,6 +278,21 @@ def init_db():
             )
         """)
         # Persistent binary storage migrations
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS company_logo_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS document_logo_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS letterhead_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS header_image_original_name TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_data BYTEA")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_content_type TEXT")
+        cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS footer_image_original_name TEXT")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_data BYTEA")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_content_type TEXT")
         cur.execute("ALTER TABLE company_profile ADD COLUMN IF NOT EXISTS stamp_original_name TEXT")
@@ -145,6 +308,13 @@ def init_db():
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS filed_date TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ac_manager TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS remark TEXT")
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notes TEXT")
+        # Semantic import/export status (NEW/SAVED/UNDER_REVIEW/…). The All Tenders
+        # page still groups by participation_status; status_enum only preserves the
+        # finer, round-trippable status carried by the JSON export bundle.
+        cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS status_enum TEXT")
+        cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS make_model TEXT")
+        cur.execute("ALTER TABLE tender_items ADD COLUMN IF NOT EXISTS unit TEXT")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS expand_sections_json JSONB")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS result_available BOOLEAN DEFAULT FALSE")
         cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS bid_result_available BOOLEAN DEFAULT FALSE")
@@ -647,9 +817,139 @@ def init_db():
                     "INSERT INTO gem_keywords (keyword) VALUES (%s) ON CONFLICT (keyword) DO NOTHING",
                     (kw,),
                 )
+
+        # Latest capability-profile evaluation of a saved All Tenders row. One row
+        # per tender (replaced on re-evaluate) so the tender export can carry the
+        # evaluation and an import can restore it.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tender_evaluation_snapshots (
+                id SERIAL PRIMARY KEY,
+                tender_id INTEGER NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+                eligibility_score NUMERIC,
+                risk_score NUMERIC,
+                recommendation TEXT,
+                notes TEXT,
+                evaluation_json JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (tender_id)
+            )
+        """)
+
+        # ── Phase 1: Fidus360 company scoping ─────────────────────────────────
+        # Make every tender/file/keyword/job/notification/agent belong to a
+        # companyId while keeping standalone mode working exactly as before.
+        # All of this is applied defensively (existence checks + savepoints) so a
+        # missing optional table can never abort init_db(). See the helper.
+        _apply_company_scoping_migration(cur)
+
     conn.commit()
     conn.close()
     print("[DB] All PostgreSQL tables initialized")
+
+
+# ── Companies (Fidus360 scoping) ──────────────────────────────────────────────
+
+_DEFAULT_COMPANY_SLUG = "default-company"
+_default_company_id_cache = None
+
+
+def get_default_company_id():
+    """Id of the single default company used for standalone mode. Cached."""
+    global _default_company_id_cache
+    if _default_company_id_cache is not None:
+        return _default_company_id_cache
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM companies WHERE slug=%s", (_DEFAULT_COMPANY_SLUG,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                """INSERT INTO companies (name, slug, status)
+                   VALUES ('Default Company', %s, 'ACTIVE')
+                   ON CONFLICT (slug) DO NOTHING""",
+                (_DEFAULT_COMPANY_SLUG,),
+            )
+            conn.commit()
+            cur.execute("SELECT id FROM companies WHERE slug=%s", (_DEFAULT_COMPANY_SLUG,))
+            row = cur.fetchone()
+    conn.close()
+    _default_company_id_cache = row[0]
+    return _default_company_id_cache
+
+
+def _resolve_company_id(company_id):
+    """Return the given company_id, or the default company when None.
+
+    Never accept a company_id that came from a request body/frontend — callers
+    must resolve it from the session or the agent token before reaching here.
+    """
+    return company_id if company_id else get_default_company_id()
+
+
+def list_companies():
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT id, name, slug, status, created_at, updated_at FROM companies ORDER BY id")
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_company_by_slug(slug: str):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT id, name, slug, status FROM companies WHERE slug=%s", (slug,))
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+# ── Local GeM Agents (company-scoped) ─────────────────────────────────────────
+
+def upsert_local_agent(company_id, token_hash: str, agent_name: str = None):
+    """Register (or refresh) a local agent identified by the hash of its bearer
+    token. Used to map an agent's token to its companyId."""
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO local_agents (company_id, token_hash, agent_name, status)
+               VALUES (%s, %s, %s, 'ACTIVE')
+               ON CONFLICT (token_hash) DO UPDATE SET
+                   company_id=EXCLUDED.company_id,
+                   agent_name=COALESCE(EXCLUDED.agent_name, local_agents.agent_name),
+                   status='ACTIVE',
+                   updated_at=CURRENT_TIMESTAMP
+               RETURNING id, company_id, agent_name, status""",
+            (company_id, token_hash, agent_name),
+        )
+        row = dict(cur.fetchone())
+    conn.commit()
+    conn.close()
+    return row
+
+
+def get_local_agent_by_token_hash(token_hash: str):
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT id, company_id, agent_name, status FROM local_agents WHERE token_hash=%s",
+            (token_hash,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def touch_local_agent_heartbeat(agent_id: int):
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE local_agents SET last_heartbeat_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+            (agent_id,),
+        )
+    conn.commit()
+    conn.close()
 
 
 # ── Government Portals ────────────────────────────────────────────────────────
@@ -831,26 +1131,35 @@ def delete_portal(portal_id: int):
 
 # ── Uploaded Files ────────────────────────────────────────────────────────────
 
-def save_uploaded_file(file_id, file_name, original_name, content_type, file_size, file_data, file_category="tender_pdf"):
+def save_uploaded_file(file_id, file_name, original_name, content_type, file_size, file_data, file_category="tender_pdf", company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO uploaded_files
-               (id, file_name, original_name, content_type, file_size, file_data, file_category)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (file_id, file_name, original_name, content_type, file_size, psycopg2.Binary(file_data), file_category),
+               (id, file_name, original_name, content_type, file_size, file_data, file_category, company_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (file_id, file_name, original_name, content_type, file_size, psycopg2.Binary(file_data), file_category, company_id),
         )
     conn.commit()
     conn.close()
 
 
-def get_uploaded_file(file_id):
+def get_uploaded_file(file_id, company_id=None):
+    """Fetch an uploaded file. When company_id is given the lookup is scoped to
+    that company so one company can never fetch another company's file."""
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            "SELECT id, file_name, original_name, content_type, file_size, file_data FROM uploaded_files WHERE id=%s",
-            (file_id,),
-        )
+        if company_id:
+            cur.execute(
+                "SELECT id, file_name, original_name, content_type, file_size, file_data FROM uploaded_files WHERE id=%s AND company_id=%s",
+                (file_id, company_id),
+            )
+        else:
+            cur.execute(
+                "SELECT id, file_name, original_name, content_type, file_size, file_data FROM uploaded_files WHERE id=%s",
+                (file_id,),
+            )
         row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -870,7 +1179,8 @@ def list_uploaded_file_ids():
 
 # ── Tenders ───────────────────────────────────────────────────────────────────
 
-def save_tender(data, items, documents):
+def save_tender(data, items, documents, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor() as cur:
         now = datetime.now().isoformat()
@@ -880,8 +1190,8 @@ def save_tender(data, items, documents):
                 department_name, organization_name, office_name_location,
                 total_quantity, make, tender_approx_value,
                 won_text, lost_text, participant_text, expand_sections_json,
-                uploaded_at, pdf_path, extraction_json_path, status, participation_status
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                uploaded_at, pdf_path, extraction_json_path, status, participation_status, company_id
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             RETURNING id""",
             (
                 data.get("gem_bidding_number"),
@@ -893,7 +1203,7 @@ def save_tender(data, items, documents):
                 data.get("won_text"), data.get("lost_text"), data.get("participant_text"),
                 psycopg2.extras.Json(data.get("expand_sections_json")) if data.get("expand_sections_json") is not None else None,
                 now, data.get("pdf_path"), data.get("extraction_json_path"),
-                "saved", "IN PROGRESS",
+                "saved", "IN PROGRESS", company_id,
             ),
         )
         tender_id = cur.fetchone()[0]
@@ -939,10 +1249,14 @@ def update_tender(tender_id, data, items, documents):
     conn.close()
 
 
-def get_tender(tender_id):
+def get_tender(tender_id, company_id=None):
+    company_id = _resolve_company_id(company_id) if company_id is not None else None
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM tenders WHERE id=%s", (tender_id,))
+        if company_id is None:
+            cur.execute("SELECT * FROM tenders WHERE id=%s", (tender_id,))
+        else:
+            cur.execute("SELECT * FROM tenders WHERE id=%s AND company_id=%s", (tender_id, company_id))
         row = cur.fetchone()
         if not row:
             conn.close()
@@ -956,7 +1270,8 @@ def get_tender(tender_id):
     return tender
 
 
-def list_tenders():
+def list_tenders(company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
@@ -1000,7 +1315,9 @@ def list_tenders():
                    FROM tender_required_documents
                    GROUP BY tender_id
                ) d ON d.tender_id = t.id
-               ORDER BY t.uploaded_at DESC"""
+               WHERE t.company_id = %s
+               ORDER BY t.uploaded_at DESC""",
+            (company_id,),
         )
         rows = cur.fetchall()
     conn.close()
@@ -1283,8 +1600,9 @@ def create_gem_result_check_history(
                 old_bid_result_available, new_bid_result_available,
                 old_ra_created, new_ra_created,
                 old_ra_result_available, new_ra_result_available,
-                old_urls, new_urls, reason, confidence, raw_gem_response, checked_at, source)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, CURRENT_TIMESTAMP), %s)
+                old_urls, new_urls, reason, confidence, raw_gem_response, checked_at, source, company_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, CURRENT_TIMESTAMP), %s,
+                       COALESCE((SELECT company_id FROM tenders WHERE id=%s), %s))
                RETURNING id, tender_id, gem_bid_number, old_status, new_status, checked_at, source""",
             (
                 tender_id,
@@ -1306,6 +1624,8 @@ def create_gem_result_check_history(
                 psycopg2.extras.Json(raw_gem_response) if raw_gem_response is not None else None,
                 checked_at,
                 source,
+                tender_id,
+                get_default_company_id(),
             ),
         )
         row = cur.fetchone()
@@ -1408,8 +1728,9 @@ def create_tender_notification(tender_id, title, message, notification_type="RES
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """INSERT INTO tender_notifications (tender_id, title, message, type, notification_type, is_valid, invalidated_at, invalidation_reason)
-               VALUES (%s, %s, %s, %s, %s, TRUE, NULL, NULL)
+            """INSERT INTO tender_notifications (tender_id, title, message, type, notification_type, is_valid, invalidated_at, invalidation_reason, company_id)
+               VALUES (%s, %s, %s, %s, %s, TRUE, NULL, NULL,
+                       COALESCE((SELECT company_id FROM tenders WHERE id=%s), %s))
                ON CONFLICT (tender_id, type) DO UPDATE
                SET title = EXCLUDED.title,
                    message = EXCLUDED.message,
@@ -1418,7 +1739,7 @@ def create_tender_notification(tender_id, title, message, notification_type="RES
                    invalidated_at = NULL,
                    invalidation_reason = NULL
                RETURNING id, tender_id, title, message, type, notification_type, is_read, is_valid, invalidated_at, invalidation_reason, created_at""",
-            (tender_id, title, message, notification_type, notification_type),
+            (tender_id, title, message, notification_type, notification_type, tender_id, get_default_company_id()),
         )
         row = cur.fetchone()
     conn.commit()
@@ -1426,12 +1747,14 @@ def create_tender_notification(tender_id, title, message, notification_type="RES
     return dict(row)
 
 
-def list_tender_notifications(limit=50):
+def list_tender_notifications(limit=50, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """DELETE FROM tender_notifications
-               WHERE created_at::date < CURRENT_DATE"""
+               WHERE created_at::date < CURRENT_DATE AND company_id=%s""",
+            (company_id,),
         )
         cur.execute(
             """SELECT n.id, n.tender_id, n.title, n.message, n.type, n.notification_type, n.is_read, n.is_valid, n.invalidated_at, n.invalidation_reason, n.created_at,
@@ -1439,10 +1762,10 @@ def list_tender_notifications(limit=50):
                       t.gem_ra_number, t.gem_ra_url, t.gem_ra_result_url, t.result_available, t.bid_result_available, t.ra_created, t.ra_result_available
                 FROM tender_notifications n
                 LEFT JOIN tenders t ON t.id = n.tender_id
-               WHERE n.is_valid = TRUE
+               WHERE n.is_valid = TRUE AND n.company_id = %s
                 ORDER BY n.created_at DESC, n.id DESC
                 LIMIT %s""",
-            (limit,),
+            (company_id, limit),
         )
         rows = cur.fetchall()
     conn.commit()
@@ -1787,12 +2110,17 @@ def get_tender_result_details(tender_id: int):
     }
 
 
-def find_tender_duplicate(gem_bidding_number, tender_number=None):
+def find_tender_duplicate(gem_bidding_number, tender_number=None, company_id=None):
     """Return an existing tender if either the GeM bidding number or the tender
-    number already exists. Matching on both keeps de-duplication robust across
-    the change that made gem_bidding_number the numeric bidding id (older rows
-    may still carry the GEM/YYYY/B/NNNN value there, which is now tender_number).
+    number already exists *for the same company*. Matching on both keeps
+    de-duplication robust across the change that made gem_bidding_number the
+    numeric bidding id (older rows may still carry the GEM/YYYY/B/NNNN value
+    there, which is now tender_number).
+
+    Duplicate checks are company-wise: the same GeM tender is allowed to exist
+    for different companies.
     """
+    company_id = _resolve_company_id(company_id)
     gbn = str(gem_bidding_number or "").strip() or None
     tn = str(tender_number or "").strip() or None
     if not gbn and not tn:
@@ -1801,10 +2129,11 @@ def find_tender_duplicate(gem_bidding_number, tender_number=None):
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """SELECT id FROM tenders
-               WHERE (%(gbn)s IS NOT NULL AND gem_bidding_number = %(gbn)s)
-                  OR (%(tn)s IS NOT NULL AND tender_number = %(tn)s)
+               WHERE company_id = %(cid)s
+                 AND ((%(gbn)s IS NOT NULL AND gem_bidding_number = %(gbn)s)
+                   OR (%(tn)s IS NOT NULL AND tender_number = %(tn)s))
                LIMIT 1""",
-            {"gbn": gbn, "tn": tn},
+            {"gbn": gbn, "tn": tn, "cid": company_id},
         )
         row = cur.fetchone()
     conn.close()
@@ -1820,16 +2149,106 @@ def find_tender_by_pdf_path(pdf_path):
     return dict(row) if row else None
 
 
-def delete_tender(tender_id):
+def _list_tender_fk_children(cur):
+    cur.execute(
+        """
+        SELECT
+            tc.table_name,
+            kcu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON ccu.constraint_name = tc.constraint_name
+         AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = 'public'
+          AND ccu.table_name = 'tenders'
+          AND ccu.column_name = 'id'
+        ORDER BY tc.table_name, kcu.column_name
+        """
+    )
+    return [(row[0], row[1]) for row in cur.fetchall()]
+
+
+def _table_has_column(cur, table_name: str, column_name: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+        LIMIT 1
+        """,
+        (table_name, column_name),
+    )
+    return cur.fetchone() is not None
+
+
+def delete_tender(tender_id, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
+    deletion_log = []
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM tender_attachments WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_prepared_documents WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
-        cur.execute("DELETE FROM tenders WHERE id=%s", (tender_id,))
+        cur.execute(
+            "SELECT id, company_id, gem_bid_number, tender_number FROM tenders WHERE id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        tender_row = cur.fetchone()
+        if not tender_row:
+            conn.close()
+            return None
+
+        tender_bid = tender_row[2]
+        tender_number = tender_row[3]
+
+        cur.execute(
+            "UPDATE gem_candidate_tenders SET tender_id=NULL WHERE tender_id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        deletion_log.append(("gem_candidate_tenders", "unlinked", cur.rowcount))
+
+        cur.execute(
+            "UPDATE gem_discovered_tenders SET all_tender_id=NULL WHERE all_tender_id=%s AND company_id=%s",
+            (tender_id, company_id),
+        )
+        deletion_log.append(("gem_discovered_tenders", "unlinked", cur.rowcount))
+
+        handled_tables = {"gem_candidate_tenders", "gem_discovered_tenders"}
+        for table_name, column_name in _list_tender_fk_children(cur):
+            if table_name in handled_tables:
+                continue
+            has_company_id = _table_has_column(cur, table_name, "company_id")
+            if has_company_id:
+                cur.execute(
+                    f"DELETE FROM {table_name} WHERE {column_name}=%s AND company_id=%s",
+                    (tender_id, company_id),
+                )
+            else:
+                cur.execute(f"DELETE FROM {table_name} WHERE {column_name}=%s", (tender_id,))
+            deletion_log.append((table_name, "deleted", cur.rowcount))
+
+        cur.execute("DELETE FROM tenders WHERE id=%s AND company_id=%s", (tender_id, company_id))
+        deleted_tenders = cur.rowcount
+        deletion_log.append(("tenders", "deleted", deleted_tenders))
     conn.commit()
     conn.close()
+    for table_name, action, count in deletion_log:
+        print(
+            f"[DELETE_TENDER] company_id={company_id} tender_id={tender_id} "
+            f"gem_bid_number={tender_bid!r} tender_number={tender_number!r} "
+            f"table={table_name} action={action} rows={count}"
+        )
+    return {
+        "tender_id": tender_id,
+        "company_id": company_id,
+        "gem_bid_number": tender_bid,
+        "tender_number": tender_number,
+        "log": [
+            {"table": table_name, "action": action, "rows": count}
+            for table_name, action, count in deletion_log
+        ],
+    }
 
 
 def clear_tenders():
@@ -1847,9 +2266,17 @@ def clear_tenders():
 def _insert_items(cur, tender_id, items, source_type="extracted"):
     for item in items:
         cur.execute(
-            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity, source_type)
-               VALUES (%s,%s,%s,%s,%s)""",
-            (tender_id, item.get("part_number"), item.get("item_description"), item.get("quantity"), source_type),
+            """INSERT INTO tender_items (tender_id, part_number, item_description, quantity, make_model, unit, source_type)
+               VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+            (
+                tender_id,
+                item.get("part_number"),
+                item.get("item_description"),
+                item.get("quantity"),
+                item.get("make_model"),
+                item.get("unit"),
+                source_type,
+            ),
         )
 
 
@@ -1873,30 +2300,59 @@ def _insert_docs(cur, tender_id, documents):
 
 # ── Company Profile ───────────────────────────────────────────────────────────
 
-def get_company_profile():
+BRANDING_FIELD_MAP = {
+    "company_logo": {"data": "company_logo_data", "content_type": "company_logo_content_type", "original_name": "company_logo_original_name", "url": "companyLogoUrl", "has": "has_company_logo"},
+    "document_logo": {"data": "document_logo_data", "content_type": "document_logo_content_type", "original_name": "document_logo_original_name", "url": "documentLogoUrl", "has": "has_document_logo"},
+    "letterhead": {"data": "letterhead_data", "content_type": "letterhead_content_type", "original_name": "letterhead_original_name", "url": "letterheadUrl", "has": "has_letterhead"},
+    "header_image": {"data": "header_image_data", "content_type": "header_image_content_type", "original_name": "header_image_original_name", "url": "headerImageUrl", "has": "has_header_image"},
+    "footer_image": {"data": "footer_image_data", "content_type": "footer_image_content_type", "original_name": "footer_image_original_name", "url": "footerImageUrl", "has": "has_footer_image"},
+    "stamp": {"data": "stamp_data", "content_type": "stamp_content_type", "original_name": "stamp_original_name", "url": "stampUrl", "has": "has_stamp"},
+    "signature": {"data": "signature_data", "content_type": "signature_content_type", "original_name": "signature_original_name", "url": "signatureUrl", "has": "has_signature"},
+}
+
+
+def _branding_asset_public_path(asset_key: str) -> str:
+    return f"/api/company/profile/assets/{asset_key}/file"
+
+
+def get_company_profile(company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        # Exclude binary columns (stamp_data, signature_data) — served via separate endpoints
         cur.execute("""
             SELECT id, company_name, address, gst_number, pan_number, msme_number,
                    bank_name, account_number, ifsc_code,
                    authorized_signatory_name, authorized_signatory_designation,
                    email, phone, stamp_file_path, signature_file_path,
+                   company_logo_original_name, company_logo_content_type,
+                   document_logo_original_name, document_logo_content_type,
+                   letterhead_original_name, letterhead_content_type,
+                   header_image_original_name, header_image_content_type,
+                   footer_image_original_name, footer_image_content_type,
                    stamp_original_name, stamp_content_type,
                    signature_original_name, signature_content_type,
+                   (company_logo_data IS NOT NULL) AS has_company_logo,
+                   (document_logo_data IS NOT NULL) AS has_document_logo,
+                   (letterhead_data IS NOT NULL) AS has_letterhead,
+                   (header_image_data IS NOT NULL) AS has_header_image,
+                   (footer_image_data IS NOT NULL) AS has_footer_image,
                    (stamp_data IS NOT NULL) AS has_stamp,
                    (signature_data IS NOT NULL) AS has_signature
-            FROM company_profile LIMIT 1
-        """)
+            FROM company_profile WHERE company_id=%s LIMIT 1
+        """, (company_id,))
         row = cur.fetchone()
     conn.close()
-    return dict(row) if row else {}
+    profile = dict(row) if row else {}
+    for asset_key, cfg in BRANDING_FIELD_MAP.items():
+        profile[cfg["url"]] = _branding_asset_public_path(asset_key) if profile.get(cfg["has"]) else None
+    return profile
 
 
-def upsert_company_profile(data):
+def upsert_company_profile(data, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute("SELECT id FROM company_profile LIMIT 1")
+        cur.execute("SELECT id FROM company_profile WHERE company_id=%s LIMIT 1", (company_id,))
         existing = cur.fetchone()
         text_fields = ["company_name", "address", "gst_number", "pan_number", "msme_number",
                        "bank_name", "account_number", "ifsc_code",
@@ -1904,8 +2360,7 @@ def upsert_company_profile(data):
                        "email", "phone"]
         image_fields = ["stamp_file_path", "signature_file_path"]
         if existing:
-            set_parts = [f"{f}=%s" for f in text_fields] + \
-                        [f"{f}=COALESCE(%s,{f})" for f in image_fields]
+            set_parts = [f"{f}=%s" for f in text_fields] +                         [f"{f}=COALESCE(%s,{f})" for f in image_fields]
             values = [data.get(f) for f in text_fields] + [data.get(f) for f in image_fields]
             cur.execute(
                 f"UPDATE company_profile SET {', '.join(set_parts)} WHERE id=%s",
@@ -1913,22 +2368,82 @@ def upsert_company_profile(data):
             )
         else:
             all_fields = text_fields + image_fields
-            values = [data.get(f) for f in all_fields]
+            values = [data.get(f) for f in all_fields] + [company_id]
             placeholders = ", ".join("%s" for _ in all_fields)
             cur.execute(
-                f"INSERT INTO company_profile ({', '.join(all_fields)}) VALUES ({placeholders})",
+                f"INSERT INTO company_profile ({', '.join(all_fields)}, company_id) VALUES ({placeholders}, %s)",
                 values,
             )
     conn.commit()
     conn.close()
 
 
-def clear_profile_image_path(field):
+def clear_profile_image_path(field, company_id=None):
+    company_id = _resolve_company_id(company_id)
     if field not in {"stamp_file_path", "signature_file_path"}:
         raise ValueError(f"Invalid field: {field}")
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute(f"UPDATE company_profile SET {field}=NULL")
+        cur.execute(f"UPDATE company_profile SET {field}=NULL WHERE company_id=%s", (company_id,))
+    conn.commit()
+    conn.close()
+
+
+def _ensure_profile_row(cur, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cur.execute("SELECT id FROM company_profile WHERE company_id=%s LIMIT 1", (company_id,))
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    cur.execute("INSERT INTO company_profile (company_id) VALUES (%s) RETURNING id", (company_id,))
+    return cur.fetchone()[0]
+
+
+def save_company_profile_asset(asset_key, data_bytes, content_type, original_name, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor() as cur:
+        profile_id = _ensure_profile_row(cur, company_id)
+        cur.execute(
+            f"UPDATE company_profile SET {cfg['data']}=%s, {cfg['content_type']}=%s, {cfg['original_name']}=%s WHERE id=%s",
+            (psycopg2.Binary(data_bytes), content_type, original_name, profile_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_company_profile_asset(asset_key, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"SELECT {cfg['data']} AS file_data, {cfg['content_type']} AS content_type, {cfg['original_name']} AS original_name FROM company_profile WHERE company_id=%s LIMIT 1",
+            (company_id,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    if not row or not row['file_data']:
+        return None
+    return dict(row)
+
+
+def clear_company_profile_asset(asset_key, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    cfg = BRANDING_FIELD_MAP.get(asset_key)
+    if not cfg:
+        raise ValueError(f"Invalid asset: {asset_key}")
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE company_profile SET {cfg['data']}=NULL, {cfg['content_type']}=NULL, {cfg['original_name']}=NULL WHERE company_id=%s",
+            (company_id,),
+        )
     conn.commit()
     conn.close()
 
@@ -1973,11 +2488,13 @@ CAPABILITY_FIELDS = [
 ]
 
 
-def get_company_capability_profile():
+def get_company_capability_profile(company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            f"SELECT id, {', '.join(CAPABILITY_FIELDS)}, updated_at FROM company_capability_profile LIMIT 1"
+            f"SELECT id, {', '.join(CAPABILITY_FIELDS)}, updated_at FROM company_capability_profile WHERE company_id=%s LIMIT 1",
+            (company_id,),
         )
         row = cur.fetchone()
     conn.close()
@@ -1988,10 +2505,11 @@ def get_company_capability_profile():
     return data
 
 
-def upsert_company_capability_profile(data):
+def upsert_company_capability_profile(data, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute("SELECT id FROM company_capability_profile LIMIT 1")
+        cur.execute("SELECT id FROM company_capability_profile WHERE company_id=%s LIMIT 1", (company_id,))
         existing = cur.fetchone()
         values = [data.get(f) for f in CAPABILITY_FIELDS]
         if existing:
@@ -2003,16 +2521,16 @@ def upsert_company_capability_profile(data):
         else:
             placeholders = ", ".join("%s" for _ in CAPABILITY_FIELDS)
             cur.execute(
-                f"INSERT INTO company_capability_profile ({', '.join(CAPABILITY_FIELDS)}) VALUES ({placeholders})",
-                values,
+                f"INSERT INTO company_capability_profile ({', '.join(CAPABILITY_FIELDS)}, company_id) VALUES ({placeholders}, %s)",
+                values + [company_id],
             )
     conn.commit()
     conn.close()
 
 
-def get_company_profile_for_tender_evaluation():
-    profile = get_company_profile()
-    profile["capability_profile"] = get_company_capability_profile()
+def get_company_profile_for_tender_evaluation(company_id=None):
+    profile = get_company_profile(company_id)
+    profile["capability_profile"] = get_company_capability_profile(company_id)
     return profile
 
 
@@ -2140,10 +2658,11 @@ def clear_prepared_documents(tender_id):
 
 # Local GeM Search Agent helpers
 
-def list_gem_search_keywords(include_inactive: bool = True):
+def list_gem_search_keywords(include_inactive: bool = True, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        where = "" if include_inactive else "WHERE active=TRUE"
+        where = "WHERE k.company_id=%s" + ("" if include_inactive else " AND k.active=TRUE")
         cur.execute(
             f"""
             SELECT k.*,
@@ -2152,34 +2671,36 @@ def list_gem_search_keywords(include_inactive: bool = True):
                    COALESCE(today.rejected_today, 0) AS rejected_today
             FROM gem_search_keywords k
             LEFT JOIN (
-                SELECT keyword_matched,
+                SELECT keyword_matched, company_id,
                        COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE) AS discovered_today,
                        COUNT(*) FILTER (WHERE action_taken='INSERTED_TO_ALL_TENDERS' AND last_checked_at::date = CURRENT_DATE) AS inserted_today,
                        COUNT(*) FILTER (WHERE action_taken='REJECTED_NOT_SUITABLE' AND last_checked_at::date = CURRENT_DATE) AS rejected_today
                 FROM gem_discovered_tenders
-                GROUP BY keyword_matched
-            ) today ON LOWER(today.keyword_matched)=LOWER(k.keyword)
+                GROUP BY keyword_matched, company_id
+            ) today ON LOWER(today.keyword_matched)=LOWER(k.keyword) AND today.company_id=k.company_id
             {where}
             ORDER BY active DESC, keyword ASC
-            """
+            """,
+            (company_id,),
         )
         rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
-def upsert_gem_search_keyword(keyword: str):
+def upsert_gem_search_keyword(keyword: str, company_id=None):
+    company_id = _resolve_company_id(company_id)
     keyword = str(keyword or "").strip()
     if not keyword:
         raise ValueError("Keyword cannot be empty")
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """INSERT INTO gem_search_keywords (keyword, active)
-               VALUES (%s, TRUE)
-               ON CONFLICT (keyword) DO UPDATE SET active=TRUE, updated_at=CURRENT_TIMESTAMP
+            """INSERT INTO gem_search_keywords (keyword, active, company_id)
+               VALUES (%s, TRUE, %s)
+               ON CONFLICT (company_id, keyword) DO UPDATE SET active=TRUE, updated_at=CURRENT_TIMESTAMP
                RETURNING *""",
-            (keyword,),
+            (keyword, company_id),
         )
         row = dict(cur.fetchone())
     conn.commit()
@@ -2224,12 +2745,13 @@ def delete_gem_search_keyword(keyword_id: int):
     return deleted > 0
 
 
-def touch_gem_search_keyword(keyword: str):
+def touch_gem_search_keyword(keyword: str, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE gem_search_keywords SET last_scanned_at=CURRENT_TIMESTAMP WHERE LOWER(keyword)=LOWER(%s)",
-            (keyword,),
+            "UPDATE gem_search_keywords SET last_scanned_at=CURRENT_TIMESTAMP WHERE LOWER(keyword)=LOWER(%s) AND company_id=%s",
+            (keyword, company_id),
         )
     conn.commit()
     conn.close()
@@ -2277,17 +2799,18 @@ def update_gem_search_settings(*, scan_target_date=_UNSET, scan_date_from=_UNSET
     return get_gem_search_settings()
 
 
-def enqueue_gem_run_request(keyword: str | None = None):
+def enqueue_gem_run_request(keyword: str | None = None, company_id=None):
     """Record a user request (from the web app) to run the GeM search on the
     office/recipient PC. The local agent polls for and claims these."""
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        # Collapse older still-pending requests so the queue can't pile up.
-        cur.execute("UPDATE gem_run_requests SET status='SUPERSEDED', completed_at=CURRENT_TIMESTAMP WHERE status='PENDING'")
+        # Collapse older still-pending requests (for this company) so the queue can't pile up.
+        cur.execute("UPDATE gem_run_requests SET status='SUPERSEDED', completed_at=CURRENT_TIMESTAMP WHERE status='PENDING' AND company_id=%s", (company_id,))
         cur.execute(
-            """INSERT INTO gem_run_requests (keyword, status)
-               VALUES (%s, 'PENDING') RETURNING *""",
-            ((keyword or "").strip() or None,),
+            """INSERT INTO gem_run_requests (keyword, status, company_id)
+               VALUES (%s, 'PENDING', %s) RETURNING *""",
+            ((keyword or "").strip() or None, company_id),
         )
         row = dict(cur.fetchone())
     conn.commit()
@@ -2295,7 +2818,7 @@ def enqueue_gem_run_request(keyword: str | None = None):
     return row
 
 
-def claim_gem_run_request():
+def claim_gem_run_request(company_id=None):
     """Atomically hand the oldest pending request to a polling agent.
 
     A claimed request means a fresh on-demand search is starting, so the
@@ -2304,54 +2827,70 @@ def claim_gem_run_request():
     earlier "omron" discoveries). Tenders already inserted into All Tenders are
     untouched — only the discovered list is reset.
     """
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """UPDATE gem_run_requests SET status='RUNNING', claimed_at=CURRENT_TIMESTAMP
                WHERE id = (
-                   SELECT id FROM gem_run_requests WHERE status='PENDING'
+                   SELECT id FROM gem_run_requests WHERE status='PENDING' AND company_id=%s
                    ORDER BY requested_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
                )
-               RETURNING *"""
+               RETURNING *""",
+            (company_id,),
         )
         row = cur.fetchone()
         if row:
-            cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders")
+            # A fresh on-demand search is starting: reset only this company's
+            # discovered list (tenders already inserted into All Tenders stay).
+            cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders WHERE company_id=%s", (company_id,))
             pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
-            cur.execute("DELETE FROM gem_discovered_tenders")
+            cur.execute("DELETE FROM gem_discovered_tenders WHERE company_id=%s", (company_id,))
             _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
     conn.close()
     return dict(row) if row else None
 
 
-def complete_gem_run_request(request_id: int, *, status: str = "DONE", summary: str | None = None):
+def complete_gem_run_request(request_id: int, *, status: str = "DONE", summary: str | None = None, company_id=None):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            """UPDATE gem_run_requests SET status=%s, summary=%s, completed_at=CURRENT_TIMESTAMP
-               WHERE id=%s RETURNING *""",
-            (status, (summary or "")[:4000] or None, request_id),
-        )
+        if company_id:
+            cur.execute(
+                """UPDATE gem_run_requests SET status=%s, summary=%s, completed_at=CURRENT_TIMESTAMP
+                   WHERE id=%s AND company_id=%s RETURNING *""",
+                (status, (summary or "")[:4000] or None, request_id, company_id),
+            )
+        else:
+            cur.execute(
+                """UPDATE gem_run_requests SET status=%s, summary=%s, completed_at=CURRENT_TIMESTAMP
+                   WHERE id=%s RETURNING *""",
+                (status, (summary or "")[:4000] or None, request_id),
+            )
         row = cur.fetchone()
     conn.commit()
     conn.close()
     return dict(row) if row else None
 
 
-def get_latest_gem_run_request():
+def get_latest_gem_run_request(company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM gem_run_requests ORDER BY requested_at DESC LIMIT 1")
+        cur.execute("SELECT * FROM gem_run_requests WHERE company_id=%s ORDER BY requested_at DESC LIMIT 1", (company_id,))
         row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
 
 
-def get_discovered_tender_by_bid(gem_bid_number: str):
+def get_discovered_tender_by_bid(gem_bid_number: str, company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        cur.execute(
+            "SELECT * FROM gem_discovered_tenders WHERE gem_bid_number=%s AND company_id=%s",
+            (gem_bid_number, company_id),
+        )
         row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -2368,12 +2907,13 @@ def _delete_orphaned_discovered_pdfs(cur, file_ids):
             cur.execute("DELETE FROM uploaded_files WHERE id=%s", (fid,))
 
 
-def delete_discovered_tender(gem_bid_number: str) -> bool:
+def delete_discovered_tender(gem_bid_number: str, company_id=None) -> bool:
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders WHERE gem_bid_number=%s AND company_id=%s", (gem_bid_number, company_id))
         pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
-        cur.execute("DELETE FROM gem_discovered_tenders WHERE gem_bid_number=%s", (gem_bid_number,))
+        cur.execute("DELETE FROM gem_discovered_tenders WHERE gem_bid_number=%s AND company_id=%s", (gem_bid_number, company_id))
         deleted = cur.rowcount
         _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
@@ -2381,15 +2921,16 @@ def delete_discovered_tender(gem_bid_number: str) -> bool:
     return deleted > 0
 
 
-def clear_discovered_tenders() -> int:
-    """Delete every row from the discovered-tenders list (and their orphaned PDF
-    copies). This does NOT touch the tenders table, so anything already inserted
-    into All Tenders — and its PDF — stays there."""
+def clear_discovered_tenders(company_id=None) -> int:
+    """Delete every row from the discovered-tenders list for a company (and their
+    orphaned PDF copies). This does NOT touch the tenders table, so anything
+    already inserted into All Tenders — and its PDF — stays there."""
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders")
+        cur.execute("SELECT stored_pdf_file_id FROM gem_discovered_tenders WHERE company_id=%s", (company_id,))
         pdf_ids = [r["stored_pdf_file_id"] for r in cur.fetchall()]
-        cur.execute("DELETE FROM gem_discovered_tenders")
+        cur.execute("DELETE FROM gem_discovered_tenders WHERE company_id=%s", (company_id,))
         deleted = cur.rowcount
         _delete_orphaned_discovered_pdfs(cur, pdf_ids)
     conn.commit()
@@ -2397,16 +2938,17 @@ def clear_discovered_tenders() -> int:
     return deleted
 
 
-def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
+def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED", company_id=None):
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """INSERT INTO gem_discovered_tenders (
                    gem_bid_number, keyword_matched, raw_title, raw_organisation, raw_department,
                    raw_quantity, bid_start_date, bid_end_date, gem_pdf_url, raw_gem_data,
-                   source, action_taken, last_checked_at
-               ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)
-               ON CONFLICT (gem_bid_number) DO UPDATE SET
+                   source, action_taken, company_id, last_checked_at
+               ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)
+               ON CONFLICT (company_id, gem_bid_number) DO UPDATE SET
                    keyword_matched=COALESCE(EXCLUDED.keyword_matched, gem_discovered_tenders.keyword_matched),
                    raw_title=COALESCE(EXCLUDED.raw_title, gem_discovered_tenders.raw_title),
                    raw_organisation=COALESCE(EXCLUDED.raw_organisation, gem_discovered_tenders.raw_organisation),
@@ -2432,6 +2974,7 @@ def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
                 psycopg2.extras.Json(payload.get("rawGemData") or {}),
                 payload.get("source") or "LOCAL_GEM_AGENT",
                 action_taken,
+                company_id,
             ),
         )
         row = dict(cur.fetchone())
@@ -2440,9 +2983,10 @@ def upsert_discovered_tender(payload: dict, *, action_taken="DISCOVERED"):
     return row
 
 
-def update_discovered_tender(gem_bid_number: str, **fields):
+def update_discovered_tender(gem_bid_number: str, company_id=None, **fields):
+    company_id = _resolve_company_id(company_id)
     if not fields:
-        return get_discovered_tender_by_bid(gem_bid_number)
+        return get_discovered_tender_by_bid(gem_bid_number, company_id)
     json_fields = {"raw_gem_data", "extracted_data"}
     set_parts = []
     values = []
@@ -2453,8 +2997,8 @@ def update_discovered_tender(gem_bid_number: str, **fields):
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            f"UPDATE gem_discovered_tenders SET {', '.join(set_parts)} WHERE gem_bid_number=%s RETURNING *",
-            values + [gem_bid_number],
+            f"UPDATE gem_discovered_tenders SET {', '.join(set_parts)} WHERE gem_bid_number=%s AND company_id=%s RETURNING *",
+            values + [gem_bid_number, company_id],
         )
         row = cur.fetchone()
     conn.commit()
@@ -2462,9 +3006,10 @@ def update_discovered_tender(gem_bid_number: str, **fields):
     return dict(row) if row else None
 
 
-def list_gem_discovered_tenders(keyword=None, action_taken=None, inserted=None, date_from=None, date_to=None):
-    where = []
-    values = []
+def list_gem_discovered_tenders(keyword=None, action_taken=None, inserted=None, date_from=None, date_to=None, company_id=None):
+    company_id = _resolve_company_id(company_id)
+    where = ["company_id=%s"]
+    values = [company_id]
     if keyword:
         where.append("LOWER(keyword_matched)=LOWER(%s)")
         values.append(keyword)
@@ -2548,83 +3093,28 @@ def get_prepared_document_file(doc_id):
 
 # ── Stamp / Signature binary storage ─────────────────────────────────────────
 
-def _ensure_profile_row(cur):
-    cur.execute("SELECT id FROM company_profile LIMIT 1")
-    return cur.fetchone()
+def save_stamp(data_bytes, content_type, original_name, company_id=None):
+    save_company_profile_asset("stamp", data_bytes, content_type, original_name, company_id=company_id)
 
 
-def save_stamp(data_bytes, content_type, original_name):
-    conn = get_db()
-    with conn.cursor() as cur:
-        row = _ensure_profile_row(cur)
-        if row:
-            cur.execute(
-                "UPDATE company_profile SET stamp_data=%s, stamp_content_type=%s, stamp_original_name=%s",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-        else:
-            cur.execute(
-                "INSERT INTO company_profile (stamp_data, stamp_content_type, stamp_original_name) VALUES (%s,%s,%s)",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-    conn.commit()
-    conn.close()
+def get_stamp(company_id=None):
+    return get_company_profile_asset("stamp", company_id=company_id)
 
 
-def get_stamp():
-    conn = get_db()
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT stamp_data, stamp_content_type, stamp_original_name FROM company_profile LIMIT 1")
-        row = cur.fetchone()
-    conn.close()
-    if not row or not row["stamp_data"]:
-        return None
-    return dict(row)
+def clear_stamp(company_id=None):
+    clear_company_profile_asset("stamp", company_id=company_id)
 
 
-def clear_stamp():
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("UPDATE company_profile SET stamp_data=NULL, stamp_content_type=NULL, stamp_original_name=NULL")
-    conn.commit()
-    conn.close()
+def save_signature(data_bytes, content_type, original_name, company_id=None):
+    save_company_profile_asset("signature", data_bytes, content_type, original_name, company_id=company_id)
 
 
-def save_signature(data_bytes, content_type, original_name):
-    conn = get_db()
-    with conn.cursor() as cur:
-        row = _ensure_profile_row(cur)
-        if row:
-            cur.execute(
-                "UPDATE company_profile SET signature_data=%s, signature_content_type=%s, signature_original_name=%s",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-        else:
-            cur.execute(
-                "INSERT INTO company_profile (signature_data, signature_content_type, signature_original_name) VALUES (%s,%s,%s)",
-                (psycopg2.Binary(data_bytes), content_type, original_name),
-            )
-    conn.commit()
-    conn.close()
+def get_signature(company_id=None):
+    return get_company_profile_asset("signature", company_id=company_id)
 
 
-def get_signature():
-    conn = get_db()
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT signature_data, signature_content_type, signature_original_name FROM company_profile LIMIT 1")
-        row = cur.fetchone()
-    conn.close()
-    if not row or not row["signature_data"]:
-        return None
-    return dict(row)
-
-
-def clear_signature():
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("UPDATE company_profile SET signature_data=NULL, signature_content_type=NULL, signature_original_name=NULL")
-    conn.commit()
-    conn.close()
+def clear_signature(company_id=None):
+    clear_company_profile_asset("signature", company_id=company_id)
 
 
 # ── Company Document binary storage ──────────────────────────────────────────
@@ -2849,28 +3339,29 @@ def is_gem_scan_running() -> bool:
 
 # ── GeM Tender Watcher: Candidate Tenders ───────────────────────────────────────
 
-def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id: int | None = None) -> dict:
-    """Insert a new candidate, or — if gem_bid_no already exists — merge the
-    searched keyword into matched_keywords. For stale/unprocessed rows (no PDF
-    saved yet), also refresh the latest GeM metadata/URLs so a re-scan can
-    recover from earlier partial failures without disturbing already-processed
-    tenders."""
+def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id: int | None = None, company_id=None) -> dict:
+    """Insert a new candidate, or — if gem_bid_no already exists for this company
+    — merge the searched keyword into matched_keywords. For stale/unprocessed
+    rows (no PDF saved yet), also refresh the latest GeM metadata/URLs so a
+    re-scan can recover from earlier partial failures without disturbing
+    already-processed tenders."""
+    company_id = _resolve_company_id(company_id)
     conn = get_db()
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """SELECT id, status, tender_id, pdf_file_id, scan_status
                FROM gem_candidate_tenders
-               WHERE gem_bid_no=%s
+               WHERE gem_bid_no=%s AND company_id=%s
                LIMIT 1""",
-            (gem_bid_no,),
+            (gem_bid_no, company_id),
         )
         existing = cur.fetchone()
         cur.execute(
             """INSERT INTO gem_candidate_tenders (
                    gem_bid_no, matched_keywords, title, organisation, department,
-                   quantity, bid_start_date, bid_end_date, gem_detail_url, pdf_url, status, scan_run_id
-               ) VALUES (%s, ARRAY[%s], %s, %s, %s, %s, %s, %s, %s, %s, 'QUEUED', %s)
-               ON CONFLICT (gem_bid_no) DO UPDATE SET
+                   quantity, bid_start_date, bid_end_date, gem_detail_url, pdf_url, status, scan_run_id, company_id
+               ) VALUES (%s, ARRAY[%s], %s, %s, %s, %s, %s, %s, %s, %s, 'QUEUED', %s, %s)
+               ON CONFLICT (company_id, gem_bid_no) DO UPDATE SET
                    matched_keywords = (
                        SELECT ARRAY(SELECT DISTINCT unnest(gem_candidate_tenders.matched_keywords || EXCLUDED.matched_keywords))
                    ),
@@ -3050,7 +3541,7 @@ def upsert_gem_candidate(gem_bid_no: str, keyword: str, data: dict, scan_run_id:
             (
                 gem_bid_no, keyword, data.get("title"), data.get("organisation"), data.get("department"),
                 data.get("quantity"), data.get("bid_start_date"), data.get("bid_end_date"),
-                data.get("gem_detail_url"), data.get("pdf_url"), scan_run_id,
+                data.get("gem_detail_url"), data.get("pdf_url"), scan_run_id, company_id,
             ),
         )
         candidate_id = cur.fetchone()["id"]
@@ -3186,8 +3677,9 @@ def save_gem_tender_evaluation(candidate_id: int, score, rating_label, matched_b
                    candidate_id, score, rating_label, matched_brands, matched_products,
                    negative_keywords, keyword_fit_score, keyword_fit_decision,
                    keyword_fit_reason, evaluation_stage, eligibility_status,
-                   rejection_reason, evaluation_json
-               ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                   rejection_reason, evaluation_json, company_id
+               ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                         COALESCE((SELECT company_id FROM gem_candidate_tenders WHERE id=%s), %s)) RETURNING id""",
             (
                 candidate_id, score, rating_label, matched_brands_text,
                 matched_products_text,
@@ -3197,9 +3689,522 @@ def save_gem_tender_evaluation(candidate_id: int, score, rating_label, matched_b
                 keyword_fit_reason,
                 evaluation_stage,
                 eligibility_status, rejection_reason, psycopg2.extras.Json(evaluation_json),
+                candidate_id, get_default_company_id(),
             ),
         )
         eval_id = cur.fetchone()[0]
     conn.commit()
     conn.close()
     return eval_id
+
+
+# ── Tender JSON export / import (round-trippable) ─────────────────────────────
+#
+# The All Tenders page groups tenders into sections by participation_status.
+# The export/import bundle carries a finer "status enum" that maps onto those
+# sections, so an imported tender lands in the right section purely from its
+# status. participation_status stays the single source of truth the page filters
+# on; status_enum only preserves the exact exported value for a lossless
+# round-trip.
+
+# JSON export status enum -> All Tenders participation_status (the section).
+EXPORT_STATUS_TO_PARTICIPATION = {
+    "NEW": "IN PROGRESS",
+    "SAVED": "IN PROGRESS",
+    "UNDER_REVIEW": "IN PROGRESS",
+    "FILED": "FILED",
+    "PARTICIPATED": "FILED",
+    "REVIEWED": "QUALIFIED",
+    "REJECTED": "DISQUALIFIED",
+    "WON": "WON",
+    "LOST": "LOST",
+    "FAILED": "FAILED",
+}
+
+# participation_status -> the canonical status enum used when a tender has no
+# stored status_enum (e.g. rows created before import/export existed).
+PARTICIPATION_TO_EXPORT_STATUS = {
+    "IN PROGRESS": "UNDER_REVIEW",
+    "FILED": "FILED",
+    "QUALIFIED": "REVIEWED",
+    "DISQUALIFIED": "REJECTED",
+    "WON": "WON",
+    "LOST": "LOST",
+    "FAILED": "FAILED",
+}
+
+VALID_EXPORT_STATUSES = set(EXPORT_STATUS_TO_PARTICIPATION.keys())
+DEFAULT_EXPORT_STATUS = "UNDER_REVIEW"
+
+
+def normalize_export_status(value):
+    """Coerce an arbitrary status string to a valid export-enum value, defaulting
+    to UNDER_REVIEW (→ In Progress) when unknown."""
+    text = str(value or "").strip().upper().replace(" ", "_")
+    return text if text in VALID_EXPORT_STATUSES else DEFAULT_EXPORT_STATUS
+
+
+def _effective_export_status(row: dict) -> str:
+    """Best status enum for a tender row: the stored status_enum if valid, else
+    one derived from participation_status."""
+    stored = str(row.get("status_enum") or "").strip().upper()
+    if stored in VALID_EXPORT_STATUSES:
+        return stored
+    part = str(row.get("participation_status") or "").strip().upper()
+    return PARTICIPATION_TO_EXPORT_STATUS.get(part, DEFAULT_EXPORT_STATUS)
+
+
+def _row_bool(value) -> bool:
+    return bool(value)
+
+
+def _export_result_object(cur, tender_row: dict) -> dict:
+    """Assemble the round-trippable result object for one tender."""
+    tender_id = tender_row["id"]
+    cur.execute("SELECT * FROM tender_result_summary WHERE tender_id=%s", (tender_id,))
+    summary = dict(cur.fetchone() or {})
+    cur.execute(
+        "SELECT * FROM tender_result_participants WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    participants = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        "SELECT * FROM tender_technical_evaluation WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    technical = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        "SELECT * FROM tender_financial_evaluation WHERE tender_id=%s ORDER BY id",
+        (tender_id,),
+    )
+    financial = [dict(r) for r in cur.fetchall()]
+
+    def _clean_rows(rows):
+        out = []
+        for r in rows:
+            r = dict(r)
+            r.pop("id", None)
+            r.pop("tender_id", None)
+            r.pop("created_at", None)
+            r.pop("updated_at", None)
+            r.pop("raw_data", None)
+            out.append(r)
+        return out
+
+    return {
+        "watcherStatus": tender_row.get("gem_result_status") or "PENDING",
+        "resultStatus": summary.get("current_stage") or "NOT_CHECKED",
+        "raStatus": ("CREATED" if _row_bool(tender_row.get("ra_created")) else "PLACEHOLDER"),
+        "resultDeclared": _row_bool(tender_row.get("result_declared")),
+        "gemBidNumber": tender_row.get("gem_bid_number"),
+        "gemResultUrl": tender_row.get("gem_result_url"),
+        "gemRaNumber": tender_row.get("gem_ra_number"),
+        "gemRaUrl": tender_row.get("gem_ra_url"),
+        "resultAvailable": _row_bool(tender_row.get("result_available")),
+        "bidResultAvailable": _row_bool(tender_row.get("bid_result_available")),
+        "raCreated": _row_bool(tender_row.get("ra_created")),
+        "raResultAvailable": _row_bool(tender_row.get("ra_result_available")),
+        "summary": {k: v for k, v in summary.items() if k not in ("id", "tender_id", "created_at", "updated_at")},
+        "participants": _clean_rows(participants),
+        "technicalResult": _clean_rows(technical),
+        "financialResult": _clean_rows(financial),
+    }
+
+
+def export_company_tenders(company_id=None):
+    """Return the full list of tender export objects for a company (non-deleted).
+
+    The shape matches exactly what import_company_tenders() consumes, so a file
+    exported today re-imports perfectly."""
+    company_id = _resolve_company_id(company_id)
+    conn = get_db()
+    tenders = []
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT * FROM tenders WHERE company_id=%s ORDER BY id",
+            (company_id,),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        for row in rows:
+            tid = row["id"]
+            cur.execute("SELECT * FROM tender_items WHERE tender_id=%s ORDER BY id", (tid,))
+            items = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_required_documents WHERE tender_id=%s ORDER BY id", (tid,))
+            req_docs = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_prepared_documents WHERE tender_id=%s ORDER BY id", (tid,))
+            prepared = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tender_evaluation_snapshots WHERE tender_id=%s", (tid,))
+            snap = cur.fetchone()
+            cur.execute(
+                "SELECT id, original_file_name, content_type, file_size FROM tender_attachments WHERE tender_id=%s ORDER BY id",
+                (tid,),
+            )
+            attachments = [dict(r) for r in cur.fetchall()]
+
+            boq_items = [
+                {
+                    "itemNumber": it.get("part_number"),
+                    "itemTitle": it.get("item_description"),
+                    "makeModel": it.get("make_model"),
+                    "quantity": it.get("quantity"),
+                    "unit": it.get("unit"),
+                }
+                for it in items
+            ]
+
+            # Prepared-document metadata keyed by label, to enrich the documents list.
+            prepared_by_label = {}
+            for pd in prepared:
+                label = (pd.get("required_document_label") or pd.get("document_name") or "").strip()
+                if label:
+                    prepared_by_label[label] = pd
+            documents = []
+            for d in req_docs:
+                label = (d.get("label") or "").strip()
+                pd = prepared_by_label.get(label)
+                documents.append({
+                    "name": label,
+                    "generated": bool(pd and (pd.get("generated_file_name") or (pd.get("source_type") == "ai_generated"))),
+                    "fileUrl": (pd.get("generated_file_path") if pd else None),
+                })
+
+            # File links only (never the bytes).
+            files = []
+            if row.get("pdf_path"):
+                files.append({
+                    "fileName": (row.get("tender_number") or row.get("gem_bidding_number") or "tender"),
+                    "fileUrl": row["pdf_path"],
+                    "kind": "ORIGINAL",
+                })
+            for att in attachments:
+                files.append({
+                    "fileName": att.get("original_file_name"),
+                    "fileUrl": f"/api/attachments/{att['id']}/download",
+                    "kind": "ATTACHMENT",
+                })
+
+            evaluations = []
+            if snap:
+                snap = dict(snap)
+                evaluations.append({
+                    "eligibilityScore": snap.get("eligibility_score"),
+                    "riskScore": snap.get("risk_score"),
+                    "recommendation": snap.get("recommendation"),
+                    "notes": snap.get("notes"),
+                    "data": snap.get("evaluation_json"),
+                })
+
+            tenders.append({
+                "gemBidNo": row.get("gem_bidding_number"),
+                "tenderNumber": row.get("tender_number"),
+                "organisation": row.get("organization_name"),
+                "department": row.get("department_name"),
+                "office": row.get("office_name_location"),
+                "item": row.get("make"),
+                "date": row.get("date"),
+                "bidEndDate": row.get("bid_end_datetime"),
+                "bidOpenDate": row.get("bid_opening_datetime"),
+                "quantity": row.get("total_quantity"),
+                "estimatedValue": row.get("tender_approx_value"),
+                "sourceUrl": row.get("pdf_path"),
+                "notes": row.get("notes"),
+                "accountManager": row.get("ac_manager"),
+                "remark": row.get("remark"),
+                "filedDate": row.get("filed_date"),
+                "status": _effective_export_status(row),
+                "uploadDate": row.get("uploaded_at"),
+                "files": files,
+                "boqItems": boq_items,
+                "extractions": [{"data": {"boqItems": boq_items}}],
+                "documents": documents,
+                "evaluations": evaluations,
+                "result": _export_result_object(cur, row),
+            })
+    conn.close()
+    return tenders
+
+
+def _restore_result_detail_rows(cur, table_name: str, tender_id: int, rows: list, columns: list):
+    cur.execute(f"DELETE FROM {table_name} WHERE tender_id=%s", (tender_id,))
+    if not rows:
+        return
+    for r in rows:
+        r = dict(r)
+        source_type = (r.get("source_type") or "BID")
+        source_number = r.get("source_number")
+        col_names = ["tender_id", "source_type", "source_number"] + columns + ["raw_data"]
+        placeholders = ", ".join(["%s"] * len(col_names))
+        values = [tender_id, source_type, source_number] + [r.get(c) for c in columns] + [psycopg2.extras.Json(r)]
+        cur.execute(
+            f"INSERT INTO {table_name} ({', '.join(col_names)}) VALUES ({placeholders})",
+            values,
+        )
+
+
+def _restore_tender_result(cur, tender_id: int, result: dict):
+    if not isinstance(result, dict) or not result:
+        return
+    # Restore the result flags onto the tenders row.
+    cur.execute(
+        """UPDATE tenders SET
+               gem_result_status = COALESCE(%s, gem_result_status),
+               result_available = %s,
+               bid_result_available = %s,
+               ra_created = %s,
+               ra_result_available = %s,
+               result_declared = %s,
+               gem_result_url = COALESCE(%s, gem_result_url),
+               gem_bid_number = COALESCE(%s, gem_bid_number),
+               gem_ra_number = COALESCE(%s, gem_ra_number),
+               gem_ra_url = COALESCE(%s, gem_ra_url)
+           WHERE id=%s""",
+        (
+            result.get("watcherStatus"),
+            _row_bool(result.get("resultAvailable")),
+            _row_bool(result.get("bidResultAvailable")),
+            _row_bool(result.get("raCreated")),
+            _row_bool(result.get("raResultAvailable")),
+            _row_bool(result.get("resultDeclared")),
+            result.get("gemResultUrl"),
+            result.get("gemBidNumber"),
+            result.get("gemRaNumber"),
+            result.get("gemRaUrl"),
+            tender_id,
+        ),
+    )
+    # Restore the result summary + detail rows.
+    summary = result.get("summary") or {}
+    if summary:
+        cols = [
+            "gem_bid_number", "current_source_type", "current_bid_or_ra_number",
+            "bid_result_available", "bid_technical_available", "bid_financial_available",
+            "ra_created", "ra_number", "ra_start_date", "ra_end_date",
+            "ra_result_available", "ra_technical_available", "ra_financial_available",
+            "current_stage", "our_company_participated", "our_company_technical_status",
+            "our_company_financial_rank", "our_company_final_price", "result_url",
+        ]
+        present = [c for c in cols if c in summary]
+        cur.execute("DELETE FROM tender_result_summary WHERE tender_id=%s", (tender_id,))
+        col_names = ["tender_id"] + present
+        placeholders = ", ".join(["%s"] * len(col_names))
+        values = [tender_id] + [summary.get(c) for c in present]
+        cur.execute(
+            f"INSERT INTO tender_result_summary ({', '.join(col_names)}) VALUES ({placeholders})",
+            values,
+        )
+    _restore_result_detail_rows(
+        cur, "tender_result_participants", tender_id, result.get("participants") or [],
+        ["seller_name", "offered_item", "make", "model", "title", "participated_on", "mse_mii_status", "status"],
+    )
+    _restore_result_detail_rows(
+        cur, "tender_technical_evaluation", tender_id, result.get("technicalResult") or [],
+        ["seller_name", "offered_item", "make", "model", "title", "participated_on", "mse_mii_status", "technical_status"],
+    )
+    _restore_result_detail_rows(
+        cur, "tender_financial_evaluation", tender_id, result.get("financialResult") or [],
+        ["seller_name", "offered_item", "total_price", "rank", "financial_status"],
+    )
+
+
+def _boq_items_from_export(tender: dict) -> list:
+    """Pull BOQ items from either the top-level boqItems or the nested
+    extractions[].data.boqItems, mapping to tender_items columns."""
+    raw = tender.get("boqItems")
+    if not raw:
+        for ex in (tender.get("extractions") or []):
+            data = (ex or {}).get("data") or {}
+            if data.get("boqItems"):
+                raw = data["boqItems"]
+                break
+    items = []
+    for b in (raw or []):
+        if not isinstance(b, dict):
+            continue
+        items.append({
+            "part_number": b.get("itemNumber") or b.get("part_number"),
+            "item_description": b.get("itemTitle") or b.get("item_description"),
+            "quantity": b.get("quantity"),
+            "make_model": b.get("makeModel") or b.get("make_model"),
+            "unit": b.get("unit"),
+        })
+    return items
+
+
+def import_company_tenders(tenders: list, company_id=None):
+    """Upsert tenders from an export bundle. Match by gemBidNo, then tenderNumber.
+    Returns {created, updated, skipped, errors[]}."""
+    company_id = _resolve_company_id(company_id)
+    created = updated = skipped = 0
+    errors = []
+    for idx, tender in enumerate(tenders or []):
+        if not isinstance(tender, dict):
+            skipped += 1
+            errors.append({"index": idx, "error": "Entry is not an object"})
+            continue
+        gem_bid_no = (str(tender.get("gemBidNo") or "").strip() or None)
+        tender_number = (str(tender.get("tenderNumber") or "").strip() or None)
+        if not gem_bid_no and not tender_number:
+            skipped += 1
+            errors.append({"index": idx, "error": "Missing both gemBidNo and tenderNumber"})
+            continue
+        status_enum = normalize_export_status(tender.get("status"))
+        participation_status = EXPORT_STATUS_TO_PARTICIPATION.get(status_enum, "IN PROGRESS")
+        items = _boq_items_from_export(tender)
+        documents = [
+            {"label": (d.get("name") if isinstance(d, dict) else d)}
+            for d in (tender.get("documents") or [])
+            if (d.get("name") if isinstance(d, dict) else d)
+        ]
+        filed_date = tender.get("filedDate")
+        conn = get_db()
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT id FROM tenders
+                       WHERE company_id=%(cid)s
+                         AND ((%(gbn)s IS NOT NULL AND gem_bidding_number=%(gbn)s)
+                           OR (%(tn)s IS NOT NULL AND tender_number=%(tn)s))
+                       ORDER BY id LIMIT 1""",
+                    {"cid": company_id, "gbn": gem_bid_no, "tn": tender_number},
+                )
+                existing = cur.fetchone()
+                if existing:
+                    tender_id = existing["id"]
+                    cur.execute(
+                        """UPDATE tenders SET
+                               gem_bidding_number = COALESCE(%s, gem_bidding_number),
+                               tender_number = COALESCE(%s, tender_number),
+                               date = COALESCE(%s, date),
+                               bid_end_datetime = COALESCE(%s, bid_end_datetime),
+                               bid_opening_datetime = COALESCE(%s, bid_opening_datetime),
+                               department_name = COALESCE(%s, department_name),
+                               organization_name = COALESCE(%s, organization_name),
+                               office_name_location = COALESCE(%s, office_name_location),
+                               total_quantity = COALESCE(%s, total_quantity),
+                               make = COALESCE(%s, make),
+                               tender_approx_value = COALESCE(%s, tender_approx_value),
+                               pdf_path = COALESCE(%s, pdf_path),
+                               notes = %s,
+                               ac_manager = %s,
+                               remark = %s,
+                               filed_date = COALESCE(%s, filed_date),
+                               status_enum = %s,
+                               participation_status = %s
+                           WHERE id=%s AND company_id=%s""",
+                        (
+                            gem_bid_no, tender_number, tender.get("date"),
+                            tender.get("bidEndDate"), tender.get("bidOpenDate"),
+                            tender.get("department"), tender.get("organisation"),
+                            tender.get("office"), tender.get("quantity"),
+                            tender.get("item"), tender.get("estimatedValue"),
+                            tender.get("sourceUrl"), tender.get("notes"),
+                            tender.get("accountManager"), tender.get("remark"),
+                            filed_date, status_enum, participation_status,
+                            tender_id, company_id,
+                        ),
+                    )
+                    cur.execute("DELETE FROM tender_items WHERE tender_id=%s", (tender_id,))
+                    cur.execute("DELETE FROM tender_required_documents WHERE tender_id=%s", (tender_id,))
+                    _insert_items(cur, tender_id, items, source_type="imported")
+                    _insert_docs(cur, tender_id, documents)
+                    _import_evaluation_snapshot(cur, tender_id, tender)
+                    _restore_tender_result(cur, tender_id, tender.get("result") or {})
+                    updated += 1
+                else:
+                    now = datetime.now().isoformat()
+                    cur.execute(
+                        """INSERT INTO tenders (
+                               gem_bidding_number, tender_number, date, bid_end_datetime, bid_opening_datetime,
+                               department_name, organization_name, office_name_location,
+                               total_quantity, make, tender_approx_value,
+                               uploaded_at, pdf_path, notes, ac_manager, remark, filed_date,
+                               status, status_enum, participation_status, company_id
+                           ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                           RETURNING id""",
+                        (
+                            gem_bid_no, tender_number, tender.get("date"),
+                            tender.get("bidEndDate"), tender.get("bidOpenDate"),
+                            tender.get("department"), tender.get("organisation"),
+                            tender.get("office"), tender.get("quantity"),
+                            tender.get("item"), tender.get("estimatedValue"),
+                            tender.get("uploadDate") or now, tender.get("sourceUrl"),
+                            tender.get("notes"), tender.get("accountManager"),
+                            tender.get("remark"), filed_date,
+                            "imported", status_enum, participation_status, company_id,
+                        ),
+                    )
+                    tender_id = cur.fetchone()["id"]
+                    _insert_items(cur, tender_id, items, source_type="imported")
+                    _insert_docs(cur, tender_id, documents)
+                    _import_evaluation_snapshot(cur, tender_id, tender)
+                    _restore_tender_result(cur, tender_id, tender.get("result") or {})
+                    created += 1
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            skipped += 1
+            errors.append({
+                "index": idx,
+                "gemBidNo": gem_bid_no,
+                "tenderNumber": tender_number,
+                "error": f"{type(e).__name__}: {e}",
+            })
+        finally:
+            conn.close()
+    return {"created": created, "updated": updated, "skipped": skipped, "errors": errors}
+
+
+def _import_evaluation_snapshot(cur, tender_id: int, tender: dict):
+    evaluations = tender.get("evaluations") or []
+    if not evaluations:
+        return
+    ev = evaluations[0] if isinstance(evaluations[0], dict) else {}
+    cur.execute(
+        """INSERT INTO tender_evaluation_snapshots
+               (tender_id, eligibility_score, risk_score, recommendation, notes, evaluation_json)
+           VALUES (%s, %s, %s, %s, %s, %s)
+           ON CONFLICT (tender_id) DO UPDATE SET
+               eligibility_score = EXCLUDED.eligibility_score,
+               risk_score = EXCLUDED.risk_score,
+               recommendation = EXCLUDED.recommendation,
+               notes = EXCLUDED.notes,
+               evaluation_json = EXCLUDED.evaluation_json,
+               updated_at = CURRENT_TIMESTAMP""",
+        (
+            tender_id,
+            ev.get("eligibilityScore"),
+            ev.get("riskScore"),
+            ev.get("recommendation"),
+            ev.get("notes"),
+            psycopg2.extras.Json(ev.get("data")) if ev.get("data") is not None else None,
+        ),
+    )
+
+
+def save_tender_evaluation_snapshot(tender_id: int, evaluation: dict, company_id=None):
+    """Persist the latest capability evaluation for a saved tender so it can be
+    exported. One row per tender."""
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO tender_evaluation_snapshots
+                   (tender_id, eligibility_score, risk_score, recommendation, notes, evaluation_json)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               ON CONFLICT (tender_id) DO UPDATE SET
+                   eligibility_score = EXCLUDED.eligibility_score,
+                   risk_score = EXCLUDED.risk_score,
+                   recommendation = EXCLUDED.recommendation,
+                   notes = EXCLUDED.notes,
+                   evaluation_json = EXCLUDED.evaluation_json,
+                   updated_at = CURRENT_TIMESTAMP""",
+            (
+                tender_id,
+                evaluation.get("score") or evaluation.get("eligibilityScore"),
+                evaluation.get("riskScore") or evaluation.get("risk_score"),
+                evaluation.get("decision") or evaluation.get("recommendation"),
+                evaluation.get("summary") or evaluation.get("notes"),
+                psycopg2.extras.Json(evaluation),
+            ),
+        )
+    conn.commit()
+    conn.close()
